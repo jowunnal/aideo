@@ -1,2 +1,0 @@
-package jinproject.aideo.app
-

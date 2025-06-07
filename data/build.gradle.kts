@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.google.protobuf.gradle.GenerateProtoTask
 
 plugins {
@@ -26,24 +25,12 @@ android {
         getByName("androidTest").assets.srcDirs(files("$projectDir/schemas"))
     }
 
-    defaultConfig {
-        buildConfigField("String","OPENAI_APIKEY",getLocalKey("openAI.apiKey"))
-    }
-
-    buildFeatures {
-        buildConfig = true
-    }
-
     buildTypes {
         release {
             consumerProguardFile("proguard-rules.pro")
         }
     }
 
-}
-
-fun getLocalKey(propertyKey:String):String{
-    return gradleLocalProperties(rootDir, providers).getProperty(propertyKey)
 }
 
 dependencies {
