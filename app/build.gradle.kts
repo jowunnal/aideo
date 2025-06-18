@@ -23,7 +23,6 @@ android {
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.test.appId")
             buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.test.rewardId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.test.unitId"))
-            buildConfigField("Boolean", "IS_DEBUG_MODE", "true")
             extra.set("alwaysUpdateBuildId", true)
         }
         release {
@@ -36,7 +35,6 @@ android {
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.real.appId")
             buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.real.rewardId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.real.unitId"))
-            buildConfigField("Boolean", "IS_DEBUG_MODE", "false")
         }
     }
 
