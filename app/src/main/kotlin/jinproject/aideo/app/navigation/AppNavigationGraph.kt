@@ -14,6 +14,9 @@ import androidx.navigation.compose.NavHost
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
+import jinproject.aideo.gallery.galleryNavGraph
+import jinproject.aideo.player.navigateToPlayerGraph
+import jinproject.aideo.player.playerNavGraph
 
 @Composable
 internal fun NavigationGraph(
@@ -29,8 +32,16 @@ internal fun NavigationGraph(
         startDestination = GalleryRoute.GalleryGraph,
         modifier = modifier
     ) {
+        galleryNavGraph(navigateToPlayerGraph = { videoUri, navOptions ->
+            navController.navigateToPlayerGraph(
+                videoUri = videoUri,
+                navOptions = navOptions
+            )
+        })
 
-
+        playerNavGraph(
+            navigatePopBackStack = navController::popBackStackIfCan
+        )
     }
 }
 

@@ -59,9 +59,9 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.ktx.Firebase
-import jinproject.aideo.app.ad.AdMobManager
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
+import jinproject.aideo.app.ad.AdMobManager
 import jinproject.aideo.app.navigation.NavigationDefaults
 import jinproject.aideo.app.navigation.NavigationGraph
 import jinproject.aideo.app.navigation.isBarHasToBeShown

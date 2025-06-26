@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     id("jinProject.android.feature")
 }
@@ -9,4 +11,7 @@ android {
 
 dependencies {
     api(project(":features:core"))
+
+    implementation(libs.bundles.exoplayer)
+    implementation(libs.bundles.tensorflow.lite)
 }

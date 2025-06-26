@@ -6,6 +6,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import jinproject.aideo.core.TopLevelRoute
+import jinproject.aideo.core.parseUri
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -20,12 +21,18 @@ sealed class GalleryRoute {
     }
 }
 
-fun NavGraphBuilder.galleryNavGraph() {
+fun NavGraphBuilder.galleryNavGraph(
+    navigateToPlayerGraph: (videoUri: String, navOptions: NavOptions?) -> Unit,
+) {
     navigation<GalleryRoute.GalleryGraph>(
         startDestination = GalleryRoute.Gallery
     ) {
         composable<GalleryRoute.Gallery> {
-
+            GalleryScreen(
+                navigateToPlayer = { videoUri ->
+                    navigateToPlayerGraph(videoUri.parseUri(), null)
+                }
+            )
         }
     }
 }

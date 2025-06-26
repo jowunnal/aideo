@@ -13,12 +13,15 @@ import androidx.navigation.navOptions
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.navigateToGalleryGraph
+import jinproject.aideo.player.PlayerRoute
+import jinproject.aideo.player.navigateToPlayerGraph
 import kotlin.collections.any
 import kotlin.let
 import kotlin.sequences.any
 
 internal val TopLevelRoutes: List<TopLevelRoute> = listOf(
     GalleryRoute.Gallery,
+    PlayerRoute.Player
 )
 
 @Composable
@@ -48,6 +51,7 @@ internal class Router(val navController: NavHostController) {
 
         when (topLevelRoute) {
             is GalleryRoute.Gallery -> navController.navigateToGalleryGraph(navOptions)
+            is PlayerRoute.Player -> navController.navigateToPlayerGraph("", navOptions)
         }
     }
 

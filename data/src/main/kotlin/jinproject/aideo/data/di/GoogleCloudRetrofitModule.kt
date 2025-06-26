@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.data.BuildConfig
+import jinproject.aideo.data.datasource.remote.RemoteGCPDataSource
 import jinproject.aideo.data.datasource.remote.service.GCPService
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -18,6 +19,7 @@ import retrofit2.create
 import java.io.IOException
 import java.time.Duration
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -26,12 +28,12 @@ object GoogleCloudRetrofitModule {
 
     @Singleton
     @Provides
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideTranslationOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             })
-            .addInterceptor(HeaderInterceptor("Bearer ${BuildConfig.GOOGLE_STT_ID}"))
+            .addInterceptor(HeaderInterceptor("Bearer ${BuildConfig.GOOGLE_TRANSLATION_ID}"))
             .readTimeout(Duration.ofSeconds(60))
             .writeTimeout(Duration.ofSeconds(30))
             .build()
@@ -39,18 +41,18 @@ object GoogleCloudRetrofitModule {
 
     @Singleton
     @Provides
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideTranslationRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create(GsonBuilder().setLenient().create()))
-            .baseUrl("https://api.openai.com/v1/")
+            .baseUrl("https://translation.googleapis.com/")
             .client(okHttpClient)
             .build()
     }
 
     @Singleton
     @Provides
-    fun createGeneratingImageAPI(retrofit: Retrofit): GCPService =
+    fun createSTTService(retrofit: Retrofit): GCPService =
         retrofit.create()
 }
 

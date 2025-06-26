@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     id("jinProject.android.library")
     id("jinProject.android.hilt")
@@ -11,7 +13,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":data"))
     api(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     api(libs.bundles.billing)
+    api(files("libs/whisper_lib.aar"))
 }

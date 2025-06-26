@@ -21,22 +21,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import jinproject.aideo.design.component.text.SearchTextField
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.text.AppBarText
+import jinproject.aideo.design.component.text.SearchTextField
 import jinproject.aideo.design.utils.PreviewAideoTheme
 
 @Composable
-fun OneButtonAppBar(
+fun OneButtonTitleAppBar(
     buttonAlignment: Alignment = Alignment.CenterStart,
     @DrawableRes icon: Int,
     onBackClick: () -> Unit,
-    content: @Composable BoxScope.() -> Unit,
+    title: String,
 ) {
     DefaultAppBar(
         content = {
+            AppBarText(text = title, modifier = Modifier.align(Alignment.Center))
             DefaultIconButton(
                 modifier = Modifier
                     .align(buttonAlignment),
@@ -45,7 +46,6 @@ fun OneButtonAppBar(
                 iconTint = MaterialTheme.colorScheme.onSurface,
                 interactionSource = remember { MutableInteractionSource() }
             )
-            content()
         }
     )
 }

@@ -1,3 +1,6 @@
+import com.android.build.api.dsl.AaptOptions
+import com.android.build.api.dsl.AndroidResources
+import com.android.build.api.dsl.Packaging
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 
 plugins {
@@ -41,6 +44,12 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    android {
+        androidResources {
+            noCompress += "tflite"
+        }
+    }
 }
 
 fun getLocalKey(propertyKey:String):String{
@@ -51,6 +60,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":design"))
     implementation(project(":features:gallery"))
+    implementation(project(":features:player"))
 
     implementation(libs.google.gms.services.ads)
     implementation(libs.bundles.playInAppUpdate)
