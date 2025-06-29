@@ -27,6 +27,10 @@ android {
     }
 
     buildTypes {
+        all {
+            buildConfigField("String", "PROJECT_NAME", getLocalKey("project.name"))
+        }
+
         debug {
             buildConfigField("String","GOOGLE_STT_ID",getLocalKey("google.test.sttId"))
             buildConfigField("String", "GOOGLE_TRANSLATION_ID", getLocalKey("google.test.translationId"))
@@ -37,7 +41,6 @@ android {
 
             buildConfigField("String","GOOGLE_STT_ID",getLocalKey("google.real.sttId"))
             buildConfigField("String", "GOOGLE_TRANSLATION_ID", getLocalKey("google.real.translationId"))
-
         }
     }
 

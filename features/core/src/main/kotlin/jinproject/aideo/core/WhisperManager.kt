@@ -13,8 +13,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.remote.RemoteGCPDataSource
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -30,8 +30,14 @@ object WhisperManagerModule {
         @ApplicationContext context: Context,
         localFileDataSource: LocalFileDataSource,
         localPlayerDataSource: LocalPlayerDataSource,
+        remoteGCPDataSource: RemoteGCPDataSource,
     ): WhisperManager {
-        return WhisperManager(context, localFileDataSource, localPlayerDataSource)
+        return WhisperManager(
+            context = context,
+            localFileDataSource = localFileDataSource,
+            localPlayerDataSource = localPlayerDataSource,
+            remoteGCPDataSource = remoteGCPDataSource,
+        )
     }
 }
 
@@ -39,12 +45,19 @@ class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
     private val localPlayerDataSource: LocalPlayerDataSource,
+    private val remoteGCPDataSource: RemoteGCPDataSource,
 ) {
     private val modelsPath = File(context.filesDir, "models")
     lateinit var whisperContext: WhisperContext
 
-    var isBaseModelLoaded: Boolean by mutableStateOf(false)
+    var isReady: Boolean by mutableStateOf(false)
         private set
+
+    suspend fun load() {
+        copyWeightBinaryData()
+        loadBaseModel()
+        isReady = true
+    }
 
     private suspend fun copyWeightBinaryData() = withContext(Dispatchers.IO) {
         val assetPath = WEIGHT_FILE_PATH
@@ -67,28 +80,28 @@ class WhisperManager @Inject constructor(
                 context.assets,
                 WEIGHT_FILE_PATH,
             )
-            isBaseModelLoaded = true
         }
     }
 
     /**
      * 오디오 파일을 텍스트로 변환하는 함수
      *
-     * @param audioFile : 16 비트 PCM WAV 오디오 파일
+     * @param audioFileAbsolutePath : 16 비트 PCM WAV 오디오 파일
      */
-    private suspend fun transcribeAudio(audioFile: File) {
-        if (!isBaseModelLoaded) {
+    suspend fun transcribeAudio(audioFileAbsolutePath: String, getLanguage: suspend (String) -> String,) {
+        if (!isReady) {
             return
         }
 
         try {
+            val audioFile = localFileDataSource.getFileReference(audioFileAbsolutePath) ?: return
             val data = decodeWaveFile(audioFile)
             val transcribedText = whisperContext.transcribeData(data)
             val srtContent = convertToSrt(transcribedText)
-            val languageCode = localPlayerDataSource.getLanguageSetting().first()
+            val languageCode = getLanguage(srtContent.substring(0,50))
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileName = "${audioFile.name}_$languageCode.srt",
+                fileIdentifier = "${audioFile.name}_$languageCode".toAudioFileIdentifier(),
                 writeContentOnFile = { outputStream ->
                     runCatching {
                         outputStream.write(srtContent.toByteArray())
@@ -127,7 +140,7 @@ class WhisperManager @Inject constructor(
         }
     }
 
-    fun convertToSrt(transcribeOutput: String): String {
+    private fun convertToSrt(transcribeOutput: String): String {
         val lines = transcribeOutput.trim().lines()
         val srtBuilder = StringBuilder()
         val regex =

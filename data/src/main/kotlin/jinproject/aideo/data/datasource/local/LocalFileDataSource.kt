@@ -10,16 +10,16 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     /**
      * 로컬 경로에 파일 생성 후, 절대 경로를 반환하는 함수
      *
-     * @param fileName 생성할 파일의 이름
+     * @param fileIdentifier 생성할 파일의 식별자(이름+확장자)
      * @param writeContentOnFile 파일에 데이터를 쓰는 함수
      *
      * @return 파일의 content Uri or 생성에 실패한 경우 null
      */
     fun createFileAndWriteOnOutputStream(
-        fileName: String,
+        fileIdentifier: String,
         writeContentOnFile: (FileOutputStream) -> Boolean,
     ): String? {
-        val file = File(context.filesDir, fileName)
+        val file = File(context.filesDir, fileIdentifier)
 
         if (file.exists())
             return file.absolutePath
@@ -38,16 +38,19 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     /**
      * 로컬 경로에 파일 생성 후, 절대 경로를 반환하는 함수
      *
-     * @param fileName 생성할 파일의 이름
+     * @param fileIdentifier 생성할 파일의 식별자(이름+확장자)
      *
      * @return 파일의 content Uri or 파일이 이미 존재하는 경우 null
      */
     fun createFileAndGetAbsolutePath(
-        fileName: String,
-    ): String? {
-        val file = File(context.filesDir, fileName)
+        fileIdentifier: String,
+    ): String {
+        val file = File(context.filesDir, fileIdentifier)
 
-        return if (file.exists()) null else file.absolutePath
+        if(!file.exists())
+            file.createNewFile()
+
+        return file.absolutePath
     }
 
     fun deleteFile(fileName: String): Boolean {
@@ -67,5 +70,23 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
         val file = File(fileAbsolutePath)
 
         return if (file.exists()) file.readLines() else null
+    }
+
+    fun isFileExist(fileName: String): Boolean {
+        val file = File(context.filesDir, fileName)
+
+        return file.exists()
+    }
+
+    fun getFileReference(fileName: String): File? {
+        val file = File(context.filesDir, fileName)
+
+        return if(file.exists()) file else null
+    }
+
+    fun getFileAbsolutePath(fileName: String): String? {
+        val file = File(context.filesDir, fileName)
+
+        return if(file.exists()) file.absolutePath else null
     }
 }

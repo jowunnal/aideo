@@ -20,6 +20,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.toAudioFileIdentifier
+import jinproject.aideo.core.toSubtitleFileIdentifier
+import jinproject.aideo.core.toThumbnailFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -34,29 +37,37 @@ object VideoFileManagerModule {
     fun provideVideoFileManager(
         @ApplicationContext context: Context,
         localFileDataSource: LocalFileDataSource,
-    ): VideoFileManager =
-        VideoFileManager(context = context, localFileDataSource = localFileDataSource)
+    ): MediaFileManager =
+        MediaFileManager(context = context, localFileDataSource = localFileDataSource)
 }
 
 @OptIn(UnstableApi::class)
-class VideoFileManager @Inject constructor(
+class MediaFileManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
 ) {
 
+    /**
+     * 비디오로 부터 음성을 추출하여 파일을 생성하고, 파일의 절대경로를 반환하는 함수
+     *
+     * @param videoUri 비디오 컨텐트 uri
+     * @param outputFileName 오디오 파일 이름
+     *
+     * @return 파일의 절대 경로
+     */
     suspend fun extractAudioFromVideo(
-        context: Context,
         videoUri: Uri,
         outputFileName: String
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val fileName = "$outputFileName.wav"
+            val fileName = outputFileName.toAudioFileIdentifier()
+
+            if(localFileDataSource.isFileExist(fileName))
+                return@withContext Result.success(localFileDataSource.getFileAbsolutePath(fileName)!!)
+
             val fileAbsolutePath = localFileDataSource.createFileAndGetAbsolutePath(fileName)
 
-            if (fileAbsolutePath == null)
-                return@withContext Result.failure(Exception("Audio Extraction file has been already exist"))
-
-            val result = extractAudioWithTransformer(context, videoUri, fileAbsolutePath)
+            val result = extractAudioWithTransformer(videoUri, fileAbsolutePath)
 
             if (result.isSuccess) {
                 Result.success(fileAbsolutePath)
@@ -70,7 +81,6 @@ class VideoFileManager @Inject constructor(
     }
 
     private suspend fun extractAudioWithTransformer(
-        context: Context,
         videoUri: Uri,
         fileAbsolutePath: String,
     ): Result<Unit> = suspendCancellableCoroutine { continuation ->
@@ -109,7 +119,6 @@ class VideoFileManager @Inject constructor(
 
             transformer.start(editedMediaItem, fileAbsolutePath)
 
-            // 취소 시 Transformer 정리
             continuation.invokeOnCancellation {
                 transformer.cancel()
             }
@@ -155,11 +164,12 @@ class VideoFileManager @Inject constructor(
                         add(
                             VideoItem(
                                 uri = uri,
+                                id = id,
                                 title = name,
                                 duration = duration,
                                 thumbnailPath = createThumbnailAndGetPath(
                                     uri = uri,
-                                    fileName = id.toString()
+                                    fileName = id.toString().toThumbnailFileIdentifier()
                                 )
                             )
                         )
@@ -180,7 +190,7 @@ class VideoFileManager @Inject constructor(
                 retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileName = fileName,
+                fileIdentifier = fileName,
                 writeContentOnFile = { outputStream ->
                     bitmap?.compress(
                         Bitmap.CompressFormat.JPEG,
@@ -190,5 +200,9 @@ class VideoFileManager @Inject constructor(
                 }
             )
         }
+    }
+
+    fun checkSubtitleFileExist(id: Long, languageCode: String): Boolean {
+        return localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
     }
 }

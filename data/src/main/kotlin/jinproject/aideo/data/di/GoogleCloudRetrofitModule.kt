@@ -45,7 +45,7 @@ object GoogleCloudRetrofitModule {
         return Retrofit.Builder()
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create(GsonBuilder().setLenient().create()))
-            .baseUrl("https://translation.googleapis.com/")
+            .baseUrl("https://translation.googleapis.com/v3/")
             .client(okHttpClient)
             .build()
     }

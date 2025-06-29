@@ -1,5 +1,7 @@
 package jinproject.aideo.gallery
 
+import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,13 +25,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.OneButtonTitleAppBar
-import jinproject.aideo.design.component.layout.DefaultLayout
 import jinproject.aideo.design.component.layout.DownloadableLayout
 import jinproject.aideo.design.component.layout.DownloadableUiState
 import jinproject.aideo.design.component.text.DescriptionLargeText
@@ -46,6 +48,7 @@ fun GalleryScreen(
         uiState = uiState,
         addVideo = viewModel::updateVideoList,
         navigateToPlayer = navigateToPlayer,
+        onClickVideoItem = viewModel::onClickVideoItem
     )
 }
 
@@ -53,8 +56,10 @@ fun GalleryScreen(
 @Composable
 private fun GalleryScreen(
     uiState: DownloadableUiState,
+    context: Context = LocalContext.current,
     addVideo: (List<String>) -> Unit,
     navigateToPlayer: (String) -> Unit,
+    onClickVideoItem: (()-> Unit) -> Unit,
 ) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(Integer.MAX_VALUE)
@@ -107,8 +112,20 @@ private fun GalleryScreen(
                 ) {
                     items(galleryUiState.data) { video ->
                         VideoGridItem(
-                            video = video,
-                            onClick = { navigateToPlayer(video.uri) }
+                            videoItem = video,
+                            onClick = { videoItem ->
+                                onClickVideoItem {
+                                    context.startForegroundService(
+                                        Intent(
+                                            context, TranscribeService::class.java
+                                        ).apply {
+                                            putExtra("videoItem", videoItem)
+                                        }
+                                    )
+                                }
+
+                                //TODO navigateToPlayer(video.uri)
+                            }
                         )
                     }
                 }
@@ -120,11 +137,13 @@ private fun GalleryScreen(
 
 @Composable
 private fun VideoGridItem(
-    video: VideoItem,
-    onClick: () -> Unit
+    videoItem: VideoItem,
+    onClick: (VideoItem) -> Unit
 ) {
     Card(
-        onClick = onClick,
+        onClick = {
+            onClick(videoItem)
+        },
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
@@ -132,15 +151,15 @@ private fun VideoGridItem(
         Column {
             SubcomposeAsyncImageWithPreview(
                 placeHolderPreview = jinproject.aideo.design.R.drawable.test,
-                model = video.thumbnailPath,
-                contentDescription = video.title,
+                model = videoItem.thumbnailPath,
+                contentDescription = videoItem.title,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentScale = ContentScale.Crop
             )
             Text(
-                text = video.title,
+                text = videoItem.title,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(8.dp),
                 maxLines = 2
