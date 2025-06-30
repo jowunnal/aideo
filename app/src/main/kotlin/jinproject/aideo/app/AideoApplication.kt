@@ -1,7 +1,49 @@
 package jinproject.aideo.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.graphics.Color
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class AideoApplication: Application()
+class AideoApplication : Application() {
+    private var notificationManager: NotificationManager? = null
+
+    override fun onCreate() {
+        super.onCreate()
+
+        notificationManager = getSystemService(NotificationManager::class.java)
+
+        createNotificationChannel(
+            channelId = "Aideo Channel",
+            channelName = "Aideo 알림 채널",
+            descriptionText = "Aideo 알림 채널 입니다."
+        )
+
+        createNotificationChannel(
+            channelId = "Transcribe Video Channel",
+            channelName = "자막 생성 알림 채널",
+            descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다."
+        )
+
+        notificationManager = null
+    }
+
+    private fun createNotificationChannel(
+        channelId: String,
+        channelName: String,
+        descriptionText: String,
+    ) {
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(channelId, channelName, importance).apply {
+            description = descriptionText
+            enableVibration(true)
+            setShowBadge(true)
+            enableLights(true)
+            lightColor = Color.BLUE
+        }
+
+        notificationManager?.createNotificationChannel(channel)
+    }
+}

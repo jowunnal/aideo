@@ -4,7 +4,9 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.core.toOriginUri
 import jinproject.aideo.player.PlayerRoute.Companion.VIDEO_URI
@@ -27,10 +29,16 @@ fun NavGraphBuilder.playerNavGraph(
     navigatePopBackStack: () -> Unit,
 ) {
     navigation<PlayerRoute.PlayerGraph>(
-        startDestination = PlayerRoute.Player("")
+        startDestination = PlayerRoute.Player(""),
     ) {
-        composable<PlayerRoute.Player> { backStackEntry ->
-            val videoUri = backStackEntry.arguments?.getString(VIDEO_URI)?.toOriginUri() ?: ""
+        composable<PlayerRoute.Player>(
+            deepLinks = listOf(
+                navDeepLink<PlayerRoute.Player>(
+                    basePath = "aideo://player/player"
+                )
+            )
+        ) { backStackEntry ->
+            val videoUri = backStackEntry.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
             PlayerScreen(
                 videoUri = videoUri,

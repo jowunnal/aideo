@@ -50,6 +50,8 @@ class MediaFileManager @Inject constructor(
     /**
      * 비디오로 부터 음성을 추출하여 파일을 생성하고, 파일의 절대경로를 반환하는 함수
      *
+     * 음성 파일이 이미 존재한다면, 기존의 음성 파일의 경로를 반환하고 그렇지 않다면, 새로 생성하여 경로를 반환한다.
+     *
      * @param videoUri 비디오 컨텐트 uri
      * @param outputFileName 오디오 파일 이름
      *
@@ -202,7 +204,27 @@ class MediaFileManager @Inject constructor(
         }
     }
 
-    fun checkSubtitleFileExist(id: Long, languageCode: String): Boolean {
-        return localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
+    /**
+     * 자막 파일이 존재하는지 확인하는 함수
+     *
+     * @return 언어코드와 일치하는 자막 파일이 있으면 1,
+     * 언어코드와 일치하는 자막 파일은 없지만 다른 언어코드의 자막 파일이 있으면 0,
+     * 어떠한 자막 파일도 없으면 -1
+     */
+    fun checkSubtitleFileExist(id: Long, languageCode: String): Int {
+        val isSubtitleExist = localFileDataSource.isFileExist(fileId = id, fileExtension = "".toSubtitleFileIdentifier())
+
+        if(isSubtitleExist) {
+            val isSubtitleByLanguageExist = localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
+
+            return if(isSubtitleByLanguageExist)
+                1
+            else
+                0
+        }
+
+        return -1
     }
+
+    fun getSubtitleFilePath(id: Long, languageCode: String): String = "${id}_$languageCode.srt"
 }

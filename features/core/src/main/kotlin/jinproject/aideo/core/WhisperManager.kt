@@ -12,9 +12,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.datasource.remote.RemoteGCPDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -29,14 +29,10 @@ object WhisperManagerModule {
     fun provideWhisperManager(
         @ApplicationContext context: Context,
         localFileDataSource: LocalFileDataSource,
-        localPlayerDataSource: LocalPlayerDataSource,
-        remoteGCPDataSource: RemoteGCPDataSource,
     ): WhisperManager {
         return WhisperManager(
             context = context,
             localFileDataSource = localFileDataSource,
-            localPlayerDataSource = localPlayerDataSource,
-            remoteGCPDataSource = remoteGCPDataSource,
         )
     }
 }
@@ -44,8 +40,6 @@ object WhisperManagerModule {
 class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
-    private val localPlayerDataSource: LocalPlayerDataSource,
-    private val remoteGCPDataSource: RemoteGCPDataSource,
 ) {
     private val modelsPath = File(context.filesDir, "models")
     lateinit var whisperContext: WhisperContext
@@ -84,7 +78,7 @@ class WhisperManager @Inject constructor(
     }
 
     /**
-     * 오디오 파일을 텍스트로 변환하는 함수
+     * 오디오 파일을 텍스트로 변환하여 자막 파일(Srt) 생성
      *
      * @param audioFileAbsolutePath : 16 비트 PCM WAV 오디오 파일
      */
@@ -101,7 +95,7 @@ class WhisperManager @Inject constructor(
             val languageCode = getLanguage(srtContent.substring(0,50))
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = "${audioFile.name}_$languageCode".toAudioFileIdentifier(),
+                fileIdentifier = "${audioFile.name}_$languageCode".toSubtitleFileIdentifier(),
                 writeContentOnFile = { outputStream ->
                     runCatching {
                         outputStream.write(srtContent.toByteArray())
@@ -167,6 +161,7 @@ class WhisperManager @Inject constructor(
 
     suspend fun release() {
         whisperContext.release()
+        isReady = false
     }
 
     companion object {

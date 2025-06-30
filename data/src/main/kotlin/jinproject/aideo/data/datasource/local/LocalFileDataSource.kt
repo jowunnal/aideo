@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.FileWriter
 import javax.inject.Inject
 
 class LocalFileDataSource @Inject constructor(@ApplicationContext private val context: Context) {
@@ -78,6 +79,14 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
         return file.exists()
     }
 
+    fun isFileExist(fileId: Long, fileExtension: String): Boolean {
+        val file = File(context.filesDir, "*")
+
+        val matchedFiles = file.listFiles()?.filter { it.name.matches(Regex(".*\\.$fileExtension")) && it.name.startsWith("$fileId") }
+
+        return matchedFiles?.isNotEmpty() == true
+    }
+
     fun getFileReference(fileName: String): File? {
         val file = File(context.filesDir, fileName)
 
@@ -88,5 +97,13 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
         val file = File(context.filesDir, fileName)
 
         return if(file.exists()) file.absolutePath else null
+    }
+
+    fun replaceFileContent(newContent: String, absolutePath: String,) {
+        val file = File(context.filesDir, absolutePath)
+
+        FileWriter(file, false).use {
+            it.write(newContent)
+        }
     }
 }

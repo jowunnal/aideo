@@ -1,8 +1,10 @@
 package jinproject.aideo.app
 
 import android.Manifest
+import android.app.ComponentCaller
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -45,6 +47,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.findNavController
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
 import com.google.android.gms.ads.AdError
@@ -120,7 +123,6 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         firebaseAnalytics = Firebase.analytics
-        createNotificationChannel()
 
         setContent {
             AideoTheme {
@@ -333,23 +335,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    private fun createNotificationChannel() {
-        val notificationManager = getSystemService(NotificationManager::class.java)
-
-        val name = "Aideo 알림 채널"
-        val descriptionText = "Aideo 알림 채널 입니다."
-        val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel("Aideo Channel", name, importance).apply {
-            description = descriptionText
-            enableVibration(true)
-            setShowBadge(true)
-            enableLights(true)
-            lightColor = android.graphics.Color.BLUE
-        }
-
-        notificationManager.createNotificationChannel(channel)
     }
 
     private fun loggingAnalyticsEvent(event: AnalyticsEvent) {

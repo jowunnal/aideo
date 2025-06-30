@@ -1,8 +1,6 @@
 package jinproject.aideo.gallery
 
-import android.content.Context
 import android.os.Parcelable
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,9 +8,6 @@ import jinproject.aideo.core.RestartableStateFlow
 import jinproject.aideo.core.WhisperManager
 import jinproject.aideo.core.restartableStateIn
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.datasource.remote.RemoteGCPDataSource
-import jinproject.aideo.data.datasource.remote.model.request.DetectLanguageRequest
-import jinproject.aideo.data.repository.GalleryRepository
 import jinproject.aideo.design.component.layout.DownLoadedUiState
 import jinproject.aideo.design.component.layout.DownloadableUiState
 import kotlinx.collections.immutable.ImmutableList
@@ -26,21 +21,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
-    private val galleryRepository: GalleryRepository,
     private val mediaFileManager: MediaFileManager,
-    private val whisperManager: WhisperManager,
-    private val remoteGCPDataSource: RemoteGCPDataSource,
     private val localPlayerDataSource: LocalPlayerDataSource,
 ) : ViewModel() {
 
     private val videoList: ImmutableList<VideoItem>
         field = persistentListOf()
-
-    init {
-        viewModelScope.launch {
-            whisperManager.load()
-        }
-    }
 
     val uiState: RestartableStateFlow<DownloadableUiState> = flow {
         emit(
@@ -68,7 +54,7 @@ class GalleryViewModel @Inject constructor(
     }
 
     fun onClickVideoItem(startTranscribeService: () -> Unit) {
-        if (whisperManager.isReady && uiState.value is GalleryUiState) {
+        if (uiState.value is GalleryUiState) {
             startTranscribeService()
         }
     }
