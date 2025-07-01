@@ -8,7 +8,5 @@ android {
 }
 
 dependencies {
-    api(project(":features:core"))
-
-    implementation(libs.bundles.exoplayer)
+    implementation(project(":features:core"))
 }

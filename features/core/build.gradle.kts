@@ -17,5 +17,6 @@ dependencies {
     api(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     api(libs.bundles.billing)
-    api(files("libs/whisper_lib.aar"))
+    api(project(":whisper_lib"))
+    api(libs.bundles.exoplayer)
 }

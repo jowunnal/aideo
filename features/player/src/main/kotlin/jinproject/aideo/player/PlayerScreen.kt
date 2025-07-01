@@ -1,112 +1,81 @@
 package jinproject.aideo.player
 
-import android.content.Context
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
+import androidx.media3.ui.compose.state.PlayPauseButtonState
+import androidx.media3.ui.compose.state.PresentationState
+import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import androidx.media3.ui.compose.state.rememberPresentationState
-import jinproject.aideo.design.component.layout.DefaultLayout
-import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
+import jinproject.aideo.design.component.bar.BackButtonRowScopeAppBar
+import jinproject.aideo.design.component.button.clickableAvoidingDuplication
+import jinproject.aideo.design.component.layout.hideable.HideableTopBarLayout
+import jinproject.aideo.design.component.layout.hideable.SystemBarHidingState
+import jinproject.aideo.design.component.layout.hideable.rememberSystemBarHidingState
+import jinproject.aideo.design.component.text.AppBarText
+import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.utils.PreviewAideoTheme
+import jinproject.aideo.player.component.PlayPauseButton
+import jinproject.aideo.player.component.PlayProgressBar
 
 @androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
-    videoUri: String,
     viewModel: PlayerViewModel = hiltViewModel(),
-    context: Context = LocalContext.current,
     navigatePopBackStack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val exoPlayerManager = remember { ExoPlayerManager(context) }
-
-    val playerState by exoPlayerManager.playerState.collectAsStateWithLifecycle()
-    val presentationState = rememberPresentationState(exoPlayerManager.getExoPlayer())
-
-    LaunchedEffect(videoUri) {
-        if (videoUri.isNotEmpty()) {
-            viewModel.initializePlayer(videoUri) {
-                exoPlayerManager.initializePlayer(videoUri)
-            }
-        }
-    }
-
     DisposableEffect(Unit) {
         onDispose {
-            exoPlayerManager.release()
+            viewModel.releaseExoPlayer()
         }
     }
 
-    DefaultLayout(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = "재생") },
-                navigationIcon = {
-                    IconButton(onClick = navigatePopBackStack) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_arrow_left),
-                            contentDescription = "뒤로가기"
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.showLanguageMenu() }) {
-                        Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = "언어 설정"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // 비디오 플레이어
+    val presentationState = rememberPresentationState(viewModel.getExoPlayer())
+    val playPauseButtonState = rememberPlayPauseButtonState(viewModel.getExoPlayer())
+
+    PlayerScreen(
+        uiState = uiState,
+        seekTo = viewModel::seekTo,
+        updateLanguageCode = viewModel::updateLanguage,
+        navigatePopBackStack = navigatePopBackStack,
+        playerSurfaceViewComposable = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,7 +83,7 @@ fun PlayerScreen(
                     .aspectRatio(16f / 9f)
             ) {
                 PlayerSurface(
-                    player = exoPlayerManager.getExoPlayer(),
+                    player = viewModel.getExoPlayer(),
                     modifier = Modifier.resizeWithContentScale(
                         ContentScale.Fit,
                         presentationState.videoSizeDp
@@ -122,119 +91,116 @@ fun PlayerScreen(
                 )
             }
 
-            // 재생 컨트롤
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = {
-                        viewModel.previousVideo { newVideoUri ->
-                            exoPlayerManager.initializePlayer(newVideoUri)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_back),
-                        contentDescription = "이전 비디오"
-                    )
-                }
+            PlayPauseButton(
+                state = playPauseButtonState
+            )
+        }
+    )
+}
 
-                IconButton(
-                    onClick = {
-                        viewModel.togglePlayPause {
-                            exoPlayerManager.togglePlayPause()
-                        }
+@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlayerScreen(
+    uiState: PlayerUiState,
+    density: Density = LocalDensity.current,
+    seekTo: (Long) -> Unit,
+    updateLanguageCode: (LanguageCode) -> Unit,
+    navigatePopBackStack: () -> Unit,
+    playerSurfaceViewComposable: @Composable () -> Unit,
+) {
+    val systemBarHidingState = rememberSystemBarHidingState(
+        SystemBarHidingState.Bar.TOPBAR(
+            maxHeight = with(density) {
+                200.dp.roundToPx()
+            },
+            minHeight = with(density) {
+                84.dp.roundToPx()
+            }
+        )
+    )
+    var popUpInfo by remember { mutableStateOf(PopUpInfo(IntOffset(0, 0), false)) }
+
+    if (popUpInfo.visibility)
+        Popup(
+            offset = popUpInfo.offset,
+        ) {
+            LanguageCode.entries.toTypedArray().forEach { language ->
+                DescriptionMediumText(
+                    text = language.name,
+                    modifier = Modifier.clickableAvoidingDuplication {
+                        updateLanguageCode(language)
                     },
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icons
-                    Icon(
-                        imageVector = if (playerState.isPlaying) ImageVector.vectorResource(
-                            jinproject.aideo.design.R.drawable.ic_playback_pause
-                        )
-                        else ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
-                        contentDescription = if (playerState.isPlaying) "일시정지" else "재생",
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                )
+            }
+        }
 
-                IconButton(
-                    onClick = {
-                        viewModel.nextVideo { newVideoUri ->
-                            exoPlayerManager.initializePlayer(newVideoUri)
-                        }
+    HideableTopBarLayout(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        systemBarHidingState.animateHideOrAppear()
                     }
-                ) {
+                )
+            },
+        systemBarHidingState = systemBarHidingState,
+        topBar = {
+            BackButtonRowScopeAppBar(
+                onBackClick = navigatePopBackStack
+            ) {
+                AppBarText(
+                    text = "재생",
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier.onGloballyPositioned { layoutCoordinates ->
+                        popUpInfo = PopUpInfo(
+                            offset = run {
+                                val position = layoutCoordinates.positionInWindow()
+                                IntOffset(position.x.toInt(), position.y.toInt())
+                            },
+                            visibility = false,
+                        )
+                    }) {
                     Icon(
-                        imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_next),
-                        contentDescription = "다음 비디오"
+                        imageVector = Icons.Default.Build,
+                        contentDescription = "언어 설정"
                     )
                 }
             }
-
-            // Seek Bar
-            Slider(
-                value = playerState.currentPosition.toFloat(),
-                onValueChange = { position ->
-                    viewModel.seekTo(position.toLong()) { seekPosition ->
-                        exoPlayerManager.seekTo(seekPosition)
-                    }
-                },
-                valueRange = 0f..playerState.duration.toFloat(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
         }
-
-        // 언어 설정 메뉴
-        if (uiState.showLanguageMenu) {
-            LanguageMenu(
-                onLanguageSelected = { languageCode ->
-                    viewModel.setLanguage(languageCode)
-                    viewModel.hideLanguageMenu()
-                },
-                onDismiss = { viewModel.hideLanguageMenu() }
-            )
-        }
-    }
-}
-
-@Composable
-private fun LanguageMenu(
-    onLanguageSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    DropdownMenu(
-        expanded = true,
-        onDismissRequest = onDismiss
     ) {
-        listOf(
-            "ko" to "한국어",
-            "en" to "English",
-            "ja" to "日本語",
-            "zh-CN" to "中文(简体)",
-            "zh-TW" to "中文(繁體)"
-        ).forEach { (code, name) ->
-            DropdownMenuItem(
-                text = { Text(text = name) },
-                onClick = { onLanguageSelected(code) }
-            )
-        }
+        playerSurfaceViewComposable()
+
+        PlayProgressBar(
+            uiState = uiState,
+            seekTo = seekTo
+        )
     }
 }
+
+internal data class PopUpInfo(
+    val offset: IntOffset,
+    val visibility: Boolean,
+)
+
 
 @Preview
 @Composable
-private fun PlayerScreenPreview() {
+private fun PlayerScreenPreview(
+    @PreviewParameter(PlayerUiStatePreviewParameter::class)
+    playerUiState: PlayerUiState,
+) {
     PreviewAideoTheme {
         PlayerScreen(
-            videoUri = "",
+            uiState = playerUiState,
+            seekTo = {},
+            updateLanguageCode = {},
             navigatePopBackStack = {},
+            playerSurfaceViewComposable = {},
         )
     }
 } 

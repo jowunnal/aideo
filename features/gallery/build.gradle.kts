@@ -10,8 +10,7 @@ android {
 }
 
 dependencies {
-    api(project(":features:core"))
+    implementation(project(":features:core"))
 
-    implementation(libs.bundles.exoplayer)
     implementation(libs.bundles.tensorflow.lite)
 }

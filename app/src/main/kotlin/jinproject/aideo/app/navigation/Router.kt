@@ -21,7 +21,6 @@ import kotlin.sequences.any
 
 internal val TopLevelRoutes: List<TopLevelRoute> = listOf(
     GalleryRoute.Gallery,
-    PlayerRoute.Player
 )
 
 @Composable

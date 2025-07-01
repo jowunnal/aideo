@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":design"))
     implementation(project(":features:gallery"))
     implementation(project(":features:player"))
+    implementation(project(":features:core"))
 
     implementation(libs.google.gms.services.ads)
     implementation(libs.bundles.playInAppUpdate)

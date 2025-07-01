@@ -2,6 +2,7 @@ package jinproject.aideo.gallery
 
 import android.content.Context
 import android.content.Intent
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,9 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jinproject.aideo.core.VideoItem
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.OneButtonTitleAppBar
 import jinproject.aideo.design.component.layout.DownloadableLayout
@@ -39,8 +42,8 @@ import jinproject.aideo.design.utils.PreviewAideoTheme
 
 @Composable
 fun GalleryScreen(
+    viewModel: GalleryViewModel = hiltViewModel(),
     navigateToPlayer: (String) -> Unit,
-    viewModel: GalleryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -62,7 +65,7 @@ private fun GalleryScreen(
     onClickVideoItem: (()-> Unit) -> Unit,
 ) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(Integer.MAX_VALUE)
+        contract = ActivityResultContracts.PickMultipleVisualMedia(MediaStore.getPickImagesMaxLimit())
     ) { uris ->
         if (uris.isNotEmpty())
             addVideo(
@@ -77,7 +80,7 @@ private fun GalleryScreen(
             OneButtonTitleAppBar(
                 buttonAlignment = Alignment.CenterEnd,
                 title = "갤러리",
-                onBackClick = {
+                onClick = {
                     photoPickerLauncher.launch(
                         PickVisualMediaRequest(
                             ActivityResultContracts.PickVisualMedia.VideoOnly
@@ -132,7 +135,6 @@ private fun GalleryScreen(
             }
         }
     }
-
 }
 
 @Composable
@@ -170,10 +172,16 @@ private fun VideoGridItem(
 
 @Preview
 @Composable
-private fun GalleryScreenPreview() {
+private fun GalleryScreenPreview(
+    @PreviewParameter(GalleryUiStatePreviewParameter::class)
+    galleryUiState: GalleryUiState,
+) {
     PreviewAideoTheme {
         GalleryScreen(
-            navigateToPlayer = {}
+            uiState = galleryUiState,
+            addVideo = {},
+            navigateToPlayer = {},
+            onClickVideoItem = {},
         )
     }
 }

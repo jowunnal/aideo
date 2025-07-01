@@ -7,8 +7,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import javax.inject.Inject
 
-class LocalPlayerDataSource(private val playerDataStore: DataStore<PlayerPreferences>) {
+class LocalPlayerDataSource @Inject constructor(private val playerDataStore: DataStore<PlayerPreferences>) {
 
     private val data: Flow<PlayerPreferences> = playerDataStore.data
         .catch { exception ->

@@ -1,9 +1,10 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.core
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Parcelable
 import android.provider.MediaStore
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
@@ -20,13 +21,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.toAudioFileIdentifier
-import jinproject.aideo.core.toSubtitleFileIdentifier
-import jinproject.aideo.core.toThumbnailFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.parcelize.Parcelize
 import javax.inject.Inject
 import kotlin.coroutines.resume
 
@@ -64,7 +63,7 @@ class MediaFileManager @Inject constructor(
         try {
             val fileName = outputFileName.toAudioFileIdentifier()
 
-            if(localFileDataSource.isFileExist(fileName))
+            if (localFileDataSource.isFileExist(fileName))
                 return@withContext Result.success(localFileDataSource.getFileAbsolutePath(fileName)!!)
 
             val fileAbsolutePath = localFileDataSource.createFileAndGetAbsolutePath(fileName)
@@ -161,7 +160,7 @@ class MediaFileManager @Inject constructor(
 
                         val name = cursor.getString(nameIndex)
                         val duration = cursor.getLong(durationIndex)
-                        val uri = videoUris[cursor.position + 1]
+                        val uri = videoUris[cursor.position]
 
                         add(
                             VideoItem(
@@ -212,12 +211,16 @@ class MediaFileManager @Inject constructor(
      * 어떠한 자막 파일도 없으면 -1
      */
     fun checkSubtitleFileExist(id: Long, languageCode: String): Int {
-        val isSubtitleExist = localFileDataSource.isFileExist(fileId = id, fileExtension = "".toSubtitleFileIdentifier())
+        val isSubtitleExist = localFileDataSource.isFileExist(
+            fileId = id,
+            fileExtension = "".toSubtitleFileIdentifier()
+        )
 
-        if(isSubtitleExist) {
-            val isSubtitleByLanguageExist = localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
+        if (isSubtitleExist) {
+            val isSubtitleByLanguageExist =
+                localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
 
-            return if(isSubtitleByLanguageExist)
+            return if (isSubtitleByLanguageExist)
                 1
             else
                 0
@@ -226,5 +229,16 @@ class MediaFileManager @Inject constructor(
         return -1
     }
 
-    fun getSubtitleFilePath(id: Long, languageCode: String): String = "${id}_$languageCode.srt"
+    companion object {
+        fun getSubtitleFilePath(id: Long, languageCode: String): String = "${id}_$languageCode.srt"
+    }
 }
+
+@Parcelize
+data class VideoItem(
+    val uri: String,
+    val id: Long,
+    val title: String,
+    val duration: Long,
+    val thumbnailPath: String?,
+) : Parcelable

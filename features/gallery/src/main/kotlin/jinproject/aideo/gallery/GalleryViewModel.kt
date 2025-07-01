@@ -1,11 +1,11 @@
 package jinproject.aideo.gallery
 
-import android.os.Parcelable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jinproject.aideo.core.MediaFileManager
 import jinproject.aideo.core.RestartableStateFlow
-import jinproject.aideo.core.WhisperManager
+import jinproject.aideo.core.VideoItem
 import jinproject.aideo.core.restartableStateIn
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.design.component.layout.DownLoadedUiState
@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,8 +36,8 @@ class GalleryViewModel @Inject constructor(
         )
     }.restartableStateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-        initialValue = DownloadableUiState.Loading
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = DownloadableUiState.Loading,
     )
 
     private fun retryGetUiState() {
@@ -65,12 +64,3 @@ data class GalleryUiState(
     override val data: ImmutableList<VideoItem>,
     val languageCode: String,
 ) : DownLoadedUiState<ImmutableList<VideoItem>>()
-
-@Parcelize
-data class VideoItem(
-    val uri: String,
-    val id: Long,
-    val title: String,
-    val duration: Long,
-    val thumbnailPath: String?,
-) : Parcelable

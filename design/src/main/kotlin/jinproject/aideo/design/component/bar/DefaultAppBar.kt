@@ -32,7 +32,7 @@ import jinproject.aideo.design.utils.PreviewAideoTheme
 fun OneButtonTitleAppBar(
     buttonAlignment: Alignment = Alignment.CenterStart,
     @DrawableRes icon: Int,
-    onBackClick: () -> Unit,
+    onClick: () -> Unit,
     title: String,
 ) {
     DefaultAppBar(
@@ -42,7 +42,7 @@ fun OneButtonTitleAppBar(
                 modifier = Modifier
                     .align(buttonAlignment),
                 icon = icon,
-                onClick = onBackClick,
+                onClick = onClick,
                 iconTint = MaterialTheme.colorScheme.onSurface,
                 interactionSource = remember { MutableInteractionSource() }
             )

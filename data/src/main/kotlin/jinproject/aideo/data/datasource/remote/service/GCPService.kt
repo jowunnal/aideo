@@ -12,13 +12,13 @@ import retrofit2.http.Path
 interface GCPService {
     @POST("projects/{projectId}:translateText")
     suspend fun translateText(
-        @Path("projectId") projectId: String = BuildConfig.PROJECT_ID,
+        //@Path("projectId") projectId: String = BuildConfig.PROJECT_ID,
         @Body request: TranslationRequest
     ): TranslationResponse
 
     @POST("projects/{projectId}:detectLanguage")
     suspend fun detectLanguage(
-        @Path("projectId") projectId: String = BuildConfig.PROJECT_ID,
+        //@Path("projectId") projectId: String = BuildConfig.PROJECT_ID,
         @Body request: DetectLanguageRequest
     ): DetectLanguageResponse
 }

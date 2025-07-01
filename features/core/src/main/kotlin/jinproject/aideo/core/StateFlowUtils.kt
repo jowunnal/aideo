@@ -1,6 +1,7 @@
 package jinproject.aideo.core
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
 
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 interface RestartableStateFlow<out T> : StateFlow<T> {
     fun restart()
     fun stopAndStart()

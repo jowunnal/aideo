@@ -11,6 +11,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import jinproject.aideo.core.MediaFileManager
+import jinproject.aideo.core.VideoItem
 import jinproject.aideo.core.WhisperManager
 import jinproject.aideo.core.parseUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
@@ -117,7 +119,7 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem, languageCode: String) {
         galleryRepository.translateSubtitle(
-            mediaFileManager.getSubtitleFilePath(
+            MediaFileManager.getSubtitleFilePath(
                 id = videoItem.id,
                 languageCode = languageCode,
             )

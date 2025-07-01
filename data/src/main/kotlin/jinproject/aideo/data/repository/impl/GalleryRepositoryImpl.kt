@@ -7,8 +7,9 @@ import jinproject.aideo.data.datasource.remote.model.request.DetectLanguageReque
 import jinproject.aideo.data.datasource.remote.model.request.TranslationRequest
 import jinproject.aideo.data.repository.GalleryRepository
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
-class GalleryRepositoryImpl(
+class GalleryRepositoryImpl @Inject constructor(
     private val remoteGCPDataSource: RemoteGCPDataSource,
     private val localFileDataSource: LocalFileDataSource,
     private val localPlayerDataSource: LocalPlayerDataSource,

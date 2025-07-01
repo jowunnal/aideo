@@ -38,10 +38,7 @@ fun NavGraphBuilder.playerNavGraph(
                 )
             )
         ) { backStackEntry ->
-            val videoUri = backStackEntry.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
-
             PlayerScreen(
-                videoUri = videoUri,
                 navigatePopBackStack = navigatePopBackStack,
             )
         }

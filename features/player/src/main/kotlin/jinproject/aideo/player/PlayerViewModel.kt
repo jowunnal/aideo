@@ -1,127 +1,119 @@
 package jinproject.aideo.player
 
+import android.content.ContentUris
+import androidx.compose.runtime.Stable
+import androidx.core.net.toUri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Player
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.data.datasource.local.model.VideoInfo
-import jinproject.aideo.data.repository.AideoRepository
-import kotlinx.coroutines.flow.*
+import jinproject.aideo.core.MediaFileManager
+import jinproject.aideo.core.toOriginUri
+import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.repository.GalleryRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val repository: AideoRepository
+    private val localPlayerDataSource: LocalPlayerDataSource,
+    private val mediaFileManager: MediaFileManager,
+    private val galleryRepository: GalleryRepository,
+    private val exoPlayerManager: ExoPlayerManager,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private var currentVideoUri: String = ""
-    private var currentVideoIndex: Int = 0
+    private val currentVideoUri: String =
+        savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
-    // 모든 비디오 목록을 가져오는 Flow
-    private val _allVideosFlow = repository.getAllVideos()
-        .catch { error ->
-            emit(emptyList())
-        }
+    private val languageMenuState = MutableStateFlow(false)
 
-    // 현재 언어 설정을 가져오는 Flow
-    private val _currentLanguageFlow = flow {
-        emit(repository.getCurrentLanguage())
-    }.catch {
-        emit("ko") // 기본값
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<PlayerUiState> =
+        localPlayerDataSource.getLanguageSetting().onEach { language ->
+            val id = ContentUris.parseId(currentVideoUri.toUri())
 
-    // 언어 메뉴 상태
-    private val _languageMenuStateFlow = MutableStateFlow(false)
+            val subtitleExist = mediaFileManager.checkSubtitleFileExist(
+                id = id,
+                languageCode = language
+            )
 
-    // 단일 상태로 결합 (ExoPlayer 상태는 외부에서 주입받음)
-    val uiState: StateFlow<PlayerUiState> = combine(
-        _allVideosFlow,
-        _currentLanguageFlow,
-        _languageMenuStateFlow
-    ) { allVideos, currentLanguage, showLanguageMenu ->
-        PlayerUiState(
-            allVideos = allVideos,
-            currentLanguage = currentLanguage,
-            showLanguageMenu = showLanguageMenu
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-        initialValue = PlayerUiState()
-    )
-
-    fun initializePlayer(videoUri: String, onPlayerInitialized: () -> Unit = {}) {
-        currentVideoUri = videoUri
-        val currentVideos = uiState.value.allVideos
-        currentVideoIndex = currentVideos.indexOfFirst { it.uri == videoUri }
-        
-        // 자막 로드
-        loadSubtitle(videoUri)
-        
-        // 플레이어 초기화 콜백 호출
-        onPlayerInitialized()
-    }
-
-    private fun loadSubtitle(videoUri: String) {
-        viewModelScope.launch {
-            val currentLanguage = repository.getCurrentLanguage()
-            val subtitle = repository.getSubtitle(videoUri, currentLanguage)
-            
-            subtitle?.let { sub ->
-                // ExoPlayer에 자막 추가
-                // 실제 구현에서는 SubtitleTrack을 생성하여 추가
+            if (subtitleExist != 1) {
+                galleryRepository.translateSubtitle(
+                    MediaFileManager.getSubtitleFilePath(
+                        id = id,
+                        languageCode = language,
+                    )
+                )
             }
-        }
-    }
 
-    fun togglePlayPause(onToggle: () -> Unit) {
-        onToggle()
-    }
+            prepareExoplayer(language)
+        }.flatMapLatest { language ->
+            exoPlayerManager.playingState.map { playingState ->
+                PlayerUiState(
+                    currentLanguage = language,
+                    playingState = playingState,
+                )
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            initialValue = PlayerUiState(
+                currentLanguage = Locale.getDefault().language,
+                playingState = PlayingState()
+            )
+        )
 
-    fun seekTo(position: Long, onSeek: (Long) -> Unit) {
-        onSeek(position)
-    }
-
-    fun previousVideo(onVideoChange: (String) -> Unit) {
-        val currentVideos = uiState.value.allVideos
-        if (currentVideos.isNotEmpty() && currentVideoIndex > 0) {
-            currentVideoIndex--
-            val previousVideo = currentVideos[currentVideoIndex]
-            currentVideoUri = previousVideo.uri
-            loadSubtitle(previousVideo.uri)
-            onVideoChange(previousVideo.uri)
-        }
-    }
-
-    fun nextVideo(onVideoChange: (String) -> Unit) {
-        val currentVideos = uiState.value.allVideos
-        if (currentVideos.isNotEmpty() && currentVideoIndex < currentVideos.size - 1) {
-            currentVideoIndex++
-            val nextVideo = currentVideos[currentVideoIndex]
-            currentVideoUri = nextVideo.uri
-            loadSubtitle(nextVideo.uri)
-            onVideoChange(nextVideo.uri)
-        }
-    }
-
-    fun setLanguage(languageCode: String) {
+    fun updateLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            repository.setLanguage(languageCode)
-            loadSubtitle(currentVideoUri)
+            localPlayerDataSource.setLanguageSetting(languageCode.code)
         }
     }
 
-    fun showLanguageMenu() {
-        _languageMenuStateFlow.value = true
+    fun updateLanguageMenuShow(boolean: Boolean) {
+        languageMenuState.update { boolean }
     }
 
-    fun hideLanguageMenu() {
-        _languageMenuStateFlow.value = false
+    fun prepareExoplayer(languageCode: String,) {
+        exoPlayerManager.prepare(
+            videoUri = currentVideoUri,
+            languageCode = languageCode,
+        )
     }
+
+    fun releaseExoPlayer() {
+        exoPlayerManager.release()
+    }
+
+    fun seekTo(pos: Long) {
+        exoPlayerManager.seekTo(pos)
+    }
+
+    fun getExoPlayer(): Player = exoPlayerManager.getExoPlayer()
 }
 
+@Stable
+enum class LanguageCode(val code: String) {
+    KO("ko"),
+    EN("en"),
+    JA("ja"),
+    ZH("zh");
+}
+
+@Stable
 data class PlayerUiState(
-    val allVideos: List<VideoInfo> = emptyList(),
-    val currentLanguage: String = "ko",
-    val showLanguageMenu: Boolean = false
-) 
+    val playingState: PlayingState,
+    val currentLanguage: String,
+)

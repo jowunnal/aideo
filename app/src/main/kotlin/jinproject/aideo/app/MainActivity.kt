@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
             snackBarChannel.trySend(snackBarMessage)
         }
 
-        val billingModule = rememberSaveable {
+        val billingModule = remember {
             BillingModule(
                 activity = this,
                 coroutineScope = coroutineScope,
@@ -338,7 +338,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun loggingAnalyticsEvent(event: AnalyticsEvent) {
-        if (!BuildConfig.IS_DEBUG_MODE)
+        if (!BuildConfig.DEBUG)
             firebaseAnalytics.logEvent(event.eventName) {
                 event.logEvent(this)
             }
