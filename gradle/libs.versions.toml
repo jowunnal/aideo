@@ -14,8 +14,7 @@ composeFoundation = "1.7.0"
 dagger = "2.53.1"
 datastore = "1.1.0"
 espresso = "3.5.1"
-exoplayer = "1.7.1"
-ffmpeg = "0.5.4"
+media3 = "1.8.0-alpha01"
 firebaseBom = "33.8.0"
 gms-service-ads = "23.2.0"
 hilt = "1.2.0"
@@ -29,6 +28,7 @@ lifecycle = "2.6.1"
 lifecycle-common = "2.6.1"
 lottie = "6.3.0"
 mockk = "1.13.5"
+mlKit = "17.0.3"
 navigation = "2.8.7"
 okhttp = "4.12.0"
 playInApp = "2.1.0"
@@ -98,13 +98,14 @@ dagger-hilt-android-test = { group = "com.google.dagger", name = "hilt-android-t
 # Datastore
 datastore = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
 
-# ExoPlayer Media3
-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "exoplayer" }
-exoplayer-common = { group = "androidx.media3", name = "media3-common", version.ref = "exoplayer" }
-exoplayer-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "exoplayer" }
-exoplayer-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "exoplayer" }
-exoplayer-transformer = { group = "androidx.media3", name = "media3-transformer", version.ref = "exoplayer" }
-exoplayer-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "exoplayer" }
+# Media3
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
+media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3" }
+media3-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "media3" }
+media3-extractor = { module = "androidx.media3:media3-extractor", version.ref = "media3" }
+media3-transformer = { group = "androidx.media3", name = "media3-transformer", version.ref = "media3" }
+media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
@@ -131,6 +132,10 @@ lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-view
 
 # Lottie
 airbnb-android-lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
+
+# MLKit
+mlKit-translate = { module = "com.google.mlkit:translate", version.ref = "mlKit" }
+mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit" }
 
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
@@ -176,10 +181,11 @@ billing = ["billing-client", "billing-ktx"]
 compose = ["compose-material3", "compose-foundation", "compose-ui", "compose-ui-preview", "compose-animation"]
 composeAdaptive = ["compose-material3-adaptive", "compose-material3-adaptive-layout", "compose-material3-adaptive-navigation", "compose-material3-adaptive-navigation-suite"]
 coroutines = ["coroutines-core"]
-exoplayer = ["exoplayer", "exoplayer-common", "exoplayer-common-ktx", "exoplayer-effect", "exoplayer-transformer", "exoplayer-ui-compose"]
+media3 = ["media3-exoplayer", "media3-common", "media3-common-ktx", "media3-effect", "media3-transformer", "media3-ui-compose", "media3-extractor"]
 firebase = ["firebase-analytics", "firebase-crashlytics"]
 kotest = ["io-kotest-junit", "io-kotest-assertions"]
 lifecycle = ["lifecycle-compose", "lifecycle-viewmodel-ktx", "lifecycle-runtime-ktx", "lifecycle-runtime-compose", "lifecycle-service"]
+mlKit = ["mlKit-language", "mlKit-translate"]
 square = ["square-retrofit2", "square-retrofit2-converter-gson", "square-retrofit2-converter-scalars", "square-okhttp3-intercepter"]
 testing = ["jUnit", "junit-jupiter-api", "io-mockk"]
 tensorflow-lite = ["tensorflow-lite-support", "tensorflow-lite-gpu"]

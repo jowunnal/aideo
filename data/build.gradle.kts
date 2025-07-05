@@ -27,30 +27,15 @@ android {
     }
 
     buildTypes {
-        all {
-            buildConfigField("String", "PROJECT_NAME", getLocalKey("project.name"))
-        }
-
-        debug {
-            buildConfigField("String","GOOGLE_STT_ID",getLocalKey("google.test.sttId"))
-            buildConfigField("String", "GOOGLE_TRANSLATION_ID", getLocalKey("google.test.translationId"))
-        }
         release {
             isMinifyEnabled = true
             consumerProguardFile("proguard-rules.pro")
-
-            buildConfigField("String","GOOGLE_STT_ID",getLocalKey("google.real.sttId"))
-            buildConfigField("String", "GOOGLE_TRANSLATION_ID", getLocalKey("google.real.translationId"))
         }
     }
 
     buildFeatures {
         buildConfig = true
     }
-}
-
-fun getLocalKey(propertyKey:String):String{
-    return gradleLocalProperties(rootDir, providers).getProperty(propertyKey)
 }
 
 dependencies {
@@ -62,6 +47,7 @@ dependencies {
 
     implementation(libs.bundles.square)
     implementation(libs.datastore)
+    implementation(libs.bundles.mlKit)
 }
 
 androidComponents {

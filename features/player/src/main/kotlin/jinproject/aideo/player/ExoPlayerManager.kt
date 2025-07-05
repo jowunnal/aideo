@@ -1,9 +1,10 @@
 package jinproject.aideo.player
 
-import android.content.ContentUris
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.compose.runtime.Stable
 import androidx.core.net.toUri
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
@@ -11,13 +12,15 @@ import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Player.STATE_READY
+import androidx.media3.common.text.CueGroup
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.MediaFileManager
+import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -42,12 +45,20 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         PlayingState(
             isReady = false,
             currentPosition = 0L,
-            duration = 0L
+            duration = 0L,
+            isPlaying = false,
+            subTitle = "",
         )
     )
 
     private fun ExoPlayer.setupPlayerListener() {
         addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    playingState.value = playingState.value.copy(isPlaying = true)
+                }
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
                     STATE_READY -> {
@@ -61,14 +72,17 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
                         playingState.value = playingState.value.copy(isReady = false)
                     }
 
-                    STATE_ENDED -> {
+                    STATE_ENDED -> {}
 
-                    }
-
-                    STATE_IDLE -> {
-
-                    }
+                    STATE_IDLE -> {}
                 }
+            }
+
+            @OptIn(UnstableApi::class)
+            override fun onCues(cueGroup: CueGroup) {
+                val subtitle = cueGroup.cues.joinToString(separator = "\n") { it.text.toString() }
+
+                playingState.value = playingState.value.copy(subTitle = subtitle)
             }
         })
     }
@@ -79,13 +93,16 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         val subTitleConfiguration = MediaItem.SubtitleConfiguration.Builder(
             File(
                 context.filesDir,
-                MediaFileManager.getSubtitleFilePath(
-                    id = ContentUris.parseId(videoUri.toUri()),
+                getSubtitleFileIdentifier(
+                    id = videoUri.toUri().lastPathSegment?.toLong()
+                        ?: throw IllegalArgumentException("Invalid video ID"),
                     languageCode = languageCode,
                 )
             ).toUri()
         )
             .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+            .setLanguage(languageCode)
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
             .build()
 
         val mediaItem = MediaItem.Builder()
@@ -104,24 +121,22 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
 
     fun seekTo(position: Long) {
         exoPlayer.seekTo(position)
+        updateCurrentPosition(position)
+    }
+
+    fun updateCurrentPosition(position: Long) {
         playingState.value = playingState.value.copy(currentPosition = position)
     }
 
     fun release() {
         exoPlayer.release()
     }
-
-    fun isPlaying(): Boolean = exoPlayer.isPlaying
-
-    fun getCurrentPosition(): Long = exoPlayer.currentPosition
-
-    fun getDuration(): Long = exoPlayer.duration
-
-    fun getPlaybackState(): Int = exoPlayer.playbackState
 }
 
 data class PlayingState(
     val isReady: Boolean = false,
     val currentPosition: Long = 0L,
-    val duration: Long = 0L
+    val duration: Long = 0L,
+    val isPlaying: Boolean = false,
+    val subTitle: String = "",
 ) 

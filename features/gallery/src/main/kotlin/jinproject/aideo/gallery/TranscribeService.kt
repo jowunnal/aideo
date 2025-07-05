@@ -15,14 +15,14 @@ import jinproject.aideo.core.MediaFileManager
 import jinproject.aideo.core.VideoItem
 import jinproject.aideo.core.WhisperManager
 import jinproject.aideo.core.parseUri
+import jinproject.aideo.core.toAudioFileWAVIdentifier
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.datasource.remote.RemoteGCPDataSource
-import jinproject.aideo.data.datasource.remote.model.request.DetectLanguageRequest
-import jinproject.aideo.data.repository.GalleryRepository
+import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -34,13 +34,10 @@ class TranscribeService : LifecycleService() {
     lateinit var whisperManager: WhisperManager
 
     @Inject
-    lateinit var remoteGCPDataSource: RemoteGCPDataSource
-
-    @Inject
     lateinit var localPlayerDataSource: LocalPlayerDataSource
 
     @Inject
-    lateinit var galleryRepository: GalleryRepository
+    lateinit var mediaRepository: MediaRepository
 
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
@@ -48,13 +45,10 @@ class TranscribeService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
 
-        lifecycleScope.launch {
-            whisperManager.load()
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return super.onStartCommand(intent, flags, startId)
+        super.onStartCommand(intent, flags, startId)
 
         if (intent != null) {
             startForeground()
@@ -67,17 +61,18 @@ class TranscribeService : LifecycleService() {
 
         val offFlag = intent?.getBooleanExtra("status", false)
 
-        offFlag?.let {
-            if (it) {
-                job?.cancel()
-                stopSelf()
-            }
+        if (offFlag != null && offFlag) {
+            job?.cancel()
+            stopSelf()
         }
 
-        if (videoItem != null && job == null && whisperManager.isReady)
+        if (videoItem != null && job == null)
             job = lifecycleScope.launch {
-                processSubtitle(videoItem)
-                stopSelf()
+                whisperManager.load()
+                if (whisperManager.isReady) {
+                    processSubtitle(videoItem)
+                    stopSelf()
+                }
             }
 
         return START_NOT_STICKY
@@ -103,7 +98,7 @@ class TranscribeService : LifecycleService() {
 
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(videoItem, languageCode)
+                extractAudioAndTranscribe(videoItem)
             }
 
             else -> {
@@ -118,12 +113,11 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem, languageCode: String) {
-        galleryRepository.translateSubtitle(
-            MediaFileManager.getSubtitleFilePath(
-                id = videoItem.id,
-                languageCode = languageCode,
-            )
+        mediaRepository.translateSubtitle(
+            id = videoItem.id,
+            languageCode = languageCode,
         )
+
         notifyTranscriptionResult(
             title = "자막 생성 성공",
             description = "자막 생성이 성공적으로 완료되었어요.",
@@ -131,22 +125,18 @@ class TranscribeService : LifecycleService() {
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, languageCode: String) {
-        val audioResult = mediaFileManager.extractAudioFromVideo(
-            videoUri = videoItem.uri.toUri(),
-            outputFileName = videoItem.id.toString(),
-        )
-
-        audioResult.onSuccess { audioFileAbsolutePath ->
-            whisperManager.transcribeAudio(
-                audioFileAbsolutePath = audioFileAbsolutePath,
-                getLanguage = { content ->
-                    remoteGCPDataSource.detectLanguage(
-                        DetectLanguageRequest(content = content)
-                    ).languages.first().languageCode
-                }
+    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
+        runCatching {
+            mediaFileManager.extractAudioToWavWithResample(
+                videoFileAbsolutePath = videoItem.uri,
+                wavIdentifier = toAudioFileWAVIdentifier(videoItem.id)
             )
-            translateAndNotifySuccess(videoItem, languageCode)
+        }.onSuccess {
+            whisperManager.transcribeAudio(audioFileId = videoItem.id)
+            translateAndNotifySuccess(
+                videoItem = videoItem,
+                languageCode = Locale.US.language
+            )
         }.onFailure { exception ->
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
@@ -157,15 +147,15 @@ class TranscribeService : LifecycleService() {
     }
 
     private fun launchPlayerDeepLink(videoItem: VideoItem) {
-        val deepLinkUri = "aideo://player/player?videoUri=${videoItem.uri.parseUri()}".toUri()
+        val deepLinkUri = "aideo://app/player/${videoItem.uri.parseUri()}".toUri()
         val deepLinkIntent = Intent(
             Intent.ACTION_VIEW,
             deepLinkUri,
-            this@TranscribeService,
-            Class.forName("jinproject.aideo.app.MainActivity")
+            this,
+            Class.forName("jinproject.aideo.app.MainActivity"),
         )
 
-        TaskStackBuilder.create(this@TranscribeService).run {
+        TaskStackBuilder.create(this).run {
             addNextIntentWithParentStack(deepLinkIntent)
         }.startActivities()
     }
@@ -174,6 +164,7 @@ class TranscribeService : LifecycleService() {
         val exitIntent = Intent(this, TranscribeService::class.java).apply {
             putExtra("status", true)
         }
+
         val exitPendingIntent = PendingIntent.getService(
             this,
             NOTIFICATION_ID,
@@ -181,7 +172,7 @@ class TranscribeService : LifecycleService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        NotificationCompat.Builder(applicationContext, "Transcribe Video")
+        NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSmallIcon(jinproject.aideo.design.R.mipmap.ic_aideo_app)
             .setContentTitle("자막 생성 중")
@@ -205,7 +196,7 @@ class TranscribeService : LifecycleService() {
         description: String,
         videoItem: VideoItem?,
     ) {
-        val notification = NotificationCompat.Builder(applicationContext, "Transcribe Video")
+        val notification = NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSmallIcon(jinproject.aideo.design.R.mipmap.ic_aideo_app)
             .setContentTitle(title)
@@ -214,10 +205,9 @@ class TranscribeService : LifecycleService() {
         videoItem?.let {
             val deepLinkIntent = Intent(
                 Intent.ACTION_VIEW,
-                "aideo://player/player?videoUri=${videoItem.uri.parseUri()}".toUri(),
-                this,
-                Class.forName("jinproject.aideo.app.MainActivity")
-            )
+                "aideo://app/player/${videoItem.uri.parseUri()}".toUri(),
+
+                )
 
             val deepLinkPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
                 addNextIntentWithParentStack(deepLinkIntent)
@@ -245,5 +235,6 @@ class TranscribeService : LifecycleService() {
 
     companion object {
         const val NOTIFICATION_ID = 999
+        const val NOTIFICATION_CHANNEL_ID = "TranscribeVideo"
     }
 }

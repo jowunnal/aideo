@@ -11,7 +11,7 @@ import java.util.Locale
 internal object PlayerPreferencesSerializer : Serializer<PlayerPreferences> {
     override val defaultValue: PlayerPreferences =
         PlayerPreferences.getDefaultInstance().toBuilder()
-            .setLanguage(Locale.getDefault().toLanguageTag())
+            .setLanguage(Locale.getDefault().language)
             .build()
 
     override suspend fun readFrom(input: InputStream): PlayerPreferences {

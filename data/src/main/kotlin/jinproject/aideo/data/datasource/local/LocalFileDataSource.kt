@@ -41,21 +41,21 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
      *
      * @param fileIdentifier 생성할 파일의 식별자(이름+확장자)
      *
-     * @return 파일의 content Uri or 파일이 이미 존재하는 경우 null
+     * @return 파일의 absolutePath
      */
     fun createFileAndGetAbsolutePath(
         fileIdentifier: String,
     ): String {
         val file = File(context.filesDir, fileIdentifier)
 
-        if(!file.exists())
+        if (!file.exists())
             file.createNewFile()
 
         return file.absolutePath
     }
 
-    fun deleteFile(fileName: String): Boolean {
-        val file = File(context.filesDir, fileName)
+    fun deleteFile(fileIdentifier: String): Boolean {
+        val file = File(context.filesDir, fileIdentifier)
 
         return file.delete()
     }
@@ -63,18 +63,18 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     /**
      * 파일의 내용을 가져오는 함수
      *
-     * @param fileAbsolutePath : 파일의 절대 경로
+     * @param fileIdentifier : 파일의 identifier(이름 + 포맷)
      *
      * @return 한줄씩 읽은 List<String>
      */
-    fun getFileContent(fileAbsolutePath: String): List<String>? {
-        val file = File(fileAbsolutePath)
+    fun getFileContent(fileIdentifier: String): List<String>? {
+        val file = File(context.filesDir, fileIdentifier)
 
         return if (file.exists()) file.readLines() else null
     }
 
-    fun isFileExist(fileName: String): Boolean {
-        val file = File(context.filesDir, fileName)
+    fun isFileExist(fileIdentifier: String): Boolean {
+        val file = File(context.filesDir, fileIdentifier)
 
         return file.exists()
     }
@@ -82,25 +82,26 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     fun isFileExist(fileId: Long, fileExtension: String): Boolean {
         val file = File(context.filesDir, "*")
 
-        val matchedFiles = file.listFiles()?.filter { it.name.matches(Regex(".*\\.$fileExtension")) && it.name.startsWith("$fileId") }
+        val matchedFiles = file.listFiles()
+            ?.filter { it.name.matches(Regex(".*\\.$fileExtension")) && it.name.startsWith("$fileId") }
 
         return matchedFiles?.isNotEmpty() == true
     }
 
-    fun getFileReference(fileName: String): File? {
-        val file = File(context.filesDir, fileName)
+    fun getFileReference(fileIdentifier: String): File? {
+        val file = File(context.filesDir, fileIdentifier)
 
-        return if(file.exists()) file else null
+        return if (file.exists()) file else null
     }
 
-    fun getFileAbsolutePath(fileName: String): String? {
-        val file = File(context.filesDir, fileName)
+    fun getFileAbsolutePath(fileIdentifier: String): String? {
+        val file = File(context.filesDir, fileIdentifier)
 
-        return if(file.exists()) file.absolutePath else null
+        return if (file.exists()) file.absolutePath else null
     }
 
-    fun replaceFileContent(newContent: String, absolutePath: String,) {
-        val file = File(context.filesDir, absolutePath)
+    fun replaceFileContent(newContent: String, fileIdentifier: String) {
+        val file = File(context.filesDir, fileIdentifier)
 
         FileWriter(file, false).use {
             it.write(newContent)

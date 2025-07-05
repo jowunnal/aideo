@@ -2,10 +2,10 @@ package jinproject.aideo.gallery
 
 import android.content.Context
 import android.content.Intent
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,7 +51,6 @@ fun GalleryScreen(
         uiState = uiState,
         addVideo = viewModel::updateVideoList,
         navigateToPlayer = navigateToPlayer,
-        onClickVideoItem = viewModel::onClickVideoItem
     )
 }
 
@@ -62,15 +61,14 @@ private fun GalleryScreen(
     context: Context = LocalContext.current,
     addVideo: (List<String>) -> Unit,
     navigateToPlayer: (String) -> Unit,
-    onClickVideoItem: (()-> Unit) -> Unit,
 ) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(MediaStore.getPickImagesMaxLimit())
+        contract = PickMultipleVisualMedia()
     ) { uris ->
         if (uris.isNotEmpty())
             addVideo(
-                uris.mapNotNull { uri ->
-                    uri.lastPathSegment
+                uris.map {
+                    it.toString()
                 }
             )
     }
@@ -83,7 +81,7 @@ private fun GalleryScreen(
                 onClick = {
                     photoPickerLauncher.launch(
                         PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.VideoOnly
+                            PickVisualMedia.VideoOnly
                         )
                     )
                 },
@@ -116,16 +114,14 @@ private fun GalleryScreen(
                     items(galleryUiState.data) { video ->
                         VideoGridItem(
                             videoItem = video,
-                            onClick = { videoItem ->
-                                onClickVideoItem {
-                                    context.startForegroundService(
-                                        Intent(
-                                            context, TranscribeService::class.java
-                                        ).apply {
-                                            putExtra("videoItem", videoItem)
-                                        }
-                                    )
-                                }
+                            onClick = {
+                                context.startForegroundService(
+                                    Intent(
+                                        context, TranscribeService::class.java
+                                    ).apply {
+                                        putExtra("videoItem", video)
+                                    }
+                                )
 
                                 //TODO navigateToPlayer(video.uri)
                             }
@@ -140,12 +136,10 @@ private fun GalleryScreen(
 @Composable
 private fun VideoGridItem(
     videoItem: VideoItem,
-    onClick: (VideoItem) -> Unit
+    onClick: () -> Unit
 ) {
     Card(
-        onClick = {
-            onClick(videoItem)
-        },
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
@@ -181,7 +175,6 @@ private fun GalleryScreenPreview(
             uiState = galleryUiState,
             addVideo = {},
             navigateToPlayer = {},
-            onClickVideoItem = {},
         )
     }
 }

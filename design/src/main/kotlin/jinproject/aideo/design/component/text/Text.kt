@@ -20,11 +20,15 @@ import jinproject.aideo.design.theme.AideoTheme
 fun AppBarText(
     modifier: Modifier = Modifier,
     text: String,
+    textAlign: TextAlign = TextAlign.Start,
+    color: Color =  MaterialTheme.colorScheme.onSurface,
 ) {
     DefaultText(
         modifier = modifier,
         text = text,
         style = MaterialTheme.typography.headlineSmall,
+        textAlign = textAlign,
+        color = color
     )
 }
 
@@ -119,7 +123,8 @@ fun DescriptionLargeText(
 fun DescriptionMediumText(
     modifier: Modifier = Modifier,
     text: String,
-    color: Color = MaterialTheme.colorScheme.onBackground
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     DefaultText(
         modifier = modifier,
@@ -128,6 +133,7 @@ fun DescriptionMediumText(
         overflow = Ellipsis,
         color = color,
         maxLines = Int.MAX_VALUE,
+        textAlign = textAlign,
     )
 }
 

@@ -28,7 +28,7 @@ value class AideoColor private constructor(val color: Color) {
         val blue = AideoColor(Color(0xFF007AFF))
         val orange = AideoColor(Color(0xFFFF5722))
 
-        val light_primary = primary
+        val light_primary = lightBlack
         val light_onPrimary = white
         val light_secondary = AideoColor(Color(0xFF91E4E1))
         val light_onSecondary = grey_600

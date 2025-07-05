@@ -5,15 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.graphics.Color
 import dagger.hilt.android.HiltAndroidApp
+import jinproject.aideo.gallery.TranscribeService
 
 @HiltAndroidApp
 class AideoApplication : Application() {
-    private var notificationManager: NotificationManager? = null
 
     override fun onCreate() {
         super.onCreate()
-
-        notificationManager = getSystemService(NotificationManager::class.java)
 
         createNotificationChannel(
             channelId = "Aideo Channel",
@@ -22,12 +20,10 @@ class AideoApplication : Application() {
         )
 
         createNotificationChannel(
-            channelId = "Transcribe Video Channel",
+            channelId = TranscribeService.NOTIFICATION_CHANNEL_ID,
             channelName = "자막 생성 알림 채널",
             descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다."
         )
-
-        notificationManager = null
     }
 
     private fun createNotificationChannel(
@@ -44,6 +40,6 @@ class AideoApplication : Application() {
             lightColor = Color.BLUE
         }
 
-        notificationManager?.createNotificationChannel(channel)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }

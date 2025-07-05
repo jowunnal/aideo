@@ -1,21 +1,17 @@
 package jinproject.aideo.core
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.media.MediaCodec
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import android.os.Parcelable
 import android.provider.MediaStore
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.transformer.Composition
-import androidx.media3.transformer.EditedMediaItem
-import androidx.media3.transformer.ExportException
-import androidx.media3.transformer.ExportResult
-import androidx.media3.transformer.Transformer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,11 +19,15 @@ import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.nio.ByteBuffer
 import javax.inject.Inject
-import kotlin.coroutines.resume
+import kotlin.math.roundToInt
 
 @Module
 @InstallIn(ViewModelComponent::class)
@@ -46,137 +46,58 @@ class MediaFileManager @Inject constructor(
     private val localFileDataSource: LocalFileDataSource,
 ) {
 
-    /**
-     * 비디오로 부터 음성을 추출하여 파일을 생성하고, 파일의 절대경로를 반환하는 함수
-     *
-     * 음성 파일이 이미 존재한다면, 기존의 음성 파일의 경로를 반환하고 그렇지 않다면, 새로 생성하여 경로를 반환한다.
-     *
-     * @param videoUri 비디오 컨텐트 uri
-     * @param outputFileName 오디오 파일 이름
-     *
-     * @return 파일의 절대 경로
-     */
-    suspend fun extractAudioFromVideo(
-        videoUri: Uri,
-        outputFileName: String
-    ): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val fileName = outputFileName.toAudioFileIdentifier()
-
-            if (localFileDataSource.isFileExist(fileName))
-                return@withContext Result.success(localFileDataSource.getFileAbsolutePath(fileName)!!)
-
-            val fileAbsolutePath = localFileDataSource.createFileAndGetAbsolutePath(fileName)
-
-            val result = extractAudioWithTransformer(videoUri, fileAbsolutePath)
-
-            if (result.isSuccess) {
-                Result.success(fileAbsolutePath)
-            } else {
-                localFileDataSource.deleteFile(fileName)
-                Result.failure(result.exceptionOrNull() ?: Exception("Audio extraction failed"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    private suspend fun extractAudioWithTransformer(
-        videoUri: Uri,
-        fileAbsolutePath: String,
-    ): Result<Unit> = suspendCancellableCoroutine { continuation ->
-        try {
-            val mediaItem = MediaItem.fromUri(videoUri)
-
-            val editedMediaItem = EditedMediaItem.Builder(mediaItem)
-                .setRemoveVideo(true)
-                .build()
-
-            val transformer = Transformer.Builder(context)
-                .setAudioMimeType(MimeTypes.AUDIO_WAV)
-                .addListener(
-                    object : Transformer.Listener {
-                        override fun onCompleted(
-                            composition: Composition,
-                            exportResult: ExportResult
-                        ) {
-                            if (continuation.isActive) {
-                                continuation.resume(Result.success(Unit))
-                            }
-                        }
-
-                        override fun onError(
-                            composition: Composition,
-                            exportResult: ExportResult,
-                            exportException: ExportException
-                        ) {
-                            if (continuation.isActive) {
-                                continuation.resume(Result.failure(exportException))
-                            }
-                        }
-                    }
-                )
-                .build()
-
-            transformer.start(editedMediaItem, fileAbsolutePath)
-
-            continuation.invokeOnCancellation {
-                transformer.cancel()
-            }
-
-        } catch (e: Exception) {
-            if (continuation.isActive) {
-                continuation.resume(Result.failure(e))
-            }
-        }
-    }
-
-    suspend fun getVideoInfoList(videoUris: List<String>): List<VideoItem> =
+    suspend fun getVideoInfoList(videoUriString: String): VideoItem? =
         withContext(Dispatchers.IO) {
-            mutableListOf<VideoItem>().apply {
+            val videoUri = videoUriString.toUri()
+            var name: String? = null
+            var duration: Long? = null
+            val id = videoUriString.toUri().lastPathSegment?.toLong()
+                ?: throw IllegalArgumentException("Invalid URI")
 
-                val selection = "_id IN (${videoUris.joinToString(",") { "?" }})"
-                val selectionArgs = videoUris.toTypedArray()
+            val projection = arrayOf(
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DURATION,
+                MediaStore.Video.Media._ID,
+            )
 
-                val projection = arrayOf(
-                    MediaStore.Video.Media.DISPLAY_NAME,
-                    MediaStore.Video.Media.DURATION
-                )
+            context.contentResolver.query(
+                videoUri,
+                projection,
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex =
+                        cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                    val durationIndex =
+                        cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
 
-                context.contentResolver.query(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    projection,
-                    selection,
-                    selectionArgs,
-                    null
-                )?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val nameIndex =
-                            cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-                        val durationIndex =
-                            cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
-                        val id =
-                            cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID))
+                    if (nameIndex != -1)
+                        name = cursor.getString(nameIndex)
+                    if (durationIndex != -1)
+                        duration = cursor.getLong(durationIndex)
 
-                        val name = cursor.getString(nameIndex)
-                        val duration = cursor.getLong(durationIndex)
-                        val uri = videoUris[cursor.position]
-
-                        add(
-                            VideoItem(
-                                uri = uri,
-                                id = id,
-                                title = name,
-                                duration = duration,
-                                thumbnailPath = createThumbnailAndGetPath(
-                                    uri = uri,
-                                    fileName = id.toString().toThumbnailFileIdentifier()
-                                )
-                            )
-                        )
-                    }
+                    context.contentResolver.takePersistableUriPermission(
+                        videoUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
                 }
             }
+
+            if (duration != null && name != null)
+                VideoItem(
+                    uri = videoUri.toString(),
+                    id = id,
+                    title = name,
+                    duration = duration,
+                    thumbnailPath = createThumbnailAndGetPath(
+                        uri = videoUri.toString(),
+                        fileName = id.toString().toThumbnailFileIdentifier()
+                    )
+                )
+            else
+                null
         }
 
     private fun createThumbnailAndGetPath(
@@ -218,7 +139,7 @@ class MediaFileManager @Inject constructor(
 
         if (isSubtitleExist) {
             val isSubtitleByLanguageExist =
-                localFileDataSource.isFileExist(fileName = "${id}_$languageCode".toSubtitleFileIdentifier())
+                localFileDataSource.isFileExist(fileIdentifier = "${id}_$languageCode".toSubtitleFileIdentifier())
 
             return if (isSubtitleByLanguageExist)
                 1
@@ -229,9 +150,212 @@ class MediaFileManager @Inject constructor(
         return -1
     }
 
-    companion object {
-        fun getSubtitleFilePath(id: Long, languageCode: String): String = "${id}_$languageCode.srt"
+    /**
+     * 비디오로 부터 음성을 추출하여 파일을 생성하고, 파일의 절대경로를 반환하는 함수
+     *
+     * 음성 파일이 이미 존재한다면, 기존의 음성 파일의 경로를 반환하고 그렇지 않다면, 새로 생성하여 경로를 반환한다.
+     *
+     * @param videoFileAbsolutePath 비디오 컨텐트 uri
+     * @param wavIdentifier 출력될 wav 파일 식별자
+     *
+     * @return 파일의 identifier(이름 + 포맷)
+     */
+    fun extractAudioToWavWithResample(
+        videoFileAbsolutePath: String,
+        wavIdentifier: String
+    ) {
+        val extractor = MediaExtractor()
+        extractor.setDataSource(context, videoFileAbsolutePath.toUri(), null)
+
+        var audioTrackIndex = -1
+        var format: MediaFormat? = null
+        var mime: String? = null
+
+        for (i in 0 until extractor.trackCount) {
+            val trackFormat = extractor.getTrackFormat(i)
+            val trackMime = trackFormat.getString(MediaFormat.KEY_MIME)
+            if (trackMime != null && trackMime.startsWith("audio/")) {
+                audioTrackIndex = i
+                format = trackFormat
+                mime = trackMime
+                break
+            }
+        }
+        if (audioTrackIndex == -1 || format == null || mime == null) {
+            extractor.release()
+            throw IOException("No audio track found")
+        }
+
+        extractor.selectTrack(audioTrackIndex)
+        val decoder = MediaCodec.createDecoderByType(mime)
+        decoder.configure(format, null, null, 0)
+        decoder.start()
+
+        val originalSampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+        val originalChannels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+        val targetSampleRate = 16000
+        val targetChannels = 1
+        val bitDepth = 16
+
+        val pcmOut = ByteArrayOutputStream()
+        val info = MediaCodec.BufferInfo()
+        var isEOS = false
+        val timeoutUs = 10000L
+
+        while (!isEOS) {
+            val inputBufferId = decoder.dequeueInputBuffer(timeoutUs)
+            if (inputBufferId >= 0) {
+                val inputBuffer = decoder.getInputBuffer(inputBufferId)
+                val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
+                if (sampleSize < 0) {
+                    decoder.queueInputBuffer(
+                        inputBufferId, 0, 0, 0,
+                        MediaCodec.BUFFER_FLAG_END_OF_STREAM
+                    )
+                    isEOS = true
+                } else {
+                    val presentationTimeUs = extractor.sampleTime
+                    decoder.queueInputBuffer(
+                        inputBufferId, 0, sampleSize, presentationTimeUs, 0
+                    )
+                    extractor.advance()
+                }
+            }
+
+            var outputBufferId = decoder.dequeueOutputBuffer(info, timeoutUs)
+            while (outputBufferId >= 0) {
+                val outputBuffer = decoder.getOutputBuffer(outputBufferId)
+                val chunk = ByteArray(info.size)
+                outputBuffer?.get(chunk)
+                outputBuffer?.clear()
+                pcmOut.write(chunk)
+                decoder.releaseOutputBuffer(outputBufferId, false)
+                outputBufferId = decoder.dequeueOutputBuffer(info, timeoutUs)
+            }
+        }
+
+        decoder.stop()
+        decoder.release()
+        extractor.release()
+
+        val pcmData = pcmOut.toByteArray()
+        val shortBuffer =
+            ByteBuffer.wrap(pcmData).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+        val shortArray = ShortArray(shortBuffer.limit())
+        shortBuffer.get(shortArray)
+
+        val monoShortArray = if (originalChannels == 2) {
+            ShortArray(shortArray.size / 2) { i ->
+                (((shortArray[2 * i].toInt() + shortArray[2 * i + 1].toInt()) / 2).toShort())
+            }
+        } else {
+            shortArray
+        }
+
+        val resampledShortArray = if (originalSampleRate != targetSampleRate) {
+            linearResample(monoShortArray, originalSampleRate, targetSampleRate)
+        } else {
+            monoShortArray
+        }
+
+        writeWavFile(
+            context,
+            wavIdentifier,
+            resampledShortArray,
+            targetSampleRate,
+            targetChannels,
+            bitDepth
+        )
     }
+
+    fun linearResample(input: ShortArray, srcRate: Int, dstRate: Int): ShortArray {
+        val ratio = dstRate.toDouble() / srcRate
+        val outputLength = (input.size * ratio).roundToInt()
+        val output = ShortArray(outputLength)
+        for (i in output.indices) {
+            val srcIndex = i / ratio
+            val idx = srcIndex.toInt()
+            val frac = srcIndex - idx
+            val sample1 = input.getOrElse(idx) { 0 }
+            val sample2 = input.getOrElse(idx + 1) { 0 }
+            output[i] = ((sample1 * (1 - frac) + sample2 * frac)).toInt().toShort()
+        }
+        return output
+    }
+
+    fun writeWavFile(
+        context: Context,
+        filePath: String,
+        pcmData: ShortArray,
+        sampleRate: Int,
+        channels: Int,
+        bitDepth: Int
+    ) {
+        FileOutputStream(File(context.filesDir, filePath)).use { out ->
+            val byteRate = sampleRate * channels * bitDepth / 8
+            val totalDataLen = pcmData.size * 2 + 36
+            val totalAudioLen = pcmData.size * 2
+
+            out.write(
+                byteArrayOf(
+                    'R'.code.toByte(),
+                    'I'.code.toByte(),
+                    'F'.code.toByte(),
+                    'F'.code.toByte()
+                )
+            )
+            out.write(intToLittleEndian(totalDataLen))
+            out.write(
+                byteArrayOf(
+                    'W'.code.toByte(),
+                    'A'.code.toByte(),
+                    'V'.code.toByte(),
+                    'E'.code.toByte()
+                )
+            )
+            out.write(
+                byteArrayOf(
+                    'f'.code.toByte(),
+                    'm'.code.toByte(),
+                    't'.code.toByte(),
+                    ' '.code.toByte()
+                )
+            )
+            out.write(intToLittleEndian(16))
+            out.write(shortToLittleEndian(1))
+            out.write(shortToLittleEndian(channels.toShort()))
+            out.write(intToLittleEndian(sampleRate))
+            out.write(intToLittleEndian(byteRate))
+            out.write(shortToLittleEndian((channels * bitDepth / 8).toShort()))
+            out.write(shortToLittleEndian(bitDepth.toShort()))
+            out.write(
+                byteArrayOf(
+                    'd'.code.toByte(),
+                    'a'.code.toByte(),
+                    't'.code.toByte(),
+                    'a'.code.toByte()
+                )
+            )
+            out.write(intToLittleEndian(totalAudioLen))
+
+            val buffer =
+                ByteBuffer.allocate(pcmData.size * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            buffer.asShortBuffer().put(pcmData)
+            out.write(buffer.array())
+        }
+    }
+
+    fun intToLittleEndian(value: Int): ByteArray = byteArrayOf(
+        (value and 0xff).toByte(),
+        ((value shr 8) and 0xff).toByte(),
+        ((value shr 16) and 0xff).toByte(),
+        ((value shr 24) and 0xff).toByte()
+    )
+
+    fun shortToLittleEndian(value: Short): ByteArray = byteArrayOf(
+        (value.toInt() and 0xff).toByte(),
+        ((value.toInt() shr 8) and 0xff).toByte()
+    )
 }
 
 @Parcelize

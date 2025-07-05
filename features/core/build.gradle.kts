@@ -18,5 +18,5 @@ dependencies {
     implementation(libs.firebase.analytics)
     api(libs.bundles.billing)
     api(project(":whisper_lib"))
-    api(libs.bundles.exoplayer)
+    api(libs.bundles.media3)
 }

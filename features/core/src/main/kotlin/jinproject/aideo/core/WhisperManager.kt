@@ -12,14 +12,14 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Locale
 import javax.inject.Inject
 
 @Module
@@ -80,41 +80,43 @@ class WhisperManager @Inject constructor(
     /**
      * 오디오 파일을 텍스트로 변환하여 자막 파일(Srt) 생성
      *
-     * @param audioFileAbsolutePath : 16 비트 PCM WAV 오디오 파일
+     * @param audioFileWavIdentifier : 16 비트 PCM WAV 오디오 파일
      */
-    suspend fun transcribeAudio(audioFileAbsolutePath: String, getLanguage: suspend (String) -> String,) {
+    suspend fun transcribeAudio(
+        audioFileId: Long,
+    ) {
         if (!isReady) {
             return
         }
+        val audioFileWavIdentifier = toAudioFileWAVIdentifier(id = audioFileId)
+        val audioFile = localFileDataSource.getFileReference(audioFileWavIdentifier) ?: return
+        val data = decodeWaveFile(audioFile)
+        val transcribedText = whisperContext.transcribeData(data)
+        val srtContent = convertToSrt(transcribedText)
+        val languageCode = Locale.US.language
 
-        try {
-            val audioFile = localFileDataSource.getFileReference(audioFileAbsolutePath) ?: return
-            val data = decodeWaveFile(audioFile)
-            val transcribedText = whisperContext.transcribeData(data)
-            val srtContent = convertToSrt(transcribedText)
-            val languageCode = getLanguage(srtContent.substring(0,50))
-
-            localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = "${audioFile.name}_$languageCode".toSubtitleFileIdentifier(),
-                writeContentOnFile = { outputStream ->
-                    runCatching {
-                        outputStream.write(srtContent.toByteArray())
-                    }.map {
-                        true
-                    }.getOrElse {
-                        false
-                    }
+        localFileDataSource.createFileAndWriteOnOutputStream(
+            fileIdentifier = getSubtitleFileIdentifier(
+                id = audioFileId,
+                languageCode = languageCode
+            ),
+            writeContentOnFile = { outputStream ->
+                runCatching {
+                    outputStream.write(srtContent.toByteArray())
+                }.map {
+                    true
+                }.getOrElse {
+                    false
                 }
-            )
-        } catch (e: Exception) {
+            }
+        )
 
-        }
     }
 
     /**
      * 16 비트 WAV 오디오 파일을 정규화된 FloatArray 로 변환하는 함수
      */
-    private fun decodeWaveFile(file: File): FloatArray {
+    fun decodeWaveFile(file: File): FloatArray {
         val baos = ByteArrayOutputStream()
         file.inputStream().use { it.copyTo(baos) }
         val buffer = ByteBuffer.wrap(baos.toByteArray())
@@ -138,11 +140,11 @@ class WhisperManager @Inject constructor(
         val lines = transcribeOutput.trim().lines()
         val srtBuilder = StringBuilder()
         val regex =
-            Regex("\\[(\\d{2}:\\d{2}:\\d{2}\\.\\d{3}) --> (\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\]: (.*)")
+            Regex("\\[(\\d{2}:\\d{2}:\\d{2}\\.\\d{3}) --> (\\d{2}:\\d{2}:\\d{2}\\.\\d{3})]:\\s*(.*)")
         var index = 1
 
         for (line in lines) {
-            val matchResult = regex.matchEntire(line)
+            val matchResult = regex.matchEntire(line.trim())
             if (matchResult != null) {
                 val (startTime, endTime, text) = matchResult.destructured
                 val start = startTime.replace('.', ',')
@@ -150,7 +152,7 @@ class WhisperManager @Inject constructor(
 
                 srtBuilder.appendLine(index)
                 srtBuilder.appendLine("$start --> $end")
-                srtBuilder.appendLine(text)
+                srtBuilder.appendLine(text.trim())
                 srtBuilder.appendLine()
                 index++
             }
@@ -165,7 +167,7 @@ class WhisperManager @Inject constructor(
     }
 
     companion object {
-        const val WEIGHT_FILE_NAME = "ggml-base.bin"
+        const val WEIGHT_FILE_NAME = "ggml-model.bin"
         const val WEIGHT_FILE_PATH = "models/$WEIGHT_FILE_NAME"
     }
 }

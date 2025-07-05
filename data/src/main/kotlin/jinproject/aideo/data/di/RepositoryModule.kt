@@ -4,8 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import jinproject.aideo.data.repository.GalleryRepository
-import jinproject.aideo.data.repository.impl.GalleryRepositoryImpl
+import jinproject.aideo.data.repository.MediaRepository
+import jinproject.aideo.data.repository.impl.MediaRepositoryImpl
 import javax.inject.Singleton
 
 @Module
@@ -14,7 +14,7 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindGalleryRepository(
-        galleryRepositoryImpl: GalleryRepositoryImpl
-    ): GalleryRepository
+    abstract fun bindMediaRepository(
+        mediaRepositoryImpl: MediaRepositoryImpl
+    ): MediaRepository
 } 

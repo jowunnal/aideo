@@ -1,6 +1,5 @@
 package jinproject.aideo.player
 
-import android.content.ContentUris
 import androidx.compose.runtime.Stable
 import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
@@ -12,16 +11,17 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.MediaFileManager
 import jinproject.aideo.core.toOriginUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.repository.GalleryRepository
+import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
@@ -30,7 +30,7 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
     private val mediaFileManager: MediaFileManager,
-    private val galleryRepository: GalleryRepository,
+    private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -38,12 +38,14 @@ class PlayerViewModel @Inject constructor(
     private val currentVideoUri: String =
         savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
-    private val languageMenuState = MutableStateFlow(false)
+    private var job: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
         localPlayerDataSource.getLanguageSetting().onEach { language ->
-            val id = ContentUris.parseId(currentVideoUri.toUri())
+            val id =
+                currentVideoUri.toUri().lastPathSegment?.toLong()
+                    ?: throw IllegalArgumentException()
 
             val subtitleExist = mediaFileManager.checkSubtitleFileExist(
                 id = id,
@@ -51,11 +53,9 @@ class PlayerViewModel @Inject constructor(
             )
 
             if (subtitleExist != 1) {
-                galleryRepository.translateSubtitle(
-                    MediaFileManager.getSubtitleFilePath(
-                        id = id,
-                        languageCode = language,
-                    )
+                mediaRepository.translateSubtitle(
+                    id = id,
+                    languageCode = language,
                 )
             }
 
@@ -82,19 +82,17 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun updateLanguageMenuShow(boolean: Boolean) {
-        languageMenuState.update { boolean }
-    }
-
-    fun prepareExoplayer(languageCode: String,) {
+    fun prepareExoplayer(languageCode: String) {
         exoPlayerManager.prepare(
             videoUri = currentVideoUri,
             languageCode = languageCode,
         )
+        observePlayerPosition()
     }
 
     fun releaseExoPlayer() {
         exoPlayerManager.release()
+        cancelObservingPlayerPosition()
     }
 
     fun seekTo(pos: Long) {
@@ -102,6 +100,27 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun getExoPlayer(): Player = exoPlayerManager.getExoPlayer()
+
+    private fun observePlayerPosition() {
+        if (job == null)
+            job = viewModelScope.launch {
+                uiState.collectLatest { uiState ->
+                    if (uiState.playingState.isPlaying) {
+                        with(getExoPlayer()) {
+                            while (uiState.playingState.isPlaying) {
+                                exoPlayerManager.updateCurrentPosition(currentPosition)
+                                delay(100)
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+    private fun cancelObservingPlayerPosition() {
+        job?.cancel()
+        job = null
+    }
 }
 
 @Stable
