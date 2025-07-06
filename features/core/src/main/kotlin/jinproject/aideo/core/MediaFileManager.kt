@@ -18,6 +18,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
@@ -57,8 +58,9 @@ class MediaFileManager @Inject constructor(
             val projection = arrayOf(
                 MediaStore.Video.Media.DISPLAY_NAME,
                 MediaStore.Video.Media.DURATION,
-                MediaStore.Video.Media._ID,
-            )
+                MediaStore.Video.Media.DATE_ADDED,
+
+                )
 
             context.contentResolver.query(
                 videoUri,
@@ -77,15 +79,15 @@ class MediaFileManager @Inject constructor(
                         name = cursor.getString(nameIndex)
                     if (durationIndex != -1)
                         duration = cursor.getLong(durationIndex)
-
-                    context.contentResolver.takePersistableUriPermission(
-                        videoUri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
                 }
             }
 
-            if (duration != null && name != null)
+            if (duration != null && name != null) {
+                context.contentResolver.takePersistableUriPermission(
+                    videoUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+
                 VideoItem(
                     uri = videoUri.toString(),
                     id = id,
@@ -96,13 +98,13 @@ class MediaFileManager @Inject constructor(
                         fileName = id.toString().toThumbnailFileIdentifier()
                     )
                 )
-            else
+            } else
                 null
         }
 
     private fun createThumbnailAndGetPath(
         uri: String,
-        fileName: String
+        fileName: String,
     ): String? {
         return MediaMetadataRetriever().use { retriever ->
             retriever.setDataSource(context, uri.toUri())
@@ -139,7 +141,12 @@ class MediaFileManager @Inject constructor(
 
         if (isSubtitleExist) {
             val isSubtitleByLanguageExist =
-                localFileDataSource.isFileExist(fileIdentifier = "${id}_$languageCode".toSubtitleFileIdentifier())
+                localFileDataSource.isFileExist(
+                    fileIdentifier = getSubtitleFileIdentifier(
+                        id = id,
+                        languageCode = languageCode
+                    )
+                )
 
             return if (isSubtitleByLanguageExist)
                 1
@@ -162,7 +169,7 @@ class MediaFileManager @Inject constructor(
      */
     fun extractAudioToWavWithResample(
         videoFileAbsolutePath: String,
-        wavIdentifier: String
+        wavIdentifier: String,
     ) {
         val extractor = MediaExtractor()
         extractor.setDataSource(context, videoFileAbsolutePath.toUri(), null)
@@ -289,7 +296,7 @@ class MediaFileManager @Inject constructor(
         pcmData: ShortArray,
         sampleRate: Int,
         channels: Int,
-        bitDepth: Int
+        bitDepth: Int,
     ) {
         FileOutputStream(File(context.filesDir, filePath)).use { out ->
             val byteRate = sampleRate * channels * bitDepth / 8

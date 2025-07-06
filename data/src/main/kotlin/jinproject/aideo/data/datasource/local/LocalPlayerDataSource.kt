@@ -22,9 +22,20 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
 
     fun getLanguageSetting(): Flow<String> = data.map { it.language }
 
+    fun getVideoUris(): Flow<List<String>> = data.map { it.videosList }
+
     suspend fun setLanguageSetting(language: String) {
         playerDataStore.updateData {
             it.toBuilder().setLanguage(language).build()
+        }
+    }
+
+    suspend fun replaceVideoUris(uris: List<String>) {
+        playerDataStore.updateData {
+            it.toBuilder()
+                .clearVideos()
+                .addAllVideos(uris)
+                .build()
         }
     }
 }

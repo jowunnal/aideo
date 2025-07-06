@@ -1,6 +1,7 @@
 package jinproject.aideo.data.datasource.local
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -80,12 +81,12 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     }
 
     fun isFileExist(fileId: Long, fileExtension: String): Boolean {
-        val file = File(context.filesDir, "*")
+        val dir = context.filesDir
 
-        val matchedFiles = file.listFiles()
-            ?.filter { it.name.matches(Regex(".*\\.$fileExtension")) && it.name.startsWith("$fileId") }
+        val matchedFiles = dir.listFiles()
+            ?.any { it.name.startsWith(fileId.toString()) && it.name.endsWith(fileExtension) } ?: false
 
-        return matchedFiles?.isNotEmpty() == true
+        return matchedFiles
     }
 
     fun getFileReference(fileIdentifier: String): File? {

@@ -8,6 +8,9 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -41,11 +44,6 @@ class TranscribeService : LifecycleService() {
 
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
-
-    override fun onCreate() {
-        super.onCreate()
-
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -93,7 +91,7 @@ class TranscribeService : LifecycleService() {
 
             0 -> {
                 // 자막 파일은 있으나 번역이 필요한 경우
-                translateAndNotifySuccess(videoItem, languageCode)
+                translateAndNotifySuccess(videoItem)
             }
 
             -1 -> {
@@ -112,11 +110,14 @@ class TranscribeService : LifecycleService() {
         }
     }
 
-    private suspend fun translateAndNotifySuccess(videoItem: VideoItem, languageCode: String) {
+    private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
         mediaRepository.translateSubtitle(
             id = videoItem.id,
-            languageCode = languageCode,
+            languageCode = Locale.US.language,
         )
+
+        if((application as ForegroundObserver).isForeground)
+            launchPlayerDeepLink(videoItem)
 
         notifyTranscriptionResult(
             title = "자막 생성 성공",
@@ -133,10 +134,7 @@ class TranscribeService : LifecycleService() {
             )
         }.onSuccess {
             whisperManager.transcribeAudio(audioFileId = videoItem.id)
-            translateAndNotifySuccess(
-                videoItem = videoItem,
-                languageCode = Locale.US.language
-            )
+            translateAndNotifySuccess(videoItem = videoItem)
         }.onFailure { exception ->
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
@@ -205,9 +203,8 @@ class TranscribeService : LifecycleService() {
         videoItem?.let {
             val deepLinkIntent = Intent(
                 Intent.ACTION_VIEW,
-                "aideo://app/player/${videoItem.uri.parseUri()}".toUri(),
-
-                )
+                "aideo://app/player/${videoItem.uri.parseUri()}".toUri()
+            )
 
             val deepLinkPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
                 addNextIntentWithParentStack(deepLinkIntent)
@@ -236,5 +233,16 @@ class TranscribeService : LifecycleService() {
     companion object {
         const val NOTIFICATION_ID = 999
         const val NOTIFICATION_CHANNEL_ID = "TranscribeVideo"
+    }
+}
+
+interface ForegroundObserver: LifecycleEventObserver {
+    var isForeground: Boolean
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        if(event == Lifecycle.Event.ON_RESUME)
+            isForeground = true
+        else if(event == Lifecycle.Event.ON_STOP)
+            isForeground = false
     }
 }

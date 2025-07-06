@@ -55,7 +55,7 @@ class PlayerViewModel @Inject constructor(
             if (subtitleExist != 1) {
                 mediaRepository.translateSubtitle(
                     id = id,
-                    languageCode = language,
+                    languageCode = Locale.US.language,
                 )
             }
 

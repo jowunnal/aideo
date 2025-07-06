@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,24 +48,23 @@ fun GalleryScreen(
 
     GalleryScreen(
         uiState = uiState,
-        addVideo = viewModel::updateVideoList,
+        updateVideoList = viewModel::updateVideoList,
         navigateToPlayer = navigateToPlayer,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GalleryScreen(
     uiState: DownloadableUiState,
     context: Context = LocalContext.current,
-    addVideo: (List<String>) -> Unit,
+    updateVideoList: (List<String>) -> Unit,
     navigateToPlayer: (String) -> Unit,
 ) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = PickMultipleVisualMedia()
     ) { uris ->
         if (uris.isNotEmpty())
-            addVideo(
+            updateVideoList(
                 uris.map {
                     it.toString()
                 }
@@ -136,7 +134,7 @@ private fun GalleryScreen(
 @Composable
 private fun VideoGridItem(
     videoItem: VideoItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -173,7 +171,7 @@ private fun GalleryScreenPreview(
     PreviewAideoTheme {
         GalleryScreen(
             uiState = galleryUiState,
-            addVideo = {},
+            updateVideoList = {},
             navigateToPlayer = {},
         )
     }

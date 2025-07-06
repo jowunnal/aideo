@@ -12,11 +12,9 @@ import jinproject.aideo.design.component.layout.DownLoadedUiState
 import jinproject.aideo.design.component.layout.DownloadableUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,14 +24,17 @@ class GalleryViewModel @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
 ) : ViewModel() {
 
-    private val videoList: MutableList<VideoItem> = mutableListOf()
+    val uiState: RestartableStateFlow<DownloadableUiState> = combine(
+        localPlayerDataSource.getVideoUris(),
+        localPlayerDataSource.getLanguageSetting()
+    ) { videoUris, language ->
+        val videoItems = videoUris.mapNotNull {
+            mediaFileManager.getVideoInfoList(it)
+        }
 
-    val uiState: RestartableStateFlow<DownloadableUiState> = flow {
-        emit(
-            GalleryUiState(
-                data = videoList.toImmutableList(),
-                languageCode = localPlayerDataSource.getLanguageSetting().first()
-            )
+        GalleryUiState(
+            data = videoItems.toImmutableList(),
+            languageCode = language
         )
     }.restartableStateIn(
         scope = viewModelScope,
@@ -41,19 +42,15 @@ class GalleryViewModel @Inject constructor(
         initialValue = DownloadableUiState.Loading,
     )
 
-    private fun retryGetUiState() {
-        uiState.restart()
-    }
-
     fun updateVideoList(videoUris: List<String>) {
         viewModelScope.launch {
-            val videoItems = videoUris.map {
-                async { mediaFileManager.getVideoInfoList(it) }
-            }.awaitAll().filterNotNull()
+            val cachedVideoList = localPlayerDataSource.getVideoUris().first()
 
-            videoList.clear()
-            videoList.addAll(videoItems)
-            retryGetUiState()
+            val newVideoList = videoUris.filter { it !in cachedVideoList }
+
+            val targetVideoList = newVideoList + cachedVideoList
+
+            localPlayerDataSource.replaceVideoUris(targetVideoList)
         }
     }
 }

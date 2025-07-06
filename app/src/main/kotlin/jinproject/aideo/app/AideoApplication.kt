@@ -4,11 +4,18 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import dagger.hilt.android.HiltAndroidApp
+import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
 
 @HiltAndroidApp
-class AideoApplication : Application() {
+class AideoApplication : Application(), ForegroundObserver {
+    override var isForeground: Boolean = false
 
     override fun onCreate() {
         super.onCreate()

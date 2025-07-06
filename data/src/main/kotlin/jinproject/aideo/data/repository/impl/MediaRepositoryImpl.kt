@@ -60,7 +60,7 @@ class MediaRepositoryImpl @Inject constructor(
 
             val translator = Translation.getClient(options)
 
-            var conditions = DownloadConditions.Builder()
+            val conditions = DownloadConditions.Builder()
                 .build()
 
             translator.downloadModelIfNeeded(conditions)
@@ -108,7 +108,7 @@ class MediaRepositoryImpl @Inject constructor(
             val match = regex.matchEntire(line.trim())
             if (match != null) {
                 val (
-                    index, sh, sm, ss, sms, eh, em, es, ems, text
+                    index, sh, sm, ss, sms, eh, em, es, ems, text,
                 ) = match.destructured
 
                 val start =
