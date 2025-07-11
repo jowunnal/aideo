@@ -1,10 +1,10 @@
 package jinproject.aideo.data.repository.impl
 
+import android.util.Log
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
-import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
@@ -20,25 +20,9 @@ class MediaRepositoryImpl @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
 ) : MediaRepository {
     @OptIn(ExperimentalCoroutinesApi::class)
-    override suspend fun translateSubtitle(id: Long, languageCode: String) {
-        val srtFileContent =
-            localFileDataSource.getFileContent(
-                getSubtitleFileIdentifier(
-                    id = id,
-                    languageCode = languageCode
-                )
-            )?.joinToString("\n")
-                ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
-                    message = "${
-                        getSubtitleFileIdentifier(
-                            id = id,
-                            languageCode = languageCode
-                        )
-                    } content is null",
-                    cause = null
-                )
-
-        val sourceLanguageCode = TranslationManager.detectLanguage(srtFileContent)
+    override suspend fun translateSubtitle(id: Long) {
+        val sourceLanguageCode =
+            localFileDataSource.getOriginSubtitleLanguageCode(id)
 
         val targetLanguageCode = localPlayerDataSource.getLanguageSetting().first()
 
@@ -65,14 +49,26 @@ class MediaRepositoryImpl @Inject constructor(
 
             translator.downloadModelIfNeeded(conditions)
                 .addOnSuccessListener {
-                    translator.translate(srtFileContent)
-                        .addOnSuccessListener { result ->
-                            cont.resume(result)
-                        }.addOnFailureListener { e ->
-                            cont.resumeWithException(e)
-                        }.addOnCompleteListener {
-                            translator.close()
-                        }
+                    val srtContent = localFileDataSource.getFileContent(
+                        getSubtitleFileIdentifier(
+                            id = id,
+                            languageCode = sourceLanguageCode
+                        )
+                    )?.joinToString("\n")
+                        ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
+                            message = "content is null",
+                            cause = null
+                        )
+
+                    translator.translate(
+                        srtContent
+                    ).addOnSuccessListener { result ->
+                        cont.resume(result)
+                    }.addOnFailureListener { e ->
+                        cont.resumeWithException(e)
+                    }.addOnCompleteListener {
+                        translator.close()
+                    }
                 }.addOnFailureListener { e ->
                     cont.resumeWithException(e)
                 }
@@ -83,6 +79,8 @@ class MediaRepositoryImpl @Inject constructor(
         }
 
         val convertedSrtContent = convertMlKitOutputToSrt(translatedContent)
+        Log.d("translatedContent", translatedContent)
+        Log.d("convertedSrtContent", convertedSrtContent)
 
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(id = id, languageCode = targetLanguageCode),

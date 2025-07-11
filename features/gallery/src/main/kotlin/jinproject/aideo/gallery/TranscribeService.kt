@@ -18,13 +18,13 @@ import jinproject.aideo.core.MediaFileManager
 import jinproject.aideo.core.VideoItem
 import jinproject.aideo.core.WhisperManager
 import jinproject.aideo.core.parseUri
-import jinproject.aideo.core.toAudioFileWAVIdentifier
+import jinproject.aideo.data.toAudioFileWAVIdentifier
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import javax.inject.Inject
 
@@ -65,7 +65,7 @@ class TranscribeService : LifecycleService() {
         }
 
         if (videoItem != null && job == null)
-            job = lifecycleScope.launch {
+            job = lifecycleScope.launch(Dispatchers.Default) {
                 whisperManager.load()
                 if (whisperManager.isReady) {
                     processSubtitle(videoItem)
@@ -111,10 +111,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        mediaRepository.translateSubtitle(
-            id = videoItem.id,
-            languageCode = Locale.US.language,
-        )
+        mediaRepository.translateSubtitle(videoItem.id,)
 
         if((application as ForegroundObserver).isForeground)
             launchPlayerDeepLink(videoItem)
@@ -134,7 +131,12 @@ class TranscribeService : LifecycleService() {
             )
         }.onSuccess {
             whisperManager.transcribeAudio(audioFileId = videoItem.id)
-            translateAndNotifySuccess(videoItem = videoItem)
+
+            notifyTranscriptionResult(
+                title = "자막 생성 성공",
+                description = "자막 생성이 성공적으로 완료되었어요.",
+                videoItem = videoItem,
+            )
         }.onFailure { exception ->
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
@@ -195,7 +197,7 @@ class TranscribeService : LifecycleService() {
         videoItem: VideoItem?,
     ) {
         val notification = NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSmallIcon(jinproject.aideo.design.R.mipmap.ic_aideo_app)
             .setContentTitle(title)
             .setContentText(description)
@@ -222,11 +224,9 @@ class TranscribeService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        runBlocking {
-            whisperManager.release()
-            job?.cancel()
-            job = null
-        }
+        whisperManager.release()
+        job?.cancel()
+        job = null
         super.onDestroy()
     }
 

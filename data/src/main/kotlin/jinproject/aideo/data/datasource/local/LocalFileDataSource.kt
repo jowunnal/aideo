@@ -3,6 +3,8 @@ package jinproject.aideo.data.datasource.local
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.data.TranslationManager
+import jinproject.aideo.data.toSubtitleFileIdentifier
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileWriter
@@ -71,7 +73,39 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     fun getFileContent(fileIdentifier: String): List<String>? {
         val file = File(context.filesDir, fileIdentifier)
 
-        return if (file.exists()) file.readLines() else null
+        val srtContents = file.inputStream().use { inputStream ->
+            inputStream.bufferedReader().use { reader ->
+                reader.readLines()
+            }
+        }
+
+        return if (file.exists()) srtContents else null
+    }
+
+    /**
+     * 존재하는 자막 파일의 언어 코드를 반환하는 함수
+     *
+     * @param id 자막 파일의 비디오 아이템 id
+     *
+     * @return 언어 코드 ISO 값
+     */
+    suspend fun getOriginSubtitleLanguageCode(id: Long): String {
+        val file = context.filesDir
+
+        val matchedFiles = file.listFiles()
+            ?.filter { it.name.startsWith("$id") && it.name.endsWith("".toSubtitleFileIdentifier()) }
+
+
+        if (matchedFiles.isNullOrEmpty())
+            throw IllegalArgumentException("File has not found")
+
+        val text = matchedFiles.first().inputStream().use { inputStream ->
+            inputStream.bufferedReader().use { reader ->
+                reader.readLines().toString()
+            }
+        }
+
+        return TranslationManager.detectLanguage(text)
     }
 
     fun isFileExist(fileIdentifier: String): Boolean {

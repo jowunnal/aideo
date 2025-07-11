@@ -19,4 +19,5 @@ dependencies {
     api(libs.bundles.billing)
     api(project(":whisper_lib"))
     api(libs.bundles.media3)
+    implementation(libs.bundles.tensorflow.lite)
 }

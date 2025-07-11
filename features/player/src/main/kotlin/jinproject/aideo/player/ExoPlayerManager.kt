@@ -1,6 +1,7 @@
 package jinproject.aideo.player
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Stable
 import androidx.core.net.toUri
@@ -20,6 +21,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.toVideoItemId
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +84,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             override fun onCues(cueGroup: CueGroup) {
                 val subtitle = cueGroup.cues.joinToString(separator = "\n") { it.text.toString() }
 
+                Log.d("test","subtitle : $subtitle")
                 playingState.value = playingState.value.copy(subTitle = subtitle)
             }
         })
@@ -94,8 +97,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             File(
                 context.filesDir,
                 getSubtitleFileIdentifier(
-                    id = videoUri.toUri().lastPathSegment?.toLong()
-                        ?: throw IllegalArgumentException("Invalid video ID"),
+                    id = videoUri.toVideoItemId(),
                     languageCode = languageCode,
                 )
             ).toUri()

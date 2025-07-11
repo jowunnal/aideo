@@ -25,17 +25,19 @@ object TranslationManager {
             }
     }
 
-    private fun extractTextFromSrt(srtContent: String): String {
-        val timeRegex = Regex("""^\d{2}:\d{2}:\d{2}[,\.]\d{3} --> """)
-        val indexRegex = Regex("""^\d+$""")
+    private fun extractTextFromSrt(transcribeOutput: String): String {
+        val srt = transcribeOutput.trimIndent()
+        val lines = srt.lines()
+        val textLines = mutableListOf<String>()
+        val timeRegex = Regex("""\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}""")
 
-        return srtContent
-            .lines()
-            .filter { line ->
-                line.isNotBlank() &&
-                        !timeRegex.containsMatchIn(line) &&
-                        !indexRegex.matches(line)
-            }
-            .joinToString("\n") { it.trim() }
+        for (line in lines) {
+            val trimmed = line.trim()
+
+            if (trimmed.isEmpty() || trimmed.all { it.isDigit() } || timeRegex.matches(trimmed)) continue
+            textLines.add(trimmed)
+        }
+
+        return textLines.joinToString(" ")
     }
 }

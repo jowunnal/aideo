@@ -1,7 +1,6 @@
 package jinproject.aideo.player
 
 import androidx.compose.runtime.Stable
-import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +9,7 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.MediaFileManager
 import jinproject.aideo.core.toOriginUri
+import jinproject.aideo.core.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,9 +43,7 @@ class PlayerViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
         localPlayerDataSource.getLanguageSetting().onEach { language ->
-            val id =
-                currentVideoUri.toUri().lastPathSegment?.toLong()
-                    ?: throw IllegalArgumentException()
+            val id = currentVideoUri.toVideoItemId()
 
             val subtitleExist = mediaFileManager.checkSubtitleFileExist(
                 id = id,
@@ -53,10 +51,7 @@ class PlayerViewModel @Inject constructor(
             )
 
             if (subtitleExist != 1) {
-                mediaRepository.translateSubtitle(
-                    id = id,
-                    languageCode = Locale.US.language,
-                )
+                mediaRepository.translateSubtitle(id)
             }
 
             prepareExoplayer(language)

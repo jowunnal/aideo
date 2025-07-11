@@ -2,16 +2,20 @@ package jinproject.aideo.core
 
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.whispercpp.whisper.WhisperContext
+import com.whispertflite.engine.WhisperEngine
+import com.whispertflite.engine.WhisperEngineNative
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import jinproject.aideo.data.toAudioFileWAVIdentifier
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +23,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Locale
 import javax.inject.Inject
 
 @Module
@@ -41,8 +44,7 @@ class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
 ) {
-    private val modelsPath = File(context.filesDir, "models")
-    lateinit var whisperContext: WhisperContext
+    private val whisperContext: WhisperEngine by lazy { WhisperEngineNative() }
 
     var isReady: Boolean by mutableStateOf(false)
         private set
@@ -54,27 +56,38 @@ class WhisperManager @Inject constructor(
     }
 
     private suspend fun copyWeightBinaryData() = withContext(Dispatchers.IO) {
-        val assetPath = WEIGHT_FILE_PATH
+        val models = context.assets.list("models/")
+
+        if (models == null)
+            return@withContext
+
+        val modelsPath = File(context.filesDir, "models")
 
         if (!modelsPath.exists())
             modelsPath.mkdirs()
 
         val destination = File(modelsPath, WEIGHT_FILE_NAME)
-        context.assets.open(assetPath).use { input ->
+        context.assets.open(WEIGHT_FILE_PATH).use { input ->
             destination.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
+
+        val vocab = File(modelsPath, VOCAB_FILE_NAME)
+        context.assets.open(VOCAB_FILE_PATH).use { input ->
+            vocab.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
+
     }
 
     private suspend fun loadBaseModel() = withContext(Dispatchers.IO) {
-        val models = context.assets.list("models/")
-        if (models != null && !::whisperContext.isInitialized) {
-            whisperContext = WhisperContext.createContextFromAsset(
-                context.assets,
-                WEIGHT_FILE_PATH,
-            )
-        }
+        val modelsPath = File(context.filesDir, WEIGHT_FILE_PATH).absolutePath
+        val vocabPath = File(context.filesDir, VOCAB_FILE_PATH).absolutePath
+
+        whisperContext.initialize(modelsPath, vocabPath, true)
     }
 
     /**
@@ -85,15 +98,16 @@ class WhisperManager @Inject constructor(
     suspend fun transcribeAudio(
         audioFileId: Long,
     ) {
-        if (!isReady) {
+        if (!whisperContext.isInitialized) {
             return
         }
+
         val audioFileWavIdentifier = toAudioFileWAVIdentifier(id = audioFileId)
         val audioFile = localFileDataSource.getFileReference(audioFileWavIdentifier) ?: return
-        val data = decodeWaveFile(audioFile)
-        val transcribedText = whisperContext.transcribeData(data)
-        val srtContent = convertToSrt(transcribedText)
-        val languageCode = Locale.US.language
+        val transcribedText = whisperContext.transcribeFile(audioFile.absolutePath)
+        Log.d("test", "translatedText : $transcribedText")
+        val languageCode = TranslationManager.detectLanguage(transcribedText)
+        Log.d("test", "languageCode : $languageCode")
 
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
@@ -102,7 +116,9 @@ class WhisperManager @Inject constructor(
             ),
             writeContentOnFile = { outputStream ->
                 runCatching {
-                    outputStream.write(srtContent.toByteArray())
+                    outputStream.bufferedWriter().use { writer ->
+                        writer.write(transcribedText)
+                    }
                 }.map {
                     true
                 }.getOrElse {
@@ -110,7 +126,6 @@ class WhisperManager @Inject constructor(
                 }
             }
         )
-
     }
 
     /**
@@ -136,38 +151,15 @@ class WhisperManager @Inject constructor(
         }
     }
 
-    private fun convertToSrt(transcribeOutput: String): String {
-        val lines = transcribeOutput.trim().lines()
-        val srtBuilder = StringBuilder()
-        val regex =
-            Regex("\\[(\\d{2}:\\d{2}:\\d{2}\\.\\d{3}) --> (\\d{2}:\\d{2}:\\d{2}\\.\\d{3})]:\\s*(.*)")
-        var index = 1
-
-        for (line in lines) {
-            val matchResult = regex.matchEntire(line.trim())
-            if (matchResult != null) {
-                val (startTime, endTime, text) = matchResult.destructured
-                val start = startTime.replace('.', ',')
-                val end = endTime.replace('.', ',')
-
-                srtBuilder.appendLine(index)
-                srtBuilder.appendLine("$start --> $end")
-                srtBuilder.appendLine(text.trim())
-                srtBuilder.appendLine()
-                index++
-            }
-        }
-
-        return srtBuilder.toString()
-    }
-
-    suspend fun release() {
-        whisperContext.release()
+    fun release() {
+        whisperContext.deinitialize()
         isReady = false
     }
 
     companion object {
-        const val WEIGHT_FILE_NAME = "ggml-model.bin"
+        const val WEIGHT_FILE_NAME = "whisper-tiny.tflite"
         const val WEIGHT_FILE_PATH = "models/$WEIGHT_FILE_NAME"
+        const val VOCAB_FILE_NAME = "filters_vocab_multilingual.bin"
+        const val VOCAB_FILE_PATH = "models/$VOCAB_FILE_NAME"
     }
 }

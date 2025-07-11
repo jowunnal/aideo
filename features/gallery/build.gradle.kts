@@ -11,6 +11,4 @@ android {
 
 dependencies {
     implementation(project(":features:core"))
-
-    implementation(libs.bundles.tensorflow.lite)
 }
