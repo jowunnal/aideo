@@ -205,7 +205,7 @@ class TranscribeService : LifecycleService() {
         videoItem?.let {
             val deepLinkIntent = Intent(
                 Intent.ACTION_VIEW,
-                "aideo://app/player/${videoItem.uri.parseUri()}".toUri()
+                "aideo://app/player/${videoItem.uri.parseUri()}".toUri(),
             )
 
             val deepLinkPendingIntent: PendingIntent? = TaskStackBuilder.create(this).run {
