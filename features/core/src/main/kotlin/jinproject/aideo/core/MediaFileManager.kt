@@ -48,7 +48,7 @@ class MediaFileManager @Inject constructor(
     private val localFileDataSource: LocalFileDataSource,
 ) {
 
-    suspend fun getVideoInfoList(videoUriString: String): VideoItem? =
+    suspend fun getVideoInfo(videoUriString: String): VideoItem? =
         withContext(Dispatchers.IO) {
             val videoUri = videoUriString.toUri()
             var name: String? = null
