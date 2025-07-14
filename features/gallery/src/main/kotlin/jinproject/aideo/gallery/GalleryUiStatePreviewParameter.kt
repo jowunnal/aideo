@@ -1,7 +1,7 @@
 package jinproject.aideo.gallery
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import jinproject.aideo.core.VideoItem
+import jinproject.aideo.core.audio.VideoItem
 import kotlinx.collections.immutable.persistentListOf
 
 class GalleryUiStatePreviewParameter : PreviewParameterProvider<GalleryUiState> {
@@ -13,21 +13,18 @@ class GalleryUiStatePreviewParameter : PreviewParameterProvider<GalleryUiState> 
                         uri = "",
                         id = 0,
                         title = "title",
-                        duration = 0,
                         thumbnailPath = "",
                     ),
                     VideoItem(
                         uri = "",
                         id = 0,
                         title = "title",
-                        duration = 0,
                         thumbnailPath = "",
                     ),
                     VideoItem(
                         uri = "",
                         id = 0,
                         title = "title",
-                        duration = 0,
                         thumbnailPath = "",
                     ),
                 ),

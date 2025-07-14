@@ -3,10 +3,10 @@ package jinproject.aideo.gallery
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.MediaFileManager
-import jinproject.aideo.core.RestartableStateFlow
-import jinproject.aideo.core.VideoItem
-import jinproject.aideo.core.restartableStateIn
+import jinproject.aideo.core.audio.MediaFileManager
+import jinproject.aideo.core.audio.VideoItem
+import jinproject.aideo.core.utils.RestartableStateFlow
+import jinproject.aideo.core.utils.restartableStateIn
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.design.component.layout.DownLoadedUiState
 import jinproject.aideo.design.component.layout.DownloadableUiState
@@ -29,7 +29,7 @@ class GalleryViewModel @Inject constructor(
         localPlayerDataSource.getLanguageSetting()
     ) { videoUris, language ->
         val videoItems = videoUris.mapNotNull {
-            mediaFileManager.getVideoInfoList(it)
+            mediaFileManager.getVideoInfo(it)
         }
 
         GalleryUiState(

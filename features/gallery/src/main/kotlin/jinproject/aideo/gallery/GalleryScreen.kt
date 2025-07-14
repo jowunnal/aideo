@@ -31,7 +31,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import jinproject.aideo.core.VideoItem
+import jinproject.aideo.core.audio.VideoItem
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.OneButtonTitleAppBar
 import jinproject.aideo.design.component.layout.DownloadableLayout

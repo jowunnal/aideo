@@ -14,18 +14,16 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.MediaFileManager
-import jinproject.aideo.core.VideoItem
-import jinproject.aideo.core.WhisperManager
-import jinproject.aideo.core.parseUri
-import jinproject.aideo.data.toAudioFileWAVIdentifier
+import jinproject.aideo.core.audio.MediaFileManager
+import jinproject.aideo.core.audio.VideoItem
+import jinproject.aideo.core.audio.WhisperManager
+import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -111,9 +109,9 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        mediaRepository.translateSubtitle(videoItem.id,)
+        mediaRepository.translateSubtitle(videoItem.id)
 
-        if((application as ForegroundObserver).isForeground)
+        if ((application as ForegroundObserver).isForeground)
             launchPlayerDeepLink(videoItem)
 
         notifyTranscriptionResult(
@@ -125,13 +123,8 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
         runCatching {
-            mediaFileManager.extractAudioToWavWithResample(
-                videoFileAbsolutePath = videoItem.uri,
-                wavIdentifier = toAudioFileWAVIdentifier(videoItem.id)
-            )
+            whisperManager.transcribeAudio(videoItem = videoItem)
         }.onSuccess {
-            whisperManager.transcribeAudio(audioFileId = videoItem.id)
-
             notifyTranscriptionResult(
                 title = "자막 생성 성공",
                 description = "자막 생성이 성공적으로 완료되었어요.",
@@ -236,13 +229,13 @@ class TranscribeService : LifecycleService() {
     }
 }
 
-interface ForegroundObserver: LifecycleEventObserver {
+interface ForegroundObserver : LifecycleEventObserver {
     var isForeground: Boolean
 
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        if(event == Lifecycle.Event.ON_RESUME)
+        if (event == Lifecycle.Event.ON_RESUME)
             isForeground = true
-        else if(event == Lifecycle.Event.ON_STOP)
+        else if (event == Lifecycle.Event.ON_STOP)
             isForeground = false
     }
 }

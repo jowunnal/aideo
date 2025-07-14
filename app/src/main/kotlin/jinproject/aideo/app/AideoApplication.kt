@@ -4,11 +4,6 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.graphics.Color
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.OnLifecycleEvent
 import dagger.hilt.android.HiltAndroidApp
 import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
@@ -29,7 +24,8 @@ class AideoApplication : Application(), ForegroundObserver {
         createNotificationChannel(
             channelId = TranscribeService.NOTIFICATION_CHANNEL_ID,
             channelName = "자막 생성 알림 채널",
-            descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다."
+            descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다.",
+            importance = NotificationManager.IMPORTANCE_HIGH,
         )
     }
 
@@ -37,8 +33,8 @@ class AideoApplication : Application(), ForegroundObserver {
         channelId: String,
         channelName: String,
         descriptionText: String,
+        importance: Int = NotificationManager.IMPORTANCE_DEFAULT
     ) {
-        val importance = NotificationManager.IMPORTANCE_DEFAULT
         val channel = NotificationChannel(channelId, channelName, importance).apply {
             description = descriptionText
             enableVibration(true)

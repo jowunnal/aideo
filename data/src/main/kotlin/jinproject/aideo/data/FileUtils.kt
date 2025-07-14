@@ -1,8 +1,5 @@
 package jinproject.aideo.data
 
-fun String.toAudioFileAACIdentifier(): String = "${this}_audio.aac"
-fun toAudioFileWAVIdentifier(id: Long): String = "${id}_audio.wav"
-
 /**
  * "this.srt"
  */

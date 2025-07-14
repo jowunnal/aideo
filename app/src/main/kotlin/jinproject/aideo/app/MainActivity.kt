@@ -1,10 +1,6 @@
 package jinproject.aideo.app
 
 import android.Manifest
-import android.app.ComponentCaller
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -39,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.LayoutDirection
@@ -47,7 +42,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.findNavController
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
 import com.google.android.gms.ads.AdError
@@ -71,10 +65,10 @@ import jinproject.aideo.app.navigation.isBarHasToBeShown
 import jinproject.aideo.app.navigation.navigationSuiteItems
 import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
-import jinproject.aideo.core.AnalyticsEvent
+import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.BillingModule
-import jinproject.aideo.core.LocalAnalyticsLoggingEvent
-import jinproject.aideo.core.LocalBillingModule
+import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
+import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.design.component.SnackBarHostCustom

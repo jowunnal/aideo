@@ -1,10 +1,11 @@
 package jinproject.aideo.data.repository.impl
 
-import android.util.Log
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import jinproject.aideo.data.TranslationManager.extractSubtitleContent
+import jinproject.aideo.data.TranslationManager.restoreMlKitTranslationToSrtFormat
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
@@ -25,6 +26,17 @@ class MediaRepositoryImpl @Inject constructor(
             localFileDataSource.getOriginSubtitleLanguageCode(id)
 
         val targetLanguageCode = localPlayerDataSource.getLanguageSetting().first()
+
+        val srtContent = localFileDataSource.getFileContent(
+            getSubtitleFileIdentifier(
+                id = id,
+                languageCode = sourceLanguageCode
+            )
+        )?.joinToString("\n")
+            ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
+                message = "content is null",
+                cause = null
+            )
 
         val translatedContent = suspendCancellableCoroutine { cont ->
             val options = TranslatorOptions.Builder()
@@ -49,19 +61,8 @@ class MediaRepositoryImpl @Inject constructor(
 
             translator.downloadModelIfNeeded(conditions)
                 .addOnSuccessListener {
-                    val srtContent = localFileDataSource.getFileContent(
-                        getSubtitleFileIdentifier(
-                            id = id,
-                            languageCode = sourceLanguageCode
-                        )
-                    )?.joinToString("\n")
-                        ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
-                            message = "content is null",
-                            cause = null
-                        )
-
                     translator.translate(
-                        srtContent
+                        extractSubtitleContent(srtContent)
                     ).addOnSuccessListener { result ->
                         cont.resume(result)
                     }.addOnFailureListener { e ->
@@ -78,9 +79,10 @@ class MediaRepositoryImpl @Inject constructor(
             }
         }
 
-        val convertedSrtContent = convertMlKitOutputToSrt(translatedContent)
-        Log.d("translatedContent", translatedContent)
-        Log.d("convertedSrtContent", convertedSrtContent)
+        val convertedSrtContent = restoreMlKitTranslationToSrtFormat(
+            originalSrtContent = srtContent,
+            translatedContent = translatedContent
+        )
 
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(id = id, languageCode = targetLanguageCode),
@@ -94,33 +96,6 @@ class MediaRepositoryImpl @Inject constructor(
                 }
             }
         )
-    }
-
-    private fun convertMlKitOutputToSrt(mlKitOutput: String): String {
-        val regex =
-            Regex("""(\d+)\s+(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}),(\d{3})\s*->\s*(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}),(\d{3})\s+(.*)""")
-        val lines = mlKitOutput.lines()
-        val srtBuilder = StringBuilder()
-
-        for (line in lines) {
-            val match = regex.matchEntire(line.trim())
-            if (match != null) {
-                val (
-                    index, sh, sm, ss, sms, eh, em, es, ems, text,
-                ) = match.destructured
-
-                val start =
-                    "%02d:%02d:%02d,%03d".format(sh.toInt(), sm.toInt(), ss.toInt(), sms.toInt())
-                val end =
-                    "%02d:%02d:%02d,%03d".format(eh.toInt(), em.toInt(), es.toInt(), ems.toInt())
-
-                srtBuilder.appendLine(index)
-                srtBuilder.appendLine("$start --> $end")
-                srtBuilder.appendLine(text.trim())
-                srtBuilder.appendLine()
-            }
-        }
-        return srtBuilder.toString()
     }
 }
 

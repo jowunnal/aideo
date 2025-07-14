@@ -6,7 +6,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import jinproject.aideo.core.TopLevelRoute
-import jinproject.aideo.core.parseUri
+import jinproject.aideo.core.utils.parseUri
 import kotlinx.serialization.Serializable
 
 @Serializable
