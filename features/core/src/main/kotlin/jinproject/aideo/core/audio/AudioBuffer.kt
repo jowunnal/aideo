@@ -11,9 +11,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.data.TranslationManager
+import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +49,7 @@ private data class AudioSegment(
  */
 class AudioBuffer @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val localPlayerDataSource: LocalPlayerDataSource,
 ) {
     private val audioBuffer = Channel<AudioSegment>(Channel.Factory.BUFFERED)
     private val transcription = StringBuilder()
@@ -73,14 +77,19 @@ class AudioBuffer @Inject constructor(
      */
     suspend fun processFullAudio(
         videoFileUri: Uri,
-        transcribe: (FloatArray, Float, Int) -> String,
+        transcribe: (FloatArray, Float, Int, String) -> String,
     ): String = withContext(Dispatchers.Default) {
+        val languageCode = localPlayerDataSource.getLanguageSetting().first()
+
         val extractorJob = launch {
             extractAudioData(videoFileUri)
         }
 
         val consumerJob = launch(Dispatchers.IO) {
-            startConsumer(transcribe)
+            startConsumer(
+                languageCode = languageCode,
+                transcribe = transcribe,
+            )
         }
 
         joinAll(extractorJob, consumerJob)
@@ -129,13 +138,14 @@ class AudioBuffer @Inject constructor(
      */
     @OptIn(DelicateCoroutinesApi::class)
     private suspend fun startConsumer(
-        transcribe: (FloatArray, Float, Int) -> String,
+        languageCode: String,
+        transcribe: (FloatArray, Float, Int, String) -> String,
     ) {
         try {
             while (processedAudioProgress < 1f) {
                 val segment = audioBuffer.receive()
 
-                val srtResult = transcribe(segment.samples, lastTimestamp, lastIndex)
+                val srtResult = transcribe(segment.samples, lastTimestamp, lastIndex, languageCode)
                 //Log.d("test", "세그먼트 내의 srtResult: $srtResult")
                 parseLastEndTimeFromSrt(srtResult)
                 //Log.d("test", "lastTimestamp: $lastTimestamp, lastIndex: $lastIndex")
