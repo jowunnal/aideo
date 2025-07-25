@@ -20,8 +20,12 @@ android {
 
     buildTypes {
         debug {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
 
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.test.appId")
             buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.test.rewardId"))
