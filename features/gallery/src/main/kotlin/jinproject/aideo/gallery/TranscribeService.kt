@@ -122,8 +122,9 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
+        whisperManager.transcribeAudio(videoItem = videoItem)
         runCatching {
-            whisperManager.transcribeAudio(videoItem = videoItem)
+
         }.onSuccess {
             notifyTranscriptionResult(
                 title = "자막 생성 성공",

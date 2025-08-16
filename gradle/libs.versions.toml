@@ -26,18 +26,17 @@ kotlinx-immutable = "0.3.6"
 kotlinx-serialzation-json = "1.7.2"
 lifecycle = "2.6.1"
 lifecycle-common = "2.6.1"
-liteRT = "1.0.1"
+liteRT = "1.1.1"
 lottie = "6.3.0"
 mockk = "1.13.5"
 mlKit = "17.0.3"
 navigation = "2.8.7"
 okhttp = "4.12.0"
 playInApp = "2.1.0"
+play-service-tflite = "16.4.0"
 protobuf = "3.25.0"
 retrofit = "3.0.0"
 room = "2.7.1"
-tensorflowLiteSupport = "0.4.4"
-tensorflowLite = "2.15.0"
 
 # plugin
 agp = "8.6.0"
@@ -65,9 +64,6 @@ gradle-room = { module = "androidx.room:room-gradle-plugin", version.ref = "room
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appCompat" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
-
-# AI
-ai-edge-liteRT = { module = "com.google.ai.edge.litert:litert", version.ref = "liteRT" }
 
 # Billing
 billing-client = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
@@ -125,6 +121,14 @@ lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtim
 lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycle-common" }
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 
+# LiteRT
+ai-edge-litert = { module = "com.google.ai.edge.litert:litert", version.ref = "liteRT" }
+ai-edge-litert-support = { module = "com.google.ai.edge.litert:litert-support", version.ref = "liteRT" }
+ai-edge-litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "liteRT" }
+play-services-tflite-gpu = { module = "com.google.android.gms:play-services-tflite-gpu", version.ref = "play-service-tflite" }
+play-services-tflite-java = { module = "com.google.android.gms:play-services-tflite-java", version.ref = "play-service-tflite" }
+play-services-tflite-support = { module = "com.google.android.gms:play-services-tflite-support", version.ref = "play-service-tflite" }
+
 # Lottie
 airbnb-android-lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 
@@ -175,10 +179,6 @@ junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engi
 test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "android-test-ext" }
 
-# Tensorflow-lite
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflowLite" }
-tensorflow-lite-support = { group = "org.tensorflow", name = "tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
-
 [bundles]
 
 billing = ["billing-client", "billing-ktx"]
@@ -192,5 +192,5 @@ lifecycle = ["lifecycle-compose", "lifecycle-viewmodel-ktx", "lifecycle-runtime-
 mlKit = ["mlKit-language", "mlKit-translate"]
 square = ["square-retrofit2", "square-retrofit2-converter-gson", "square-retrofit2-converter-scalars", "square-okhttp3-intercepter"]
 testing = ["jUnit", "junit-jupiter-api", "io-mockk"]
-tensorflow-lite = ["tensorflow-lite-support", "tensorflow-lite"]
+liteRT = ["ai-edge-litert", "ai-edge-litert-support", "ai-edge-litert-gpu"]
 playInAppUpdate = ["play-app-update", "play-app-update-ktx"]
