@@ -14,7 +14,7 @@ composeFoundation = "1.7.0"
 dagger = "2.53.1"
 datastore = "1.1.0"
 espresso = "3.5.1"
-media3 = "1.8.0-alpha01"
+media3 = "1.8.0"
 firebaseBom = "33.8.0"
 gms-service-ads = "23.2.0"
 hilt = "1.2.0"
@@ -31,6 +31,7 @@ lottie = "6.3.0"
 mockk = "1.13.5"
 mlKit = "17.0.3"
 navigation = "2.8.7"
+oboe = "1.9.3"
 okhttp = "4.12.0"
 playInApp = "2.1.0"
 play-service-tflite = "16.4.0"
@@ -147,6 +148,9 @@ mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit
 
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+
+# Oboe
+google-oboe = { module = "com.google.oboe:oboe", version.ref = "oboe" }
 
 # Play In App
 play-app-update = { module = "com.google.android.play:app-update", version.ref = "playInApp" }

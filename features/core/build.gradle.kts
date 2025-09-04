@@ -9,7 +9,6 @@ plugins {
 android {
     namespace = "jinproject.aideo.core"
     compileSdk = 35
-
 }
 
 dependencies {

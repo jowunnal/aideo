@@ -6,10 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.lite.LiteRT
+import jinproject.aideo.core.lite.LiteRTManager
 import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -20,22 +19,24 @@ class WhisperManager @Inject constructor(
     private val localFileDataSource: LocalFileDataSource,
     private val audioBuffer: AudioBuffer,
 ) {
-    private val liteRT: LiteRT by lazy { LiteRT(context) }
+    private val liteRTManager: LiteRTManager by lazy { LiteRTManager(context) }
 
     var isReady: Boolean by mutableStateOf(false)
         private set
 
     suspend fun load() {
-        copyBinaryDataFromAssets()
-        loadBaseModel()
+        withContext(Dispatchers.IO) {
+            copyBinaryDataFromAssets()
+            loadBaseModel()
+        }
         isReady = true
     }
 
-    private suspend fun copyBinaryDataFromAssets() = withContext(Dispatchers.IO) {
+    private fun copyBinaryDataFromAssets() {
         val models = context.assets.list("models/")
 
         if (models == null)
-            return@withContext
+            return
 
         val modelsPath = File(context.filesDir, "models")
 
@@ -50,7 +51,9 @@ class WhisperManager @Inject constructor(
         }
     }
 
-    private suspend fun loadBaseModel() = liteRT.initialize(File(context.filesDir, VOCAB_FILE_PATH).absolutePath)
+    private fun loadBaseModel() {
+        liteRTManager.initialize(File(context.filesDir, VOCAB_FILE_PATH).absolutePath)
+    }
 
     /**
      * 오디오 파일을 텍스트로 변환하여 자막 파일(Srt) 생성
@@ -60,18 +63,18 @@ class WhisperManager @Inject constructor(
     suspend fun transcribeAudio(
         videoItem: VideoItem
     ) {
-        if (!liteRT.isInitialized) {
+        if (!liteRTManager.isInitialized) {
             return
         }
 
         val transcribedText = audioBuffer.processFullAudio(
             videoFileUri = videoItem.uri.toUri(),
-            transcribe = liteRT::transcribeLang
+            transcribe = liteRTManager::transcribeLang
         )
-        //Log.d("test", "translatedText : $transcribedText")
-        val languageCode = TranslationManager.detectLanguage(transcribedText)
-        //Log.d("test", "languageCode : $languageCode")
 
+        val languageCode = TranslationManager.detectLanguage(transcribedText)
+
+        /*
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
                 id = videoItem.id,
@@ -88,17 +91,17 @@ class WhisperManager @Inject constructor(
                     false
                 }
             }
-        )
+        )*/
     }
 
     fun release() {
-        liteRT.deInitialize()
+        liteRTManager.deInitialize()
         audioBuffer.release()
         isReady = false
     }
 
     companion object {
-        const val VOCAB_FILE_NAME = "new_vocab.bin"
+        const val VOCAB_FILE_NAME = "filters_vocab_multilingual.bin"
         const val VOCAB_FILE_PATH = "models/$VOCAB_FILE_NAME"
     }
 }

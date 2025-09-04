@@ -9,7 +9,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -41,6 +40,10 @@ public class WhisperUtil {
         return vocab.tokenTRANSCRIBE;
     }
 
+    public int getTokenEnd() {
+        return vocab.nVocabEnglish;
+    }
+
     public int getTokenEOT() {
         return vocab.tokenEOT;
     }
@@ -61,7 +64,7 @@ public class WhisperUtil {
         return vocab.tokenNOT;
     }
 
-    public int getTokenBEG() {
+    public int getTokenStart() {
         return vocab.tokenSTART;
     }
 
@@ -75,12 +78,12 @@ public class WhisperUtil {
         // Read vocab file
         byte[] bytes = Files.readAllBytes(Paths.get(vocabPath));
         ByteBuffer vocabBuf = ByteBuffer.wrap(bytes);
-        vocabBuf.order(ByteOrder.nativeOrder());
+        vocabBuf.order(ByteOrder.LITTLE_ENDIAN);
         Log.d(TAG, "Vocab file size: " + vocabBuf.limit());
 
         // @magic:USEN
         int magic = vocabBuf.getInt();
-        if (magic == 0x5553454e) {
+        if (magic == 0x57535052) {
             Log.d(TAG, "Magic number: " + magic);
         } else {
             Log.d(TAG, "Invalid vocab file (bad magic: " + magic + "), " + vocabPath);
@@ -95,7 +98,7 @@ public class WhisperUtil {
         byte[] filterData = new byte[filters.nMel * filters.nFft * Float.BYTES];
         vocabBuf.get(filterData, 0, filterData.length);
         ByteBuffer filterBuf = ByteBuffer.wrap(filterData);
-        filterBuf.order(ByteOrder.nativeOrder());
+        filterBuf.order(ByteOrder.LITTLE_ENDIAN);
 
         filters.data = new float[filters.nMel * filters.nFft];
         for (int i = 0; filterBuf.hasRemaining(); i++) {
@@ -123,7 +126,12 @@ public class WhisperUtil {
         return true;
     }
 
-    public float[] getMelSpectrogram(float[] samples, int nSamples, int meaningfulSamples, int nThreads) {
+    public float[] getMelSpectrogram(
+            float[] samples,
+            int nSamples,
+            int meaningfulSamples,
+            int nThreads
+    ) {
 
         int fftSize = WHISPER_N_FFT;
         int fftStep = WHISPER_HOP_LENGTH;

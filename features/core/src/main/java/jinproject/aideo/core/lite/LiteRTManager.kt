@@ -3,7 +3,7 @@ package jinproject.aideo.core.lite
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.lite.LiteRT.Companion.MODEL_PATH
+import jinproject.aideo.core.audio.AudioBuffer
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.InterpreterApi
 import org.tensorflow.lite.support.common.FileUtil
@@ -11,9 +11,10 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
 import javax.inject.Inject
-import kotlin.math.sin
+import kotlin.math.min
+import kotlin.text.Charsets.UTF_8
 
-class LiteRT @Inject constructor(@ApplicationContext private val context: Context) {
+class LiteRTManager @Inject constructor(@ApplicationContext private val context: Context) {
 
     private lateinit var interpreter: InterpreterApi
 
@@ -22,7 +23,7 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
 
     val whisperUtil = WhisperUtil()
 
-    suspend fun initialize(vocabPath: String) {
+    fun initialize(vocabPath: String) {
         val isVocabLoaded = whisperUtil.loadFiltersAndVocab(true, vocabPath)
 
         val interpreterOption =
@@ -66,8 +67,8 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
         val inputSize = inputShape[0] * inputShape[1] * inputShape[2] * Float.SIZE_BYTES
         val audioBuffer = ByteBuffer.allocateDirect(inputSize).apply {
             order(ByteOrder.nativeOrder())
-            repeat(melSpectrogram.size) { idx ->
-                putFloat(melSpectrogram[idx])
+            for (v in melSpectrogram) {
+                putFloat(v)
             }
         }
 
@@ -124,43 +125,39 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
         lastTime: Float,
         lastSRTSequence: Int,
     ): String {
-        val segments = mutableListOf<Triple<Double, Double, String>>()
+        val segments = mutableListOf<Triple<Double, Double, ByteArray>>()
+        val currTextTokens = mutableListOf<Byte>()
         var currStart = 0.0
-        var currText = StringBuilder()
         var hasStart = false
 
-        val size = outputBuffer.capacity()
-        for (i in 0 until size) {
+        for (i in 0 until outputBuffer.limit()) {
             val token = outputBuffer.get(i)
 
-            if (token == whisperUtil.tokenEOT) {
-                break
-            }
-
-            if (token < whisperUtil.tokenEOT) {
-                // 일반 텍스트 토큰
-                currText.append(whisperUtil.getWordFromToken(token).toString(Charsets.UTF_8))
-            } else if (token >= 50364 && token <= 51864) {
-                val ts = TS_STEP * (token - 50364) + lastTime
-                if (!hasStart) {
-                    // 시작 타임스탬프
-                    currStart = ts
-                    hasStart = true
-                } else {
-                    // 끝 타임스탬프
-                    if (currText.trim().isNotEmpty()) {
-                        segments.add(Triple(currStart, ts, currText.toString()))
+            when(token) {
+                in 0 until whisperUtil.tokenEOT -> currTextTokens.addAll(whisperUtil.getWordFromToken(token).toList())
+                whisperUtil.tokenEOT -> break
+                in whisperUtil.tokenStart..whisperUtil.tokenEnd -> {
+                    val ts = TS_STEP * (token - whisperUtil.tokenStart) + lastTime
+                    if (!hasStart) {
+                        // 시작 타임스탬프
+                        currStart = ts
+                        hasStart = true
+                    } else {
+                        // 끝 타임스탬프
+                        if (currTextTokens.isNotEmpty()) {
+                            segments.add(Triple(currStart, ts, currTextTokens.toByteArray()))
+                        }
+                        currTextTokens.clear()
+                        currStart = ts
                     }
-                    currText.clear()
-                    currStart = ts
                 }
             }
         }
 
         // 마지막 텍스트 처리
-        if (hasStart && currText.trim().isNotEmpty()) {
+        if (hasStart && currTextTokens.isNotEmpty()) {
             val endTs = currStart + 30
-            segments.add(Triple(currStart, endTs, currText.toString()))
+            segments.add(Triple(currStart, endTs, currTextTokens.toByteArray()))
         }
 
         // SRT 변환
@@ -169,7 +166,7 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
             val (start, end, text) = segment
             srt.append("${idx + 1 + lastSRTSequence}\n")
             srt.append("${formatTimestamp(start)} --> ${formatTimestamp(end)}\n")
-            srt.append("${text.trim()}\n\n")
+            srt.append("${String(text, UTF_8).trim()}\n\n")
         }
 
         return srt.toString()
@@ -177,7 +174,8 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
 
     private fun getMelSpectrogram(samples: FloatArray): FloatArray {
         val cores = Runtime.getRuntime().availableProcessors()
-        return whisperUtil.getMelSpectrogram(samples, samples.size, samples.size, cores)
+        val meaningFul = min(samples.size, AudioBuffer.PROCESSING_CHUNK_SAMPLES)
+        return whisperUtil.getMelSpectrogram(samples, samples.size, meaningFul, cores)
     }
 
     private fun formatTimestamp(t: Double): String {
@@ -203,12 +201,12 @@ class LiteRT @Inject constructor(@ApplicationContext private val context: Contex
 
     companion object {
         const val MODEL_PATH = "models/whisper-tiny.tflite"
-        const val SAMPLE_RATE = 16000
-        const val CHANNELS = 1
-        const val WHISPER_CHUNK_SECONDS = 30
         const val MAX_TOKEN_LENGTH = 450
-        const val TS_STEP = 0.02
 
-        const val WHISPER_CHUNK_SAMPLES = SAMPLE_RATE * WHISPER_CHUNK_SECONDS * CHANNELS
+
+        /**
+         * 타임 스탬프 간격: 0.02
+         */
+        const val TS_STEP = 0.02
     }
 }
