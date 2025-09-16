@@ -6,9 +6,9 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,7 +52,6 @@ private data class AudioSegment(
  */
 class AudioBuffer @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val localPlayerDataSource: LocalPlayerDataSource,
     private val localFileDataSource: LocalFileDataSource,
 ) {
     private val audioBuffer = Channel<FloatArray>(capacity = Channel.BUFFERED)
@@ -71,8 +70,8 @@ class AudioBuffer @Inject constructor(
      * @param transcribe 추론을 수행할 람다
      */
     suspend fun processFullAudio(
-        videoFileUri: Uri,
-        transcribe: (FloatArray, Float, Int, String) -> String,
+        videoFileUri: String,
+        transcribe: suspend (FloatArray, Float, Int, String) -> String,
     ): String = withContext(Dispatchers.Default) {
         val languageCode = "ko"
 
@@ -85,7 +84,7 @@ class AudioBuffer @Inject constructor(
          * 3. whisper 모델의 입력에 맞게 전처리된 floatArray 를 STT 추론을 담당하는 소비자 코루틴에게 전송
          */
         val extractorJob = launch {
-            extractAudioData(videoFileUri)
+            extractAudioData(videoFileUri.toUri())
         }
 
         /**
@@ -127,7 +126,7 @@ class AudioBuffer @Inject constructor(
     private suspend fun startConsumer(
         producerJob: Job,
         languageCode: String,
-        transcribe: (FloatArray, Float, Int, String) -> String,
+        transcribe: suspend (FloatArray, Float, Int, String) -> String,
     ): String {
         var inferenceResult = InferenceResult(index = 0, lastSeconds = 0f)
         val transcription = StringBuilder()

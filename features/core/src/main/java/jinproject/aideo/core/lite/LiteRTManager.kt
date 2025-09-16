@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.audio.AudioBuffer
+import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.InterpreterApi
 import org.tensorflow.lite.support.common.FileUtil
@@ -11,20 +12,27 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
 import javax.inject.Inject
-import kotlin.math.min
 import kotlin.text.Charsets.UTF_8
 
-class LiteRTManager @Inject constructor(@ApplicationContext private val context: Context) {
-
+class LiteRTManager @Inject constructor(
+    @ApplicationContext private val context: Context,
+    localFileDataSource: LocalFileDataSource,
+) {
     private lateinit var interpreter: InterpreterApi
+    private val audioBuffer: AudioBuffer by lazy {
+        AudioBuffer(
+            context = context,
+            localFileDataSource = localFileDataSource
+        )
+    }
 
     var isInitialized = false
         private set
 
-    val whisperUtil = WhisperUtil()
+    val vocabUtils = VocabUtils()
 
     fun initialize(vocabPath: String) {
-        val isVocabLoaded = whisperUtil.loadFiltersAndVocab(true, vocabPath)
+        val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
 
         val interpreterOption =
             Interpreter.Options()
@@ -40,7 +48,16 @@ class LiteRTManager @Inject constructor(@ApplicationContext private val context:
         isInitialized = isVocabLoaded
     }
 
-    fun transcribeLang(
+    suspend fun transcribe(
+        videoFileUri: String,
+    ): String {
+        return audioBuffer.processFullAudio(
+            videoFileUri = videoFileUri,
+            transcribe = ::transcribeLang
+        )
+    }
+
+    suspend fun transcribeLang(
         audioData: FloatArray,
         lastTime: Float,
         lastSRTSequence: Int,
@@ -50,12 +67,10 @@ class LiteRTManager @Inject constructor(@ApplicationContext private val context:
             ?: throw IllegalArgumentException("지원되지 않는 언어: $languageCode")
 
         Log.d("test", "getMelSpectrogram")
-        val melSpectrogram = getMelSpectrogram(
-            samples = audioData,
-        )
+        val melSpectrogram = vocabUtils.calMelSpectrogram(audioData)
         Log.d("test", "melSpectrogram result: ${melSpectrogram.size}")
 
-        val signatureKey = "serving_transcribe"
+        val signatureKey = "serving_default"
         val inputKeys = interpreter.getSignatureInputs(signatureKey)
         val inputTensor = interpreter.getInputTensorFromSignature(inputKeys[0], signatureKey)
         val inputShape = inputTensor.shape()
@@ -133,11 +148,11 @@ class LiteRTManager @Inject constructor(@ApplicationContext private val context:
         for (i in 0 until outputBuffer.limit()) {
             val token = outputBuffer.get(i)
 
-            when(token) {
-                in 0 until whisperUtil.tokenEOT -> currTextTokens.addAll(whisperUtil.getWordFromToken(token).toList())
-                whisperUtil.tokenEOT -> break
-                in whisperUtil.tokenStart..whisperUtil.tokenEnd -> {
-                    val ts = TS_STEP * (token - whisperUtil.tokenStart) + lastTime
+            when (token) {
+                in 0 until VocabUtils.EOT -> currTextTokens.addAll(vocabUtils.tokenToWord[token]!!.toList())
+                VocabUtils.EOT -> break
+                in VocabUtils.BEGIN..VocabUtils.END -> {
+                    val ts = TS_STEP * (token - VocabUtils.BEGIN) + lastTime
                     if (!hasStart) {
                         // 시작 타임스탬프
                         currStart = ts
@@ -172,12 +187,6 @@ class LiteRTManager @Inject constructor(@ApplicationContext private val context:
         return srt.toString()
     }
 
-    private fun getMelSpectrogram(samples: FloatArray): FloatArray {
-        val cores = Runtime.getRuntime().availableProcessors()
-        val meaningFul = min(samples.size, AudioBuffer.PROCESSING_CHUNK_SAMPLES)
-        return whisperUtil.getMelSpectrogram(samples, samples.size, meaningFul, cores)
-    }
-
     private fun formatTimestamp(t: Double): String {
         val h = (t / 3600).toInt()
         val m = ((t % 3600) / 60).toInt()
@@ -197,6 +206,7 @@ class LiteRTManager @Inject constructor(@ApplicationContext private val context:
         if (::interpreter.isInitialized) {
             interpreter.close()
         }
+        audioBuffer.release()
     }
 
     companion object {

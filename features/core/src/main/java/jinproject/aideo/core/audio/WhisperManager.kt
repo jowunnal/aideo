@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.lite.LiteRTManager
 import jinproject.aideo.data.TranslationManager
@@ -17,9 +16,13 @@ import javax.inject.Inject
 class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
-    private val audioBuffer: AudioBuffer,
 ) {
-    private val liteRTManager: LiteRTManager by lazy { LiteRTManager(context) }
+    private val liteRTManager: LiteRTManager by lazy {
+        LiteRTManager(
+            context = context,
+            localFileDataSource = localFileDataSource
+        )
+    }
 
     var isReady: Boolean by mutableStateOf(false)
         private set
@@ -67,10 +70,7 @@ class WhisperManager @Inject constructor(
             return
         }
 
-        val transcribedText = audioBuffer.processFullAudio(
-            videoFileUri = videoItem.uri.toUri(),
-            transcribe = liteRTManager::transcribeLang
-        )
+        val transcribedText = liteRTManager.transcribe(videoItem.uri)
 
         val languageCode = TranslationManager.detectLanguage(transcribedText)
 
@@ -96,7 +96,6 @@ class WhisperManager @Inject constructor(
 
     fun release() {
         liteRTManager.deInitialize()
-        audioBuffer.release()
         isReady = false
     }
 
