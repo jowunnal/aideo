@@ -19,4 +19,5 @@ dependencies {
     //api(project(":whisper_lib"))
     api(libs.bundles.media3)
     implementation(libs.bundles.liteRT)
+    implementation(libs.executorch.android)
 }

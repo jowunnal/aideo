@@ -14,7 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.audio.MediaFileManager
+import jinproject.aideo.core.audio.MediaFileManagerImpl
 import jinproject.aideo.core.audio.VideoItem
 import jinproject.aideo.core.audio.WhisperManager
 import jinproject.aideo.core.utils.parseUri
@@ -29,7 +29,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class TranscribeService : LifecycleService() {
     @Inject
-    lateinit var mediaFileManager: MediaFileManager
+    lateinit var mediaFileManagerImpl: MediaFileManagerImpl
 
     @Inject
     lateinit var whisperManager: WhisperManager
@@ -76,7 +76,7 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun processSubtitle(videoItem: VideoItem) {
         val languageCode = localPlayerDataSource.getLanguageSetting().first()
-        val isSubtitleExist = mediaFileManager.checkSubtitleFileExist(
+        val isSubtitleExist = mediaFileManagerImpl.checkSubtitleFileExist(
             id = videoItem.id,
             languageCode = languageCode
         )

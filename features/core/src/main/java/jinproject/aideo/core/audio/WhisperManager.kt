@@ -5,9 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.lite.LiteRTManager
+import jinproject.aideo.core.lite.ExecutorchSpeechToText
 import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -16,11 +17,13 @@ import javax.inject.Inject
 class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
+    private val mediaFileManager: MediaFileManager,
 ) {
-    private val liteRTManager: LiteRTManager by lazy {
-        LiteRTManager(
+    private val executorchSpeechToText: ExecutorchSpeechToText by lazy {
+        ExecutorchSpeechToText(
             context = context,
-            localFileDataSource = localFileDataSource
+            localFileDataSource = localFileDataSource,
+            mediaFileManager = mediaFileManager,
         )
     }
 
@@ -52,10 +55,17 @@ class WhisperManager @Inject constructor(
                 input.copyTo(output)
             }
         }
+
+        val model = File(modelsPath, MODEL_FILE_NAME)
+        context.assets.open(MODEL_FILE_PATH).use { input ->
+            model.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
     }
 
     private fun loadBaseModel() {
-        liteRTManager.initialize(File(context.filesDir, VOCAB_FILE_PATH).absolutePath)
+        executorchSpeechToText.initialize(File(context.filesDir, VOCAB_FILE_PATH).absolutePath)
     }
 
     /**
@@ -66,15 +76,10 @@ class WhisperManager @Inject constructor(
     suspend fun transcribeAudio(
         videoItem: VideoItem
     ) {
-        if (!liteRTManager.isInitialized) {
-            return
-        }
-
-        val transcribedText = liteRTManager.transcribe(videoItem.uri)
+        val transcribedText = executorchSpeechToText.transcribe(videoItem.uri) ?: return
 
         val languageCode = TranslationManager.detectLanguage(transcribedText)
 
-        /*
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
                 id = videoItem.id,
@@ -91,16 +96,18 @@ class WhisperManager @Inject constructor(
                     false
                 }
             }
-        )*/
+        )
     }
 
     fun release() {
-        liteRTManager.deInitialize()
+        executorchSpeechToText.deInitialize()
         isReady = false
     }
 
     companion object {
         const val VOCAB_FILE_NAME = "filters_vocab_multilingual.bin"
         const val VOCAB_FILE_PATH = "models/$VOCAB_FILE_NAME"
+        const val MODEL_FILE_NAME = "model.pte"
+        const val MODEL_FILE_PATH = "models/$MODEL_FILE_NAME"
     }
 }

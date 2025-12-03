@@ -16,7 +16,11 @@ import kotlin.math.sin
 class VocabUtils {
 
     private lateinit var filters: FloatArray
-    val tokenToWord: MutableMap<Int, ByteArray> = HashMap<Int, ByteArray>()
+    private val tokenToWord: MutableMap<Int, ByteArray> = HashMap<Int, ByteArray>()
+
+    fun getWordByToken(token: Int): ByteArray? {
+        return tokenToWord[token]
+    }
 
     fun loadFiltersAndVocab(vocabPath: String): Boolean {
         val vocabBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(vocabPath))).apply {
@@ -54,7 +58,7 @@ class VocabUtils {
             val len = vocabBuf.getInt()
             val wordBytes = ByteArray(len)
             vocabBuf.get(wordBytes, 0, wordBytes.size)
-            tokenToWord.put(i, wordBytes)
+            tokenToWord[i] = wordBytes
         }
 
         return true

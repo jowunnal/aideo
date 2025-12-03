@@ -23,8 +23,8 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     ): String? {
         val file = File(context.filesDir, fileIdentifier)
 
-        if (file.exists())
-            return file.absolutePath
+        /*if (file.exists())
+            return file.absolutePath*/
 
         FileOutputStream(file).use { outputStream ->
             val compressedResult = writeContentOnFile(outputStream)
