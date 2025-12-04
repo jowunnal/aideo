@@ -2,13 +2,14 @@ package jinproject.aideo.core.lite
 
 import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.snapshots.toInt
+import dagger.Binds
+import dagger.Provides
+import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.audio.AudioBuffer
+import dagger.hilt.components.SingletonComponent
+import jinproject.aideo.core.audio.WhisperAudioProcessor
 import jinproject.aideo.core.audio.MediaFileManager
 import jinproject.aideo.core.audio.WhisperManager
-import jinproject.aideo.core.audio.WhisperManager.Companion.VOCAB_FILE_PATH
-import jinproject.aideo.core.lite.VocabUtils.Companion.BEGIN
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import org.pytorch.executorch.EValue
 import org.pytorch.executorch.Module
@@ -21,24 +22,35 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Qualifier
+import javax.inject.Singleton
 
-abstract class SpeechToText {
-    var vocabUtils: VocabUtils = VocabUtils()
-    protected abstract val audioBuffer: AudioBuffer
+/**
+ * 오디오(Speech) 를 문자(Text) 로 추론(변환)의 수행을 담당
+ */
+abstract class SpeechToText(
+    val modelPath: String,
+) {
+    @Inject
+    lateinit var vocabUtils: VocabUtils
 
     protected var isInitialized = false
 
     abstract fun initialize(vocabPath: String)
     abstract fun deInitialize()
 
-    open suspend fun transcribe(videoFileUri: String,): String? {
+    open suspend fun transcribe(
+        audioData: FloatArray,
+        languageCode: String,
+    ): FloatArray {
         require(isInitialized) {
             "ExecutorchSpeechToText is not initialized."
         }
 
-        return audioBuffer.processFullAudio(
-            videoFileUri = videoFileUri,
-            transcribe = ::transcribeByModel
+        return transcribeByModel(
+            audioData = audioData,
+            languageCode = languageCode,
         )
     }
 
@@ -48,7 +60,7 @@ abstract class SpeechToText {
     ): FloatArray
 
     companion object {
-        const val MAX_TOKEN_LENGTH = 450
+        const val MAX_TOKEN_LENGTH = 448
 
         /**
          * 타임 스탬프 간격: 0.02
@@ -57,42 +69,46 @@ abstract class SpeechToText {
     }
 }
 
+@Qualifier
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ExecutorchWhisper
+
+@dagger.Module
+@InstallIn(SingletonComponent::class)
+object SpeechToTextModule {
+
+    @Provides
+    @Singleton
+    @ExecutorchWhisper
+    fun providesExecutorchSpeechToText(
+        @ApplicationContext context: Context,
+    ): SpeechToText {
+        return ExecutorchSpeechToText(context = context, modelPath = WhisperManager.MODEL_FILE_PATH)
+    }
+}
+
+/**
+ * Executorch 런타임을 활용하여 [.pte] 포맷의 모델의 추론을 담당
+ */
 class ExecutorchSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
-    localFileDataSource: LocalFileDataSource,
-    mediaFileManager: MediaFileManager,
-) : SpeechToText() {
+    modelPath: String,
+) : SpeechToText(modelPath = modelPath) {
     lateinit var module: Module
-    override val audioBuffer: AudioBuffer by lazy {
-        AudioBuffer(
-            localFileDataSource = localFileDataSource,
-            mediaFileManager = mediaFileManager,
-            vocabUtils = vocabUtils
-        )
-    }
 
     private fun loadModel(modelPath: String): Module {
         return Module.load(modelPath)
     }
 
-    fun reload(vocabPath: String) {
-        module.destroy()
-
-        vocabUtils = VocabUtils()
-        vocabUtils.loadFiltersAndVocab(vocabPath)
-        module = loadModel(File(context.filesDir, WhisperManager.MODEL_FILE_PATH).absolutePath)
-    }
-
     override fun initialize(vocabPath: String) {
         val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
-        module = loadModel(File(context.filesDir, WhisperManager.MODEL_FILE_PATH).absolutePath)
+        module = loadModel(File(context.filesDir, modelPath).absolutePath)
 
         isInitialized = isVocabLoaded
     }
 
     override fun deInitialize() {
         module.destroy()
-        audioBuffer.release()
     }
 
     fun decode(encoderOutputs: EValue): FloatArray {
@@ -173,7 +189,7 @@ class ExecutorchSpeechToText @Inject constructor(
         audioData: FloatArray,
         languageCode: String,
     ): FloatArray {
-        module = loadModel(File(context.filesDir, WhisperManager.MODEL_FILE_PATH).absolutePath)
+        module = loadModel(File(context.filesDir, modelPath).absolutePath)
 
         val melSpectrogram = vocabUtils.calMelSpectrogram(audioData)
         val tensor1 = Tensor.fromBlob(melSpectrogram, longArrayOf(1, 80, 3000))
@@ -209,18 +225,9 @@ class ExecutorchSpeechToText @Inject constructor(
 
 class TfLiteSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
-    localFileDataSource: LocalFileDataSource,
-    mediaFileManager: MediaFileManager,
-): SpeechToText() {
+    modelPath: String
+): SpeechToText(modelPath) {
     private lateinit var interpreter: InterpreterApi
-
-    override val audioBuffer: AudioBuffer by lazy {
-        AudioBuffer(
-            localFileDataSource = localFileDataSource,
-            mediaFileManager = mediaFileManager,
-            vocabUtils = vocabUtils
-        )
-    }
 
     override fun initialize(vocabPath: String) {
         val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
@@ -232,7 +239,7 @@ class TfLiteSpeechToText @Inject constructor(
                 .setUseXNNPACK(false)
 
         interpreter = Interpreter(
-            FileUtil.loadMappedFile(context, WhisperManager.MODEL_FILE_PATH),
+            FileUtil.loadMappedFile(context, modelPath),
             interpreterOption
         )
 
@@ -317,6 +324,5 @@ class TfLiteSpeechToText @Inject constructor(
         if (::interpreter.isInitialized) {
             interpreter.close()
         }
-        audioBuffer.release()
     }
 }

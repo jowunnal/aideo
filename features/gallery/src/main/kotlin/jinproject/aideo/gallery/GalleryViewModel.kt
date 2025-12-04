@@ -3,7 +3,7 @@ package jinproject.aideo.gallery
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.audio.MediaFileManagerImpl
+import jinproject.aideo.core.audio.AndroidMediaFileManager
 import jinproject.aideo.core.audio.VideoItem
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
-    private val mediaFileManagerImpl: MediaFileManagerImpl,
+    private val androidMediaFileManager: AndroidMediaFileManager,
     private val localPlayerDataSource: LocalPlayerDataSource,
 ) : ViewModel() {
 
@@ -29,7 +29,7 @@ class GalleryViewModel @Inject constructor(
         localPlayerDataSource.getLanguageSetting()
     ) { videoUris, language ->
         val videoItems = videoUris.mapNotNull {
-            mediaFileManagerImpl.getVideoInfo(it)
+            androidMediaFileManager.getVideoInfo(it)
         }
 
         GalleryUiState(

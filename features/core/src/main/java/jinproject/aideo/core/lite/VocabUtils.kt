@@ -9,11 +9,12 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Paths
+import javax.inject.Inject
 import kotlin.math.cos
 import kotlin.math.log10
 import kotlin.math.sin
 
-class VocabUtils {
+class VocabUtils @Inject constructor() {
 
     private lateinit var filters: FloatArray
     private val tokenToWord: MutableMap<Int, ByteArray> = HashMap<Int, ByteArray>()

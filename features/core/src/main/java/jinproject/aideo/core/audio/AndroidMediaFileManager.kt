@@ -13,25 +13,23 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
-import androidx.media3.common.util.UnstableApi
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import jinproject.aideo.core.audio.AudioBuffer.MediaInfo
+import jinproject.aideo.core.audio.WhisperAudioProcessor.MediaInfo
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import jinproject.aideo.data.toSubtitleFileIdentifier
 import jinproject.aideo.data.toThumbnailFileIdentifier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import java.io.IOException
-import java.nio.ByteBuffer
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -41,7 +39,7 @@ abstract class MediaFileManagerModule {
 
     @Binds
     abstract fun bindsVideoFileManager(
-        mediaFileManagerImpl: MediaFileManagerImpl,
+        androidMediaFileManager: AndroidMediaFileManager,
     ): MediaFileManager
 }
 
@@ -50,11 +48,11 @@ interface MediaFileManager {
     fun checkSubtitleFileExist(id: Long, languageCode: String): Int
     suspend fun extractAudioData(
         videoContentUri: Uri,
-        produceAudio: suspend (audioData: ByteBuffer, bufferSize: Int, mediaInfo: MediaInfo) -> Unit
+        extractedAudioChannel: Channel<WhisperAudioProcessor.ExtractedAudioInfo>
     ): MediaInfo
 }
 
-class MediaFileManagerImpl @Inject constructor(
+class AndroidMediaFileManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
 ) : MediaFileManager {
@@ -173,7 +171,7 @@ class MediaFileManagerImpl @Inject constructor(
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun extractAudioData(
         videoContentUri: Uri,
-        produceAudio: suspend (audioData: ByteBuffer, bufferSize: Int, mediaInfo: MediaInfo) -> Unit
+        extractedAudioChannel: Channel<WhisperAudioProcessor.ExtractedAudioInfo>
     ): MediaInfo {
         val extractor = MediaExtractor() // 미디어 데이터를 인코딩, demux(여러 트랙으로 분리)하여 추출하는 미디어 추출기 인스턴스
         extractor.setDataSource(context, videoContentUri, null)
@@ -211,6 +209,7 @@ class MediaFileManagerImpl @Inject constructor(
             sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE),
             channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT),
         )
+        val extractedAudioInfo: WhisperAudioProcessor.ExtractedAudioInfo? = null
 
         coroutineScope {
             launch {
@@ -248,8 +247,18 @@ class MediaFileManagerImpl @Inject constructor(
                         if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             isEOS = true
                         else if (info.size != 0) {
-                            outputBuffer?.let {
-                                produceAudio(it, info.size, mediaInfo)
+                            outputBuffer?.let { buffer ->
+                                extractedAudioChannel.send(
+                                    extractedAudioInfo?.also {
+                                        it.resetData(
+                                            audioData = buffer
+                                        )
+                                    } ?: WhisperAudioProcessor.ExtractedAudioInfo(
+                                        audioData = buffer,
+                                        audioSize = info.size,
+                                        mediaInfo = mediaInfo
+                                    )
+                                )
                             }
                         }
 

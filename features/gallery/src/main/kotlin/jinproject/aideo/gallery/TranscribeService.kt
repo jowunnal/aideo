@@ -14,7 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.audio.MediaFileManagerImpl
+import jinproject.aideo.core.audio.AndroidMediaFileManager
 import jinproject.aideo.core.audio.VideoItem
 import jinproject.aideo.core.audio.WhisperManager
 import jinproject.aideo.core.utils.parseUri
@@ -29,7 +29,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class TranscribeService : LifecycleService() {
     @Inject
-    lateinit var mediaFileManagerImpl: MediaFileManagerImpl
+    lateinit var androidMediaFileManager: AndroidMediaFileManager
 
     @Inject
     lateinit var whisperManager: WhisperManager
@@ -76,7 +76,7 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun processSubtitle(videoItem: VideoItem) {
         val languageCode = localPlayerDataSource.getLanguageSetting().first()
-        val isSubtitleExist = mediaFileManagerImpl.checkSubtitleFileExist(
+        val isSubtitleExist = androidMediaFileManager.checkSubtitleFileExist(
             id = videoItem.id,
             languageCode = languageCode
         )
@@ -94,7 +94,7 @@ class TranscribeService : LifecycleService() {
 
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(videoItem)
+                extractAudioAndTranscribe(videoItem = videoItem, languageCode = languageCode)
             }
 
             else -> {
@@ -121,8 +121,8 @@ class TranscribeService : LifecycleService() {
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
-        whisperManager.transcribeAudio(videoItem = videoItem)
+    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, languageCode: String) {
+        whisperManager.transcribeAudio(videoItem = videoItem, languageCode = languageCode)
         runCatching {
 
         }.onSuccess {

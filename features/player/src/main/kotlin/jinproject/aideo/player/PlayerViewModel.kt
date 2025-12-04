@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.audio.MediaFileManagerImpl
+import jinproject.aideo.core.audio.AndroidMediaFileManager
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
@@ -29,7 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
-    private val mediaFileManagerImpl: MediaFileManagerImpl,
+    private val androidMediaFileManager: AndroidMediaFileManager,
     private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
     savedStateHandle: SavedStateHandle,
@@ -45,7 +45,7 @@ class PlayerViewModel @Inject constructor(
         localPlayerDataSource.getLanguageSetting().onEach { language ->
             val id = currentVideoUri.toVideoItemId()
 
-            val subtitleExist = mediaFileManagerImpl.checkSubtitleFileExist(
+            val subtitleExist = androidMediaFileManager.checkSubtitleFileExist(
                 id = id,
                 languageCode = language
             )
