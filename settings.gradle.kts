@@ -17,6 +17,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            name = "TarsosDSP repository"
+            url = uri("https://mvn.0110.be/releases")
+        }
     }
 }
 
@@ -28,4 +32,3 @@ include(":data")
 include(":features:gallery")
 include(":features:core")
 include(":features:player")
-include(":whisper_lib")

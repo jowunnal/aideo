@@ -124,7 +124,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        loadRewardedAd()
     }
 
     @Composable

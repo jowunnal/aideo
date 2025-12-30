@@ -3,11 +3,13 @@ package jinproject.aideo.core.audio
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import android.os.Parcelable
 import android.provider.MediaStore
 import android.util.Log
@@ -18,18 +20,18 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import jinproject.aideo.core.audio.WhisperAudioProcessor.MediaInfo
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import jinproject.aideo.data.toSubtitleFileIdentifier
 import jinproject.aideo.data.toThumbnailFileIdentifier
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import java.io.IOException
+import java.nio.ByteOrder
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -46,10 +48,11 @@ abstract class MediaFileManagerModule {
 interface MediaFileManager {
     suspend fun getVideoInfo(videoUriString: String): VideoItem?
     fun checkSubtitleFileExist(id: Long, languageCode: String): Int
-    suspend fun extractAudioData(
+    suspend fun <T> extractAudioData(
         videoContentUri: Uri,
-        extractedAudioChannel: Channel<WhisperAudioProcessor.ExtractedAudioInfo>
-    ): MediaInfo
+        extractedAudioChannel: SendChannel<T>,
+        audioPreProcessor: AudioPreProcessor<T>
+    )
 }
 
 class AndroidMediaFileManager @Inject constructor(
@@ -160,19 +163,20 @@ class AndroidMediaFileManager @Inject constructor(
     }
 
     /**
-     * 미디어 데이터에서 오디오 트랙을 추출하여 디코딩 후 전처리 함수를 호출하는 함수
+     * 미디어 데이터에서 오디오 트랙을 비동기로 추출
      *
      * 1. MediaExtractor 로 미디어 파일에서 오디오 트랙을 추출
-     * 2. MediaCodec 으로 추출된 오디오 트랙을 디코딩
-     * 3. 디코드된 오디오 데이터(ByteArray)로 전처리 함수 호출
+     * 2. MediaCodec 으로 추출된 오디오 트랙을 wav format 으로 decode
+     * 3. 디코딩된 오디오 데이터를 전처리 하여 채널로 전송
      *
      * @param videoContentUri 비디오 contentUri
      */
     @OptIn(ExperimentalAtomicApi::class)
-    override suspend fun extractAudioData(
+    override suspend fun <T> extractAudioData(
         videoContentUri: Uri,
-        extractedAudioChannel: Channel<WhisperAudioProcessor.ExtractedAudioInfo>
-    ): MediaInfo {
+        extractedAudioChannel: SendChannel<T>,
+        audioPreProcessor: AudioPreProcessor<T>
+    ) {
         val extractor = MediaExtractor() // 미디어 데이터를 인코딩, demux(여러 트랙으로 분리)하여 추출하는 미디어 추출기 인스턴스
         extractor.setDataSource(context, videoContentUri, null)
 
@@ -192,32 +196,36 @@ class AndroidMediaFileManager @Inject constructor(
             }
         }
 
-        if (audioTrackIndex == -1 || format == null) { // 추출된 비디오에 "audio/" 트랙이 없었을 경우
+        if (audioTrackIndex == -1 || format == null) { // 추출된 비디오에 오디오 트랙이 없었을 경우
             extractor.release()
             throw IOException("No audio track found")
         }
 
-        extractor.selectTrack(audioTrackIndex) // 추출기의 track 을 "audio/" 로 설정
-        val decoder = MediaCodec.createDecoderByType(mime!!)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2)
+            format.setInteger(MediaFormat.KEY_MAX_OUTPUT_CHANNEL_COUNT, 1)
+        else
+            format.setInteger(MediaFormat.KEY_AAC_MAX_OUTPUT_CHANNEL_COUNT, 1)
 
+        extractor.selectTrack(audioTrackIndex) // 추출기의 track 을 오디오로 설정
+
+        val decoder = MediaCodec.createDecoderByType(mime!!)
         decoder.configure(format, null, null, 0)
         decoder.start()
 
-        val info = MediaCodec.BufferInfo()
         val timeoutUs = 5000L
-        val mediaInfo = MediaInfo(
-            sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE),
-            channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT),
+        val audioData = arrayListOf<Byte>()
+        var mediaInfo = MediaInfo(
+            sampleRate = 0,
+            channelCount = 0,
+            encodingType = 2,
         )
-        val extractedAudioInfo: WhisperAudioProcessor.ExtractedAudioInfo? = null
+        val decoderBufferInfo = MediaCodec.BufferInfo()
 
         coroutineScope {
             launch {
-                var isEOS = false
-
-                while (!isEOS) {
+                while (true) {
                     val inputBufferId = decoder.dequeueInputBuffer(timeoutUs)
-                    if (inputBufferId >= 0) { // decoder 에서 유효한 값을 획득
+                    if (inputBufferId >= 0) {
                         val inputBuffer = decoder.getInputBuffer(inputBufferId)
                         val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
                         if (sampleSize < 0) {
@@ -225,7 +233,7 @@ class AndroidMediaFileManager @Inject constructor(
                                 inputBufferId, 0, 0, 0,
                                 MediaCodec.BUFFER_FLAG_END_OF_STREAM
                             )
-                            isEOS = true
+                            break
                         } else {
                             decoder.queueInputBuffer(
                                 inputBufferId, 0, sampleSize, extractor.sampleTime, 0
@@ -237,28 +245,39 @@ class AndroidMediaFileManager @Inject constructor(
             }
 
             launch {
-                var isEOS = false
-                while (!isEOS) {
-                    val outputBufferId = decoder.dequeueOutputBuffer(info, timeoutUs)
+                while (true) {
+                    val outputBufferId = decoder.dequeueOutputBuffer(decoderBufferInfo, timeoutUs)
 
-                    if (outputBufferId >= 0) {
+                    if (outputBufferId == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        mediaInfo = with(decoder.outputFormat) {
+                            MediaInfo(
+                                sampleRate = getInteger(MediaFormat.KEY_SAMPLE_RATE),
+                                channelCount = getInteger(MediaFormat.KEY_CHANNEL_COUNT),
+                                encodingType = getInteger(
+                                    MediaFormat.KEY_PCM_ENCODING,
+                                    AudioFormat.ENCODING_PCM_16BIT
+                                )
+                            ).also {
+                                Log.d(
+                                    "test",
+                                    "first decoder: samplerate: ${it.sampleRate}, channelCount: ${it.channelCount}, extracted encoding type: ${it.encodingType}"
+                                )
+                            }
+                        }
+                    } else if (outputBufferId >= 0) {
                         val outputBuffer = decoder.getOutputBuffer(outputBufferId)
 
-                        if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                            isEOS = true
-                        else if (info.size != 0) {
+                        if (decoderBufferInfo.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
+                            break
+                        } else if (decoderBufferInfo.size != 0) {
                             outputBuffer?.let { buffer ->
-                                extractedAudioChannel.send(
-                                    extractedAudioInfo?.also {
-                                        it.resetData(
-                                            audioData = buffer
-                                        )
-                                    } ?: WhisperAudioProcessor.ExtractedAudioInfo(
-                                        audioData = buffer,
-                                        audioSize = info.size,
-                                        mediaInfo = mediaInfo
-                                    )
-                                )
+                                buffer.apply {
+                                    order(ByteOrder.nativeOrder())
+                                }
+
+                                repeat(buffer.remaining()) {
+                                    audioData.add(buffer.get())
+                                }
                             }
                         }
 
@@ -268,6 +287,17 @@ class AndroidMediaFileManager @Inject constructor(
             }
         }
 
+        val normalized = audioPreProcessor.preProcess(
+            ExtractedAudioInfo(
+                audioData = audioData.toByteArray(),
+                audioSize = decoderBufferInfo.size,
+                mediaInfo = mediaInfo
+            )
+        )
+
+        extractedAudioChannel.send(
+            normalized
+        )
 
         Log.d("test", "전송된 포맷 mime: ${format.getString(MediaFormat.KEY_MIME)}")
 
@@ -275,9 +305,28 @@ class AndroidMediaFileManager @Inject constructor(
         extractor.release()
         Log.d("test", "생산자 종료")
 
-        return mediaInfo
+        /*if(audioPreProcessor.lastProducedAudioIndex != 0)
+            audioPreProcessor.clearSampledAudio(extractedAudioChannel, mediaInfo)*/
+
+        extractedAudioChannel.close()
     }
 }
+
+fun interface AudioPreProcessor<T> {
+    suspend fun preProcess(audioInfo: ExtractedAudioInfo): T
+}
+
+class ExtractedAudioInfo(
+    var audioData: ByteArray,
+    var audioSize: Int,
+    var mediaInfo: MediaInfo,
+)
+
+data class MediaInfo(
+    val sampleRate: Int,
+    val channelCount: Int,
+    val encodingType: Int,
+)
 
 @Parcelize
 data class VideoItem(

@@ -181,4 +181,10 @@ fabric.properties
 
 !/gradle/wrapper/gradle-wrapper.jar
 
+*.wav
+*.onnx
+*.pte
+tokens.txt
+
+
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin

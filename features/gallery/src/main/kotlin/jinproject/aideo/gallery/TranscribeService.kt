@@ -6,6 +6,7 @@ import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -16,7 +17,8 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.core.audio.AndroidMediaFileManager
 import jinproject.aideo.core.audio.VideoItem
-import jinproject.aideo.core.audio.WhisperManager
+import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
+import jinproject.aideo.core.inference.whisper.WhisperManager
 import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
@@ -32,7 +34,7 @@ class TranscribeService : LifecycleService() {
     lateinit var androidMediaFileManager: AndroidMediaFileManager
 
     @Inject
-    lateinit var whisperManager: WhisperManager
+    lateinit var senseVoiceManager: SenseVoiceManager
 
     @Inject
     lateinit var localPlayerDataSource: LocalPlayerDataSource
@@ -64,8 +66,8 @@ class TranscribeService : LifecycleService() {
 
         if (videoItem != null && job == null)
             job = lifecycleScope.launch(Dispatchers.Default) {
-                whisperManager.load()
-                if (whisperManager.isReady) {
+                senseVoiceManager.initialize()
+                if (senseVoiceManager.isReady) {
                     processSubtitle(videoItem)
                     stopSelf()
                 }
@@ -87,32 +89,26 @@ class TranscribeService : LifecycleService() {
                 launchPlayerDeepLink(videoItem)
             }
 
-            0 -> {
-                // 자막 파일은 있으나 번역이 필요한 경우
-                translateAndNotifySuccess(videoItem)
-            }
-
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
                 extractAudioAndTranscribe(videoItem = videoItem, languageCode = languageCode)
             }
 
             else -> {
-                // 예외 상황 처리
-                notifyTranscriptionResult(
-                    title = "자막 상태 확인 실패",
-                    description = "자막 파일 상태를 확인할 수 없습니다.",
-                    videoItem = null,
-                )
+                // 자막 파일은 있으나 번역이 필요한 경우
+                translateAndNotifySuccess(videoItem)
             }
         }
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        mediaRepository.translateSubtitle(videoItem.id)
+        try { mediaRepository.translateSubtitle(videoItem.id) }
+        catch (e: Exception) {
+            Log.d("test","번역 실패 : ${e.stackTraceToString()}")
+        }
+        Log.d("test","성공")
 
-        if ((application as ForegroundObserver).isForeground)
-            launchPlayerDeepLink(videoItem)
+        launchPlayerDeepLink(videoItem)
 
         notifyTranscriptionResult(
             title = "자막 생성 성공",
@@ -122,15 +118,15 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, languageCode: String) {
-        whisperManager.transcribeAudio(videoItem = videoItem, languageCode = languageCode)
         runCatching {
-
+            senseVoiceManager.transcribe(videoItem)
         }.onSuccess {
             notifyTranscriptionResult(
                 title = "자막 생성 성공",
                 description = "자막 생성이 성공적으로 완료되었어요.",
                 videoItem = videoItem,
             )
+            launchPlayerDeepLink(videoItem)
         }.onFailure { exception ->
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
@@ -141,6 +137,9 @@ class TranscribeService : LifecycleService() {
     }
 
     private fun launchPlayerDeepLink(videoItem: VideoItem) {
+        if (!((application as ForegroundObserver).isForeground))
+            return
+
         val deepLinkUri = "aideo://app/player/${videoItem.uri.parseUri()}".toUri()
         val deepLinkIntent = Intent(
             Intent.ACTION_VIEW,
@@ -218,7 +217,7 @@ class TranscribeService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        whisperManager.release()
+        senseVoiceManager.release()
         job?.cancel()
         job = null
         super.onDestroy()

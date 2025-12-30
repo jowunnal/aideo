@@ -19,6 +19,7 @@ media3 = "1.8.0"
 firebaseBom = "33.8.0"
 gms-service-ads = "23.2.0"
 hilt = "1.2.0"
+javapoet = "1.13.0"
 junit = "4.13.2"
 junit-jupiter = "5.9.3"
 kotest = "5.6.0"
@@ -30,7 +31,8 @@ lifecycle-common = "2.6.1"
 liteRT = "1.1.1"
 lottie = "6.3.0"
 mockk = "1.13.5"
-mlKit = "17.0.3"
+mlKit-translate = "17.0.3"
+mlKit-languageId = "17.0.3"
 navigation = "2.8.7"
 oboe = "1.9.3"
 okhttp = "4.12.0"
@@ -47,6 +49,9 @@ firebaseCrashlyticsPlugin = "2.9.9"
 kotlin = "2.1.20"
 kotlinKsp = "2.1.20-1.0.31"
 protobufPlugin = "0.9.4"
+agpVersion = "8.6.0"
+kotlinVersion = "2.1.20"
+material = "1.10.0"
 
 [libraries]
 
@@ -96,6 +101,7 @@ dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
 dagger-hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger" }
 dagger-hilt-android-test = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "dagger" }
+javapoet = { module = "com.squareup:javapoet", version.ref = "javapoet" }
 
 # Datastore
 datastore = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
@@ -147,8 +153,8 @@ media3-transformer = { group = "androidx.media3", name = "media3-transformer", v
 media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
 
 # MLKit
-mlKit-translate = { module = "com.google.mlkit:translate", version.ref = "mlKit" }
-mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit" }
+mlKit-translate = { module = "com.google.mlkit:translate", version.ref = "mlKit-translate" }
+mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit-languageId" }
 
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
@@ -186,6 +192,10 @@ junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", v
 junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "junit-jupiter" }
 test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "android-test-ext" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+[plugins]
+android-library = { id = "com.android.library", version.ref = "agpVersion" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinVersion" }
 
 [bundles]
 

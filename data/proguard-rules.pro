@@ -29,3 +29,5 @@
 -keep class kotlin.coroutines.Continuation
 
 -keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+
+-keep class com.google.mlkit.nl.languageid.internal.ThickLanguageIdentifier { *; }

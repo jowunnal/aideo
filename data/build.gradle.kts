@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.google.protobuf.gradle.GenerateProtoTask
 
 plugins {

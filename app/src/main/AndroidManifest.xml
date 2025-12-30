@@ -26,6 +26,10 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${ADMOB_APP_ID}" />
+        <meta-data
+            android:name="com.google.mlkit.translation.DEPENDENCIES"
+            android:value="translate_japenese, translate_korean">
+        </meta-data>
         <activity
             android:name=".MainActivity"
             android:exported="true"
