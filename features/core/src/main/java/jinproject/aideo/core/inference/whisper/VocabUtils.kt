@@ -1,4 +1,4 @@
-package jinproject.aideo.core.lite
+package jinproject.aideo.core.inference.whisper
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers

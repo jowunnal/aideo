@@ -6,14 +6,8 @@ import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
-import com.k2fsa.sherpa.onnx.SileroVadModelConfig
-import com.k2fsa.sherpa.onnx.SpeechSegment
-import com.k2fsa.sherpa.onnx.Vad
-import com.k2fsa.sherpa.onnx.VadModelConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
-import com.k2fsa.sherpa.onnx.getOfflineModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
 import jinproject.aideo.core.inference.senseVoice.SubtitleFormatter.formatSrtTime
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
@@ -61,6 +55,8 @@ class OnnxSpeechToText @Inject constructor(
 
     override fun deInitialize() {
         recognizer.release()
+
+        isInitialized = false
     }
 
     override suspend fun transcribeByModel(audioData: FloatArray) {

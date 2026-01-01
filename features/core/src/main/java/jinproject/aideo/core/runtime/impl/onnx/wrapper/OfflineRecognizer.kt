@@ -1,8 +1,6 @@
 package com.k2fsa.sherpa.onnx
 
 import android.content.res.AssetManager
-import com.k2fsa.sherpa.onnx.FeatureConfig
-import com.k2fsa.sherpa.onnx.HomophoneReplacerConfig
 
 data class OfflineRecognizerResult(
     val text: String,

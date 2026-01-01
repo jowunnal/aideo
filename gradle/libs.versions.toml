@@ -95,6 +95,7 @@ coil = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 # Coroutine
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutine" }
+coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlin-coroutine"}
 
 # Dagger
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }

@@ -43,6 +43,7 @@ dependencies {
     androidTestImplementation(libs.test.espresso)
 
     implementation(libs.coroutines.core)
+    implementation(libs.coroutines.play.services)
 
     implementation(libs.bundles.square)
     implementation(libs.datastore)

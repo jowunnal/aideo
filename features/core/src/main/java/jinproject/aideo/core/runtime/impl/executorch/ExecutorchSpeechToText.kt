@@ -3,7 +3,7 @@ package jinproject.aideo.core.runtime.impl.executorch
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.lite.VocabUtils
+import jinproject.aideo.core.inference.whisper.VocabUtils
 import jinproject.aideo.core.runtime.api.SpeechToText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.pytorch.executorch.EValue

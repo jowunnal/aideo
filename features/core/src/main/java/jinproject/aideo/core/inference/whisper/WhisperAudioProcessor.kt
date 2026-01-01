@@ -2,9 +2,8 @@ package jinproject.aideo.core.inference.whisper
 
 import android.util.Log
 import be.tarsos.dsp.resample.Resampler
-import jinproject.aideo.core.audio.ExtractedAudioInfo
-import jinproject.aideo.core.audio.MediaInfo
-import jinproject.aideo.core.lite.VocabUtils
+import jinproject.aideo.core.media.ExtractedAudioInfo
+import jinproject.aideo.core.media.MediaInfo
 import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,11 +13,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 
 /**
  * 오디오 세그먼트 데이터 클래스
@@ -618,12 +613,12 @@ class AudioConverter {
 object AudioConfig {
     const val SAMPLE_RATE = 16000
     const val CHANNELS = 1
-    const val WHISPER_CHUNK_SECONDS = 30
+    const val AUDIO_CHUNK_SECONDS = 30
 
     /**
      * SamplingRate * 30초 * 채널 수
      */
-    const val WHISPER_CHUNK_SAMPLES = SAMPLE_RATE * WHISPER_CHUNK_SECONDS * CHANNELS
+    const val WHISPER_CHUNK_SAMPLES = SAMPLE_RATE * AUDIO_CHUNK_SECONDS * CHANNELS
 
     /**
      * WHISPER_CHUNK_SAMPLES(SamplingRate * 30초 * 채널 수)

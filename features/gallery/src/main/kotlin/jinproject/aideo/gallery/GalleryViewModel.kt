@@ -3,8 +3,8 @@ package jinproject.aideo.gallery
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.audio.AndroidMediaFileManager
-import jinproject.aideo.core.audio.VideoItem
+import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource

@@ -1,4 +1,4 @@
-package jinproject.aideo.core.audio
+package jinproject.aideo.core.media
 
 import android.content.Context
 import android.content.Intent
@@ -20,6 +20,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import jinproject.aideo.data.toSubtitleFileIdentifier
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import java.io.IOException
+import java.lang.IllegalStateException
 import java.nio.ByteOrder
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -162,6 +164,9 @@ class AndroidMediaFileManager @Inject constructor(
         return -1
     }
 
+    var mediaInfo: MediaInfo? = null
+        private set
+
     /**
      * 미디어 데이터에서 오디오 트랙을 비동기로 추출
      *
@@ -201,7 +206,7 @@ class AndroidMediaFileManager @Inject constructor(
             throw IOException("No audio track found")
         }
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2)
             format.setInteger(MediaFormat.KEY_MAX_OUTPUT_CHANNEL_COUNT, 1)
         else
             format.setInteger(MediaFormat.KEY_AAC_MAX_OUTPUT_CHANNEL_COUNT, 1)
@@ -213,12 +218,6 @@ class AndroidMediaFileManager @Inject constructor(
         decoder.start()
 
         val timeoutUs = 5000L
-        val audioData = arrayListOf<Byte>()
-        var mediaInfo = MediaInfo(
-            sampleRate = 0,
-            channelCount = 0,
-            encodingType = 2,
-        )
         val decoderBufferInfo = MediaCodec.BufferInfo()
 
         coroutineScope {
@@ -245,6 +244,9 @@ class AndroidMediaFileManager @Inject constructor(
             }
 
             launch {
+                var audioData: ByteArray? = null
+                var currentPointer = 0
+
                 while (true) {
                     val outputBufferId = decoder.dequeueOutputBuffer(decoderBufferInfo, timeoutUs)
 
@@ -253,15 +255,22 @@ class AndroidMediaFileManager @Inject constructor(
                             MediaInfo(
                                 sampleRate = getInteger(MediaFormat.KEY_SAMPLE_RATE),
                                 channelCount = getInteger(MediaFormat.KEY_CHANNEL_COUNT),
-                                encodingType = getInteger(
-                                    MediaFormat.KEY_PCM_ENCODING,
-                                    AudioFormat.ENCODING_PCM_16BIT
-                                )
-                            ).also {
-                                Log.d(
-                                    "test",
-                                    "first decoder: samplerate: ${it.sampleRate}, channelCount: ${it.channelCount}, extracted encoding type: ${it.encodingType}"
-                                )
+                                encodingBytes = run {
+                                    val pcmEncodingFormat = getInteger(
+                                        MediaFormat.KEY_PCM_ENCODING,
+                                        AudioFormat.ENCODING_PCM_16BIT
+                                    )
+
+                                    when (pcmEncodingFormat) {
+                                        AudioFormat.ENCODING_PCM_8BIT -> 1
+                                        AudioFormat.ENCODING_PCM_16BIT -> 2
+                                        AudioFormat.ENCODING_PCM_FLOAT -> 4
+                                        else -> throw IllegalStateException("Encoding Type [${pcmEncodingFormat}] is not supported")
+                                    }
+                                },
+                                duration = format.getLong(MediaFormat.KEY_DURATION) / 1_000_000
+                            ).apply {
+                                audioData = ByteArray(sampleRate * 1 * encodingBytes * AudioConfig.AUDIO_CHUNK_SECONDS) // 30 초 분량의 오디오 단위 처리
                             }
                         }
                     } else if (outputBufferId >= 0) {
@@ -275,40 +284,62 @@ class AndroidMediaFileManager @Inject constructor(
                                     order(ByteOrder.nativeOrder())
                                 }
 
-                                repeat(buffer.remaining()) {
-                                    audioData.add(buffer.get())
+                                audioData?.let {
+                                    val remainingBufferSize = buffer.remaining()
+                                    if (currentPointer + remainingBufferSize <= audioData.size) {
+                                        repeat(remainingBufferSize) {
+                                            audioData[currentPointer++] = buffer.get()
+                                        }
+                                    } else {
+                                        repeat(audioData.size - currentPointer) {
+                                            audioData[currentPointer++] = buffer.get()
+                                        }
+
+                                        extractedAudioChannel.send(
+                                            audioPreProcessor.preProcess(
+                                                ExtractedAudioInfo(
+                                                    audioData = audioData,
+                                                    mediaInfo = mediaInfo!! //TODO 멀티 스레드로 AndroidMediaFileManager 인스턴스 접근하여, MediaInfo 값을 변경하면 문제발생
+                                                )
+                                            )
+                                        )
+
+                                        currentPointer = 0
+                                        repeat(audioData.size) { idx ->
+                                            audioData[idx] = 0x00.toByte()
+                                        }
+
+                                        if (buffer.hasRemaining()) {
+                                            repeat(buffer.remaining()) {
+                                                audioData[currentPointer++] = buffer.get()
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                        }
 
-                        decoder.releaseOutputBuffer(outputBufferId, false)
+                            decoder.releaseOutputBuffer(outputBufferId, false)
+                        }
                     }
+                }
+
+                if(currentPointer != 0 && audioData != null) {
+                    extractedAudioChannel.send(
+                        audioPreProcessor.preProcess(
+                            ExtractedAudioInfo(
+                                audioData = audioData.sliceArray(0 until currentPointer),
+                                mediaInfo = mediaInfo!!
+                            )
+                        )
+                    )
                 }
             }
         }
 
-        val normalized = audioPreProcessor.preProcess(
-            ExtractedAudioInfo(
-                audioData = audioData.toByteArray(),
-                audioSize = decoderBufferInfo.size,
-                mediaInfo = mediaInfo
-            )
-        )
-
-        extractedAudioChannel.send(
-            normalized
-        )
-
-        Log.d("test", "전송된 포맷 mime: ${format.getString(MediaFormat.KEY_MIME)}")
-
         decoder.release()
         extractor.release()
-        Log.d("test", "생산자 종료")
-
-        /*if(audioPreProcessor.lastProducedAudioIndex != 0)
-            audioPreProcessor.clearSampledAudio(extractedAudioChannel, mediaInfo)*/
-
         extractedAudioChannel.close()
+        Log.d("test", "오디오 추출 종료")
     }
 }
 
@@ -318,14 +349,14 @@ fun interface AudioPreProcessor<T> {
 
 class ExtractedAudioInfo(
     var audioData: ByteArray,
-    var audioSize: Int,
     var mediaInfo: MediaInfo,
 )
 
 data class MediaInfo(
     val sampleRate: Int,
     val channelCount: Int,
-    val encodingType: Int,
+    val encodingBytes: Int,
+    val duration: Long,
 )
 
 @Parcelize

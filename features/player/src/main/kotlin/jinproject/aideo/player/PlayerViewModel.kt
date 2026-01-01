@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.audio.AndroidMediaFileManager
+import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource

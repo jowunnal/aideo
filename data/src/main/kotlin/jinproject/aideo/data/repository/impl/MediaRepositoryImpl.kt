@@ -12,9 +12,9 @@ import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -26,7 +26,7 @@ class MediaRepositoryImpl @Inject constructor(
 ) : MediaRepository {
     @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun translateSubtitle(id: Long) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Main) {
             val sourceLanguageCode =
                 localFileDataSource.getOriginSubtitleLanguageCode(id)
 
@@ -64,16 +64,20 @@ class MediaRepositoryImpl @Inject constructor(
                 val conditions = DownloadConditions.Builder()
                     .build()
 
+                Log.d("test","downloading")
                 translator.downloadModelIfNeeded(conditions)
                     .addOnSuccessListener {
+                        Log.d("test","download success")
                         translator.translate(
                             extractSubtitleContent(srtContent)
                         ).addOnSuccessListener { result ->
+                            Log.d("test","translate success")
+                            translator.close()
                             cont.resume(result)
                         }.addOnFailureListener { e ->
-                            cont.resumeWithException(e)
-                        }.addOnCompleteListener {
+                            Log.d("test","translate failure")
                             translator.close()
+                            cont.resumeWithException(e)
                         }
                     }.addOnFailureListener { e ->
                         cont.resumeWithException(e)

@@ -6,10 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.audio.ExtractedAudioInfo
-import jinproject.aideo.core.audio.MediaFileManager
-import jinproject.aideo.core.audio.MediaInfo
-import jinproject.aideo.core.audio.VideoItem
+import jinproject.aideo.core.media.ExtractedAudioInfo
+import jinproject.aideo.core.media.MediaFileManager
+import jinproject.aideo.core.media.MediaInfo
+import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.executorch.ExecutorchSTT
 import jinproject.aideo.data.TranslationManager

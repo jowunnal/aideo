@@ -1,15 +1,13 @@
 package jinproject.aideo.core.inference.senseVoice
 
-import android.R.attr.text
-import android.content.Context
 import android.media.AudioFormat
 import android.util.Log
 import androidx.core.net.toUri
-import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.audio.MediaFileManager
-import jinproject.aideo.core.audio.VideoItem
+import jinproject.aideo.core.media.MediaFileManager
+import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.inference.whisper.WhisperAudioProcessor
+import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
@@ -24,6 +22,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,14 +34,19 @@ import java.util.Locale
 import javax.inject.Inject
 
 class SenseVoiceManager @Inject constructor(
-    private val mediaFileManager: MediaFileManager,
+    val mediaFileManager: MediaFileManager,
     @OnnxSTT private val speechToText: SpeechToText,
     private val vad: SileroVad,
     private val localFileDataSource: LocalFileDataSource,
 ) {
     var isReady: Boolean = false
+
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
     private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
+
+    val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
+        0f
+    )
 
     fun initialize() {
         speechToText.initialize(VOCAB_PATH)
@@ -58,30 +63,28 @@ class SenseVoiceManager @Inject constructor(
     fun release() {
         speechToText.deInitialize()
         vad.deInitialize()
+        extractedAudioChannel.cancel()
+        inferenceAudioChannel.cancel()
+        inferenceProgress.value = 0f
+        isReady = false
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun transcribe(
         videoItem: VideoItem,
-    ): String = withContext(Dispatchers.Default) {
+    ) = withContext(Dispatchers.Default) {
         launch(Dispatchers.IO) {
             mediaFileManager.extractAudioData(
                 videoContentUri = videoItem.uri.toUri(),
                 extractedAudioChannel = extractedAudioChannel,
                 audioPreProcessor = { audioInfo ->
-                    when (audioInfo.mediaInfo.encodingType) {
+                    when (audioInfo.mediaInfo.encodingBytes) {
                         AudioFormat.ENCODING_PCM_16BIT -> {
-                            val normalizedAudio = normalizeAudioSample(
+                            normalizeAudioSample(
                                 audioChunk = audioInfo.audioData,
                                 sampleRate = audioInfo.mediaInfo.sampleRate,
                                 channelCount = audioInfo.mediaInfo.channelCount
                             )
-
-                            normalizedAudio.also {
-                                WhisperAudioProcessor(localFileDataSource).saveFloatArrayAsWav(
-                                    it
-                                )
-                            }
                         }
 
                         AudioFormat.ENCODING_PCM_FLOAT -> {
@@ -146,8 +149,11 @@ class SenseVoiceManager @Inject constructor(
         }
 
         val transcribedSrtText = async {
+            var processedAudioSize = 0
+
             for (i in inferenceAudioChannel) {
                 vad.acceptWaveform(i)
+                processedAudioSize += i.size
 
                 if (vad.isSpeechDetected()) {
                     while (vad.hasSegment()) {
@@ -156,6 +162,14 @@ class SenseVoiceManager @Inject constructor(
                                 nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
                             (speechToText as OnnxSpeechToText).setStartTime(startTime) // TODO 제거해야함.
                             speechToText.transcribe(nextVadSegment.samples)
+
+                            (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
+                                val total = AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
+
+                                inferenceProgress.value = (processedAudioSize.toFloat() / (total).toFloat()).coerceAtMost(0.9f).also {
+                                    Log.d("test","$processedAudioSize / $total")
+                                }
+                            }
                         }
                         vad.popSegment()
                     }
@@ -198,7 +212,7 @@ class SenseVoiceManager @Inject constructor(
             }
         )
 
-        transcribedSrtText
+        inferenceProgress.value = 1f
     }
 
     companion object {

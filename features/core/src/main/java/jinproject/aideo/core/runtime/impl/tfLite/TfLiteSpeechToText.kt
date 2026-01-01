@@ -3,7 +3,7 @@ package jinproject.aideo.core.runtime.impl.tfLite
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.lite.VocabUtils
+import jinproject.aideo.core.inference.whisper.VocabUtils
 import jinproject.aideo.core.runtime.api.SpeechToText
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.InterpreterApi
