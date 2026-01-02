@@ -36,6 +36,7 @@ import androidx.media3.ui.compose.state.SeekForwardButtonState
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.player.PlayerUiStatePreviewParameter.Companion.getPreviewPlayerControllerState
 import jinproject.aideo.player.PlayingState
+import kotlinx.coroutines.launch
 
 internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor(
     val playPauseButtonState: PlayPauseButtonState,
@@ -56,9 +57,15 @@ internal fun rememberPlayerControllerState(player: Player): PlayerControllerStat
 
     LaunchedEffect(player) {
         with(playerControllerState) {
-            playPauseButtonState.observe()
-            seekBackButtonState.observe()
-            seekForwardButtonState.observe()
+            launch {
+                playPauseButtonState.observe()
+            }
+            launch {
+                seekBackButtonState.observe()
+            }
+            launch {
+                seekForwardButtonState.observe()
+            }
         }
     }
 

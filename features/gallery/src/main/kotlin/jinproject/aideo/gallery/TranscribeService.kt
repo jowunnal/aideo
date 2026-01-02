@@ -93,7 +93,9 @@ class TranscribeService : LifecycleService() {
             job = lifecycleScope.launch(Dispatchers.Default) {
                 senseVoiceManager.initialize()
                 if (senseVoiceManager.isReady) {
+                    Log.d("test","aaa")
                     processSubtitle(videoItem)
+                    Log.d("test","bbb")
                     stopSelf()
                 }
             }
@@ -116,7 +118,7 @@ class TranscribeService : LifecycleService() {
 
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(videoItem = videoItem)
+                extractAudioAndTranscribe(videoItem = videoItem, language = languageCode)
             }
 
             else -> {
@@ -132,7 +134,6 @@ class TranscribeService : LifecycleService() {
         } catch (e: Exception) {
             Log.d("test", "번역 실패 : ${e.stackTraceToString()}")
         }
-        Log.d("test", "성공")
 
         launchPlayerDeepLink(videoItem.uri)
 
@@ -143,9 +144,9 @@ class TranscribeService : LifecycleService() {
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
+    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, language: String) {
         runCatching {
-            senseVoiceManager.transcribe(videoItem)
+            senseVoiceManager.transcribe(videoItem = videoItem, language = language)
             mediaRepository.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
@@ -164,9 +165,6 @@ class TranscribeService : LifecycleService() {
     }
 
     private fun launchPlayerDeepLink(videoUri: String) {
-        if (!((application as ForegroundObserver).isForeground))
-            return
-
         val deepLinkUri = "aideo://app/player/${videoUri.parseUri()}".toUri()
         val deepLinkIntent = Intent(
             Intent.ACTION_VIEW,

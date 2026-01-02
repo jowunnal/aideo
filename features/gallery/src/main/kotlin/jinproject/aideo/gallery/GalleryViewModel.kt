@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
@@ -51,6 +52,12 @@ class GalleryViewModel @Inject constructor(
             val targetVideoList = newVideoList + cachedVideoList
 
             localPlayerDataSource.replaceVideoUris(targetVideoList)
+        }
+    }
+
+    fun updateLanguage(languageCode: LanguageCode) {
+        viewModelScope.launch {
+            localPlayerDataSource.setLanguageSetting(languageCode.code)
         }
     }
 }

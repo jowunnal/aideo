@@ -174,7 +174,7 @@ class WhisperManager @Inject constructor(
     }
 
     fun release() {
-        sTTRuntime.deInitialize()
+        sTTRuntime.release()
         isReady = false
     }
 

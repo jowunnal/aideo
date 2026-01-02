@@ -40,6 +40,7 @@ object ExoPlayerManagerModule {
 class ExoPlayerManager @Inject constructor(@ApplicationContext private val context: Context) {
 
     private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+        setSeekBackIncrementMs(5000)
         setupPlayerListener()
     }
 

@@ -16,8 +16,7 @@ import javax.inject.Inject
 class TfLiteSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
     modelPath: String,
-    language: String,
-) : SpeechToText(modelPath = modelPath, language = language) {
+) : SpeechToText(modelPath = modelPath) {
     private lateinit var interpreter: InterpreterApi
     private lateinit var vocabUtils: VocabUtils
     override val transcribeResult: TranscribeResult =
@@ -110,7 +109,7 @@ class TfLiteSpeechToText @Inject constructor(
         }
     }
 
-    override fun deInitialize() {
+    override fun release() {
         if (::interpreter.isInitialized) {
             interpreter.close()
         }

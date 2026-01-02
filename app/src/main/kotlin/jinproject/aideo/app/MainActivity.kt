@@ -1,6 +1,7 @@
 package jinproject.aideo.app
 
 import android.Manifest
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,6 +72,9 @@ import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.runtime.api.SpeechToText
+import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
+import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
@@ -79,9 +84,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    @OnnxSTT
+    lateinit var speechToText: SpeechToText
+
+    @Inject
+    lateinit var vad: SileroVad
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -130,6 +142,7 @@ class MainActivity : ComponentActivity() {
     private fun Content(
         navController: NavHostController = rememberNavController(),
         coroutineScope: CoroutineScope = rememberCoroutineScope(),
+        configuration: Configuration = LocalConfiguration.current,
     ) {
         val snackBarHostState = remember { SnackbarHostState() }
 
@@ -292,7 +305,7 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         update = {
-                            it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
+                            it.visibility = if (isAdViewRemoved || configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) View.GONE else View.VISIBLE
                         }
                     )
 
@@ -387,5 +400,15 @@ class MainActivity : ComponentActivity() {
     private fun requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if(!speechToText.checkIsInitialized())
+            speechToText.release()
+
+        if(!vad.isInitialized)
+            vad.release()
     }
 }

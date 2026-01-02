@@ -1,19 +1,33 @@
 package jinproject.aideo.player
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -31,10 +45,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,11 +62,25 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.PlayerSurface
+import androidx.media3.ui.compose.modifiers.resizeWithContentScale
+import androidx.media3.ui.compose.state.PresentationState
+import androidx.media3.ui.compose.state.rememberPresentationState
+import com.google.common.math.LinearTransformation.vertical
+import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.design.component.PopUpInfo
+import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
+import jinproject.aideo.design.component.button.combinedClickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.lazyList.rememberTimeScheduler
 import jinproject.aideo.design.component.text.AppBarText
@@ -62,15 +95,13 @@ import jinproject.aideo.player.component.rememberPlayerControllerState
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
+    context: Context = LocalContext.current,
+    localView: View = LocalView.current,
+    configuration: Configuration = LocalConfiguration.current,
+    density: Density = LocalDensity.current,
     navigatePopBackStack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.releaseExoPlayer()
-        }
-    }
 
     val playerControllerState = rememberPlayerControllerState(viewModel.getExoPlayer())
     var visibility by remember { mutableStateOf(false) }
@@ -83,10 +114,31 @@ fun PlayerScreen(
     val transitionState = updateTransition(visibility, label = "animateState")
 
     RememberEffect(visibility) {
-        if (visibility)
+        val windowInsetsController = WindowCompat.getInsetsController(
+            (localView.context as ComponentActivity).window,
+            localView
+        )
+
+        if (visibility) {
             timeScheduler.setTime(5000L)
-        else
+
+            if(configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                windowInsetsController.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+            }
+        }
+        else {
             timeScheduler.cancel()
+
+            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+            windowInsetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    RememberEffect(Unit) {
+        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     PlayerScreen(
@@ -97,17 +149,38 @@ fun PlayerScreen(
         updateTransitionState = { visibility = !visibility },
         navigatePopBackStack = navigatePopBackStack,
         playerSurfaceViewComposable = {
+            val presentationState: PresentationState =
+                rememberPresentationState(viewModel.getExoPlayer(), false)
+
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 60.dp)
-                    .aspectRatio(2f / 3f)
+                    .resizeWithContentScale(
+                        contentScale = ContentScale.Fit,
+                        presentationState.videoSizeDp
+                    )
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = { offset ->
+                                val centerXPos = with(density) {
+                                    configuration.screenWidthDp.dp.toPx() / 2
+                                }
+
+                                if (offset.x > centerXPos)
+                                    playerControllerState.seekForwardButtonState.onClick()
+                                else
+                                    playerControllerState.seekBackButtonState.onClick()
+                            }
+                        )
+                    }
                     .align(Alignment.Center)
             ) {
 
-                PlayerSurface(
+                ContentFrame(
                     player = viewModel.getExoPlayer(),
-                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
                 )
 
                 if (uiState.playingState.subTitle.isNotBlank()) {
@@ -230,9 +303,10 @@ private fun PlayerScreen(
                                 )
                             }
                         )
-                    }) {
+                    }
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Build,
+                        imageVector = ImageVector.vectorResource(id = jinproject.aideo.design.R.drawable.ic_build_filled),
                         contentDescription = "언어 설정",
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -247,7 +321,6 @@ private fun PlayerScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(vertical = 60.dp)
-                    .aspectRatio(2f / 3f)
                     .background(Color.Black)
                     .align(Alignment.Center)
             )

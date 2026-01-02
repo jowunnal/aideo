@@ -28,7 +28,6 @@ object SpeechToTextModule {
         return ExecutorchSpeechToText(
             context = context,
             modelPath = WhisperManager.MODEL_FILE_PATH,
-            language = "ko",
         )
     }
 
@@ -40,8 +39,7 @@ object SpeechToTextModule {
     ): SpeechToText {
         return OnnxSpeechToText(
             context = context,
-            modelPath = SenseVoiceManager.SENSEVOICE_MODEL_PATH,
-            language = "auto",
+            modelPath = SenseVoiceManager.SENSE_VOICE_MODEL_PATH,
         )
     }
 }

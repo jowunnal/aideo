@@ -6,7 +6,6 @@ import androidx.core.net.toUri
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.inference.whisper.AudioConfig
-import jinproject.aideo.core.inference.whisper.WhisperAudioProcessor
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
@@ -49,29 +48,25 @@ class SenseVoiceManager @Inject constructor(
     )
 
     fun initialize() {
+        isReady = true
         speechToText.initialize(VOCAB_PATH)
         vad.initialize(
-            threshold = 0.2f,
-            minSilenceDuration = 0.25f,
-            minSpeechDuration = 0.25f,
-            maxSpeechDuration = 5.0f
+            threshold = 0.1f,
+            minSilenceDuration = 0.1f,
+            minSpeechDuration = 0.1f,
+            maxSpeechDuration = 10.0f
         )
-
-        isReady = true
     }
 
     fun release() {
-        speechToText.deInitialize()
-        vad.deInitialize()
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
-        inferenceProgress.value = 0f
-        isReady = false
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     suspend fun transcribe(
         videoItem: VideoItem,
+        language: String,
     ) = withContext(Dispatchers.Default) {
         launch(Dispatchers.IO) {
             mediaFileManager.extractAudioData(
@@ -150,6 +145,7 @@ class SenseVoiceManager @Inject constructor(
 
         val transcribedSrtText = async {
             var processedAudioSize = 0
+            speechToText.updateLanguage(language)
 
             for (i in inferenceAudioChannel) {
                 vad.acceptWaveform(i)
@@ -166,9 +162,7 @@ class SenseVoiceManager @Inject constructor(
                             (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
                                 val total = AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
 
-                                inferenceProgress.value = (processedAudioSize.toFloat() / (total).toFloat()).coerceAtMost(0.9f).also {
-                                    Log.d("test","$processedAudioSize / $total")
-                                }
+                                inferenceProgress.value = (processedAudioSize.toFloat() / (total).toFloat()).coerceAtMost(0.9f)
                             }
                         }
                         vad.popSegment()
@@ -216,7 +210,7 @@ class SenseVoiceManager @Inject constructor(
     }
 
     companion object {
-        const val SENSEVOICE_MODEL_PATH = "models/model.int8.onnx"
+        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
         const val VOCAB_PATH = "models/tokens.txt"
         const val VAD_MODEL_PATH = "models/silero_vad.onnx"
     }

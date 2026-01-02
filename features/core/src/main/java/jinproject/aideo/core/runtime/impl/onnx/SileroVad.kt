@@ -4,17 +4,22 @@ import android.content.Context
 import android.util.Log
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.SpeechSegment
+import com.k2fsa.sherpa.onnx.TenVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class SileroVad @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private lateinit var vad: Vad
+    var isInitialized: Boolean = false
+        private set
 
     fun initialize(
         threshold: Float,
@@ -44,10 +49,14 @@ class SileroVad @Inject constructor(
                 debug = true
             )
         )
+        isInitialized = true
     }
 
-    fun deInitialize() {
-        vad.release()
+    fun release() {
+        if(!isInitialized) {
+            vad.release()
+            isInitialized = false
+        }
     }
 
     fun acceptWaveform(data: FloatArray) {

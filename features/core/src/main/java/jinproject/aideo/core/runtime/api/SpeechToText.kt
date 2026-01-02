@@ -5,30 +5,31 @@ package jinproject.aideo.core.runtime.api
  */
 abstract class SpeechToText(
     val modelPath: String,
-    val language: String,
 ) {
     protected abstract val transcribeResult: TranscribeResult
+    protected var language: String = "auto"
+        private set
+
+    fun updateLanguage(lan: String) {
+        language = lan
+    }
 
     protected var isInitialized = false
 
-    abstract fun initialize(vocabPath: String)
-    abstract fun deInitialize()
+    fun checkIsInitialized(): Boolean = isInitialized
 
-    open suspend fun transcribe(
-        audioData: FloatArray,
-    ) {
+    abstract fun initialize(vocabPath: String)
+    abstract fun release()
+
+    open suspend fun transcribe(audioData: FloatArray) {
         require(isInitialized) {
             "SpeechToText is not initialized."
         }
 
-        return transcribeByModel(
-            audioData = audioData,
-        )
+        return transcribeByModel(audioData = audioData)
     }
 
-    protected abstract suspend fun transcribeByModel(
-        audioData: FloatArray,
-    )
+    protected abstract suspend fun transcribeByModel(audioData: FloatArray)
 
     open fun getResult(): String {
         return transcribeResult.transcription.toString().trim()

@@ -8,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
@@ -104,7 +105,7 @@ class PlayerViewModel @Inject constructor(
                         with(getExoPlayer()) {
                             while (uiState.playingState.isPlaying) {
                                 exoPlayerManager.updateCurrentPosition(currentPosition)
-                                delay(100)
+                                delay(50)
                             }
                         }
                     }
@@ -116,14 +117,11 @@ class PlayerViewModel @Inject constructor(
         job?.cancel()
         job = null
     }
-}
 
-@Stable
-enum class LanguageCode(val code: String) {
-    KO("ko"),
-    EN("en"),
-    JA("ja"),
-    ZH("zh");
+    override fun onCleared() {
+        releaseExoPlayer()
+        super.onCleared()
+    }
 }
 
 @Stable

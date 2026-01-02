@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -48,6 +50,19 @@ fun OneButtonTitleAppBar(
             )
         }
     )
+}
+
+@Composable
+fun RowScopedTitleAppBar(
+    title: String,
+    content: @Composable RowScope.() -> Unit,
+) {
+    DefaultAppBar {
+        AppBarText(text = title, modifier = Modifier.align(Alignment.Center))
+        Row(modifier = Modifier.align(Alignment.CenterEnd)) {
+            content()
+        }
+    }
 }
 
 @Composable

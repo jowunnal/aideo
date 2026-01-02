@@ -28,11 +28,7 @@ fun NavGraphBuilder.galleryNavGraph(
         startDestination = GalleryRoute.Gallery
     ) {
         composable<GalleryRoute.Gallery> {
-            GalleryScreen(
-                navigateToPlayer = { videoUri ->
-                    navigateToPlayerGraph(videoUri.parseUri(), null)
-                }
-            )
+            GalleryScreen()
         }
     }
 }
