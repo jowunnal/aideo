@@ -25,7 +25,8 @@ annotation class ExecutorchSTT
 class ExecutorchSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
     modelPath: String,
-) : SpeechToText(modelPath = modelPath) {
+    vocabPath: String,
+) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
     lateinit var module: Module
     private lateinit var vocabUtils: VocabUtils
     override val transcribeResult = InferenceInfo(index = 0, lastSeconds = 0f, transcription = StringBuilder())
@@ -34,7 +35,7 @@ class ExecutorchSpeechToText @Inject constructor(
         return Module.load(modelPath)
     }
 
-    override fun initialize(vocabPath: String) {
+    override fun initialize() {
         vocabUtils = VocabUtils()
         val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
         module = loadModel(File(context.filesDir, modelPath).absolutePath)

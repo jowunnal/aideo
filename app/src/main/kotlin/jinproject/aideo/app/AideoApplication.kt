@@ -4,6 +4,12 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.graphics.Color
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
@@ -27,6 +33,8 @@ class AideoApplication : Application(), ForegroundObserver {
             descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다.",
             importance = NotificationManager.IMPORTANCE_HIGH,
         )
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
     private fun createNotificationChannel(

@@ -21,13 +21,8 @@ class SileroVad @Inject constructor(
     var isInitialized: Boolean = false
         private set
 
-    fun initialize(
-        threshold: Float,
-        minSpeechDuration: Float,
-        minSilenceDuration: Float,
-        maxSpeechDuration: Float,
-    ) {
-        if (::vad.isInitialized) {
+    fun initialize() {
+        if (isInitialized) {
             Log.d("test", "Already OnnxVad has been initialized")
             return
         }
@@ -37,11 +32,11 @@ class SileroVad @Inject constructor(
             config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = SenseVoiceManager.VAD_MODEL_PATH,
-                    threshold = threshold,
-                    minSilenceDuration = minSilenceDuration,
-                    minSpeechDuration = minSpeechDuration,
+                    threshold = 0.05f,
+                    minSilenceDuration = 0.05f,
+                    minSpeechDuration = 0.1f,
+                    maxSpeechDuration = 10.0f,
                     windowSize = 512,
-                    maxSpeechDuration = maxSpeechDuration
                 ),
                 sampleRate = AudioConfig.SAMPLE_RATE,
                 numThreads = 1,
@@ -53,7 +48,7 @@ class SileroVad @Inject constructor(
     }
 
     fun release() {
-        if(!isInitialized) {
+        if(isInitialized) {
             vad.release()
             isInitialized = false
         }
@@ -78,4 +73,6 @@ class SileroVad @Inject constructor(
     fun isSpeechDetected(): Boolean {
         return vad.isSpeechDetected()
     }
+
+    fun reset() = vad.reset()
 }

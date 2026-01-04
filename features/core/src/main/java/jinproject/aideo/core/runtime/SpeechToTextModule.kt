@@ -28,6 +28,7 @@ object SpeechToTextModule {
         return ExecutorchSpeechToText(
             context = context,
             modelPath = WhisperManager.MODEL_FILE_PATH,
+            vocabPath = WhisperManager.VOCAB_FILE_PATH
         )
     }
 
@@ -40,6 +41,7 @@ object SpeechToTextModule {
         return OnnxSpeechToText(
             context = context,
             modelPath = SenseVoiceManager.SENSE_VOICE_MODEL_PATH,
+            vocabPath = SenseVoiceManager.VOCAB_PATH,
         )
     }
 }

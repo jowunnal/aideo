@@ -35,5 +35,5 @@ fun NavGraphBuilder.playerNavGraph(
 }
 
 fun NavController.navigateToPlayerGraph(videoUri: String, navOptions: NavOptions?) {
-    navigate("${PlayerRoute.Player}?${VIDEO_URI}=$videoUri", navOptions)
+    navigate(PlayerRoute.Player(videoUri), navOptions)
 } 

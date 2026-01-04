@@ -6,7 +6,6 @@ import android.app.PendingIntent
 import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -16,11 +15,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
 import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
@@ -30,7 +28,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -65,15 +62,15 @@ class TranscribeService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         if (intent != null) {
-            notifyTranscribe(contentTitle = "자막 생성 대기", progress = null).also {
+            notifyTranscribe(contentTitle = "자막 생성 시작", progress = null).also {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                     startForeground(
-                        NOTIFICATION_ID,
+                        NOTIFICATION_TRANSCRIBE_ID,
                         it,
                         ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
                     )
                 else
-                    startForeground(NOTIFICATION_ID, it)
+                    startForeground(NOTIFICATION_TRANSCRIBE_ID, it)
             }
         }
 
@@ -91,11 +88,13 @@ class TranscribeService : LifecycleService() {
 
         if (videoItem != null && job == null)
             job = lifecycleScope.launch(Dispatchers.Default) {
+                notificationManager.cancel(NOTIFICATION_RESULT_ID)
                 senseVoiceManager.initialize()
                 if (senseVoiceManager.isReady) {
-                    Log.d("test","aaa")
+                    Log.d("test", "aaa")
                     processSubtitle(videoItem)
-                    Log.d("test","bbb")
+                    Log.d("test", "bbb")
+                    notificationManager.cancel(NOTIFICATION_TRANSCRIBE_ID)
                     stopSelf()
                 }
             }
@@ -113,7 +112,7 @@ class TranscribeService : LifecycleService() {
         when (isSubtitleExist) {
             1 -> {
                 // 이미 자막이 존재하는 경우: 딥링크로 플레이어 이동
-                launchPlayerDeepLink(videoItem.uri)
+                launchPlayer(videoItem.uri)
             }
 
             -1 -> {
@@ -123,6 +122,7 @@ class TranscribeService : LifecycleService() {
 
             else -> {
                 // 자막 파일은 있으나 번역이 필요한 경우
+                notifyTranscribe(contentTitle = "자막 번역 시작", progress = null)
                 translateAndNotifySuccess(videoItem)
             }
         }
@@ -135,11 +135,11 @@ class TranscribeService : LifecycleService() {
             Log.d("test", "번역 실패 : ${e.stackTraceToString()}")
         }
 
-        launchPlayerDeepLink(videoItem.uri)
+        launchPlayer(videoItem.uri)
 
         notifyTranscriptionResult(
-            title = "자막 생성 성공",
-            description = "자막 생성이 성공적으로 완료되었어요.",
+            title = "자막 번역 완료",
+            description = "설정 언어로 자막 번역이 완료되었어요.",
             videoUri = videoItem.uri,
         )
     }
@@ -154,7 +154,7 @@ class TranscribeService : LifecycleService() {
                 description = "자막 생성이 성공적으로 완료되었어요.",
                 videoUri = videoItem.uri
             )
-            launchPlayerDeepLink(videoItem.uri)
+            launchPlayer(videoItem.uri)
         }.onFailure { exception ->
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
@@ -164,13 +164,27 @@ class TranscribeService : LifecycleService() {
         }
     }
 
+    private fun launchPlayer(videoUri: String) {
+        val target = Class.forName(MAIN_ACTIVITY)
+        if ((applicationContext as ForegroundObserver).isForeground)
+            startActivity(
+                Intent(this, target).apply {
+                    putExtra("videoUri", videoUri.parseUri())
+                    putExtra("deepLink", false)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+            )
+        else
+            launchPlayerDeepLink(videoUri)
+    }
+
     private fun launchPlayerDeepLink(videoUri: String) {
         val deepLinkUri = "aideo://app/player/${videoUri.parseUri()}".toUri()
         val deepLinkIntent = Intent(
             Intent.ACTION_VIEW,
             deepLinkUri,
             this,
-            Class.forName("jinproject.aideo.app.MainActivity"),
+            Class.forName(MAIN_ACTIVITY),
         )
 
         TaskStackBuilder.create(this).run {
@@ -185,7 +199,7 @@ class TranscribeService : LifecycleService() {
 
         val exitPendingIntent = PendingIntent.getService(
             this,
-            NOTIFICATION_ID,
+            NOTIFICATION_TRANSCRIBE_ID,
             exitIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -204,9 +218,8 @@ class TranscribeService : LifecycleService() {
             noti.setProgress(100, (progress * 100f).toInt(), false)
         }
 
-
         return noti.build().apply {
-            notificationManager.notify(NOTIFICATION_ID, this)
+            notificationManager.notify(NOTIFICATION_TRANSCRIBE_ID, this)
         }
     }
 
@@ -216,7 +229,7 @@ class TranscribeService : LifecycleService() {
         videoUri: String?,
     ) {
         val notification = NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSmallIcon(jinproject.aideo.design.R.mipmap.ic_aideo_app)
             .setContentTitle(title)
             .setContentText(description)
@@ -239,7 +252,7 @@ class TranscribeService : LifecycleService() {
                 .setContentIntent(deepLinkPendingIntent)
         }
 
-        notificationManager.notify(123, notification.build())
+        notificationManager.notify(NOTIFICATION_RESULT_ID, notification.build())
     }
 
     override fun onDestroy() {
@@ -250,8 +263,10 @@ class TranscribeService : LifecycleService() {
     }
 
     companion object {
-        const val NOTIFICATION_ID = 999
+        const val NOTIFICATION_TRANSCRIBE_ID = 999
+        const val NOTIFICATION_RESULT_ID = 123
         const val NOTIFICATION_CHANNEL_ID = "TranscribeVideo"
+        const val MAIN_ACTIVITY = "jinproject.aideo.app.MainActivity"
     }
 }
 
@@ -259,9 +274,6 @@ interface ForegroundObserver : LifecycleEventObserver {
     var isForeground: Boolean
 
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        if (event == Lifecycle.Event.ON_RESUME)
-            isForeground = true
-        else if (event == Lifecycle.Event.ON_STOP)
-            isForeground = false
+        isForeground = source.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 }

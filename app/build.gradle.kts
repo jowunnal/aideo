@@ -67,4 +67,5 @@ dependencies {
     implementation(libs.bundles.playInAppUpdate)
     implementation(platform(libs.firebase.bom))
     implementation(libs.bundles.firebase)
+    implementation(libs.lifecycle.process)
 }

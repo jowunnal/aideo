@@ -16,13 +16,14 @@ import javax.inject.Inject
 class TfLiteSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
     modelPath: String,
-) : SpeechToText(modelPath = modelPath) {
+    vocabPath: String,
+) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
     private lateinit var interpreter: InterpreterApi
     private lateinit var vocabUtils: VocabUtils
     override val transcribeResult: TranscribeResult =
         TfLiteTranscribeResult(tokens = null, transcription = StringBuilder())
 
-    override fun initialize(vocabPath: String) {
+    override fun initialize() {
         val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
 
         val interpreterOption =

@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -124,8 +125,7 @@ fun PlayerScreen(
 
             if(configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
                 windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-                windowInsetsController.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
             }
         }
         else {
@@ -246,7 +246,11 @@ private fun PlayerScreen(
                             .clickableAvoidingDuplication {
                                 updateLanguageCode(language)
                             }
-                            .padding(vertical = 8.dp, horizontal = 16.dp),
+                            .padding(vertical = 8.dp, horizontal = 16.dp)
+                            .graphicsLayer {
+                                alpha =
+                                    if (language.code == uiState.currentLanguage) 1f else 0.5f
+                            },
                     )
                 }
             }

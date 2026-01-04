@@ -3,14 +3,16 @@ package jinproject.aideo.core.inference.senseVoice
 import android.media.AudioFormat
 import android.util.Log
 import androidx.core.net.toUri
-import jinproject.aideo.core.media.MediaFileManager
-import jinproject.aideo.core.media.VideoItem
+import com.k2fsa.sherpa.onnx.SpeechSegment
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.media.MediaFileManager
+import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
+import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
@@ -31,11 +33,14 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.ceil
+import kotlin.math.floor
 
 class SenseVoiceManager @Inject constructor(
     val mediaFileManager: MediaFileManager,
     @OnnxSTT private val speechToText: SpeechToText,
     private val vad: SileroVad,
+    private val speakerDiarization: SpeakerDiarization,
     private val localFileDataSource: LocalFileDataSource,
 ) {
     var isReady: Boolean = false
@@ -43,24 +48,26 @@ class SenseVoiceManager @Inject constructor(
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
     private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
 
+    /**
+     * 0 ~ 1f
+     */
     val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
 
     fun initialize() {
         isReady = true
-        speechToText.initialize(VOCAB_PATH)
-        vad.initialize(
-            threshold = 0.1f,
-            minSilenceDuration = 0.1f,
-            minSpeechDuration = 0.1f,
-            maxSpeechDuration = 10.0f
-        )
+        speechToText.initialize()
+        vad.initialize()
+        speakerDiarization.initialize()
     }
 
     fun release() {
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
+        speechToText.release()
+        vad.release()
+        speakerDiarization.release()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
@@ -148,21 +155,24 @@ class SenseVoiceManager @Inject constructor(
             speechToText.updateLanguage(language)
 
             for (i in inferenceAudioChannel) {
-                vad.acceptWaveform(i)
+                try {
+                    vad.acceptWaveform(i)
+                } catch (e: Exception) {
+                    Log.d("test", "e: ${e.stackTraceToString()}")
+                }
                 processedAudioSize += i.size
 
                 if (vad.isSpeechDetected()) {
                     while (vad.hasSegment()) {
                         vad.getNextSegment().also { nextVadSegment ->
-                            val startTime =
-                                nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
-                            (speechToText as OnnxSpeechToText).setStartTime(startTime) // TODO 제거해야함.
-                            speechToText.transcribe(nextVadSegment.samples)
+                            transcribeSingleSegment(nextVadSegment)
 
                             (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
-                                val total = AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
+                                val total =
+                                    AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
 
-                                inferenceProgress.value = (processedAudioSize.toFloat() / (total).toFloat()).coerceAtMost(0.9f)
+                                inferenceProgress.value =
+                                    processedAudioSize.toFloat() / (total).toFloat()
                             }
                         }
                         vad.popSegment()
@@ -171,15 +181,15 @@ class SenseVoiceManager @Inject constructor(
             }
 
             vad.flush()
+            Log.d("test", "has been flushed")
             while (vad.hasSegment()) {
                 vad.getNextSegment().also { nextVadSegment ->
-                    val startTime =
-                        nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
-                    (speechToText as OnnxSpeechToText).setStartTime(startTime) // TODO 제거해야함.
-                    speechToText.transcribe(nextVadSegment.samples)
+                    transcribeSingleSegment(nextVadSegment)
                 }
                 vad.popSegment()
             }
+
+            inferenceProgress.value = 1f
 
             speechToText.getResult()
         }.await()
@@ -207,6 +217,41 @@ class SenseVoiceManager @Inject constructor(
         )
 
         inferenceProgress.value = 1f
+        vad.reset()
+    }
+
+    private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment) {
+        val chunkSize = ceil(nextVadSegment.samples.size * 0.1f)
+        val standardTime =
+            nextVadSegment.start / chunkSize
+
+        val sdResult = speakerDiarization.process(nextVadSegment.samples)
+
+        Log.d(
+            "test",
+            "sdResult: ${sdResult.joinToString("\n") { "[${it.speaker}] : ${it.start} ~ ${it.end}" }}"
+        )
+
+        with(speechToText as OnnxSpeechToText) {
+            setStandardTime(standardTime)
+        }
+
+        var lastEndIdx = 0
+
+        sdResult.forEach { sd ->
+            val startIdx = (chunkSize * floor(sd.start)).toInt()
+                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val endIdx =
+                (chunkSize * ceil(sd.end)).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            lastEndIdx = endIdx
+
+            Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
+
+            speechToText.setTimes(sd.start, sd.end)
+            speechToText.transcribe(nextVadSegment.samples.copyOfRange(startIdx, endIdx))
+        }
+
+        //speechToText.processSingleSegment(startTime)
     }
 
     companion object {

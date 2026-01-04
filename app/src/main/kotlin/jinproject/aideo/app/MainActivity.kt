@@ -1,9 +1,12 @@
 package jinproject.aideo.app
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -33,14 +36,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -67,18 +74,22 @@ import jinproject.aideo.app.navigation.isBarHasToBeShown
 import jinproject.aideo.app.navigation.navigationSuiteItems
 import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
-import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.BillingModule
-import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
-import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
+import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.toProduct
+import jinproject.aideo.core.utils.AnalyticsEvent
+import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
+import jinproject.aideo.core.utils.LocalBillingModule
+import jinproject.aideo.core.utils.parseUri
+import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
+import jinproject.aideo.player.navigateToPlayerGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -94,6 +105,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var vad: SileroVad
+
+    @Inject
+    lateinit var speakerDiarization: SpeakerDiarization
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -142,6 +156,7 @@ class MainActivity : ComponentActivity() {
     private fun Content(
         navController: NavHostController = rememberNavController(),
         coroutineScope: CoroutineScope = rememberCoroutineScope(),
+        context: Context = LocalContext.current,
         configuration: Configuration = LocalConfiguration.current,
     ) {
         val snackBarHostState = remember { SnackbarHostState() }
@@ -160,6 +175,22 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+
+        DisposableEffect(Unit) {
+            val onNewIntentConsumer = Consumer<Intent> {
+                if(it.getBooleanExtra("deepLink", true))
+                    navController.handleDeepLink(it)
+                else {
+                    it.getStringExtra("videoUri")?.let { uri ->
+                        navController.navigateToPlayerGraph(videoUri = uri, navOptions = null)
+                    }
+                }
+            }
+
+            (context as ComponentActivity).addOnNewIntentListener(onNewIntentConsumer)
+
+            onDispose { context.removeOnNewIntentListener(onNewIntentConsumer) }
         }
 
         val isAdViewRemoved by adMobManager.isAdviewRemoved.collectAsStateWithLifecycle()
@@ -305,7 +336,8 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         update = {
-                            it.visibility = if (isAdViewRemoved || configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) View.GONE else View.VISIBLE
+                            it.visibility =
+                                if (isAdViewRemoved || configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) View.GONE else View.VISIBLE
                         }
                     )
 
@@ -400,15 +432,5 @@ class MainActivity : ComponentActivity() {
     private fun requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        if(!speechToText.checkIsInitialized())
-            speechToText.release()
-
-        if(!vad.isInitialized)
-            vad.release()
     }
 }

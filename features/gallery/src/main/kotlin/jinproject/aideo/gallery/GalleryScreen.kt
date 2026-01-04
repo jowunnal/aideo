@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.view.View
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
@@ -40,16 +42,18 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.MediaItem
-import androidx.media3.inspector.MetadataRetriever
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.design.component.PopUp
@@ -84,6 +88,7 @@ private fun GalleryScreen(
     uiState: DownloadableUiState,
     context: Context = LocalContext.current,
     density: Density = LocalDensity.current,
+    localView: View = LocalView.current,
     updateVideoList: (List<String>) -> Unit,
     updateLanguageCode: (LanguageCode) -> Unit,
 ) {
@@ -124,7 +129,8 @@ private fun GalleryScreen(
                         }
                         .padding(vertical = 8.dp, horizontal = 16.dp)
                         .graphicsLayer {
-                            alpha = if (language.code == (uiState as GalleryUiState).languageCode) 1f else 0.5f
+                            alpha =
+                                if (language.code == (uiState as GalleryUiState).languageCode) 1f else 0.5f
                         },
                 )
             }
@@ -132,7 +138,14 @@ private fun GalleryScreen(
     }
 
     RememberEffect(Unit) {
-        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        val windowInsetsController = WindowCompat.getInsetsController(
+            (localView.context as ComponentActivity).window,
+            localView
+        )
+
+        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
     }
 
     DownloadableLayout(

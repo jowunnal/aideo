@@ -73,7 +73,7 @@ class WhisperManager @Inject constructor(
     }
 
     private fun loadBaseModel() {
-        sTTRuntime.initialize(File(context.filesDir, VOCAB_FILE_PATH).absolutePath)
+        sTTRuntime.initialize()
     }
 
     /**

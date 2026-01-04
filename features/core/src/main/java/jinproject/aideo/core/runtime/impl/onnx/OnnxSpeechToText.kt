@@ -3,7 +3,6 @@ package jinproject.aideo.core.runtime.impl.onnx
 import android.content.Context
 import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
-import com.k2fsa.sherpa.onnx.OfflineOmnilingualAsrCtcModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
@@ -12,9 +11,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.senseVoice.SubtitleFormatter.formatSrtTime
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
-import org.intellij.lang.annotations.Language
 import javax.inject.Inject
 import javax.inject.Qualifier
+import kotlin.plus
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -23,13 +22,22 @@ annotation class OnnxSTT
 class OnnxSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
     modelPath: String,
-) : SpeechToText(modelPath = modelPath) {
+    vocabPath: String,
+) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
     private lateinit var recognizer: OfflineRecognizer
-    override val transcribeResult = InferenceInfo(idx = 0, transcription = StringBuilder(), startTime = 0f)
+    override val transcribeResult = InferenceInfo(
+        idx = 0,
+        transcription = StringBuilder(),
+        startTime = 0f,
+        standardTime = 0f,
+        endTime = 0f,
+        speakers = HashMap<Int, String>(),
+        currentSpeaker = 0,
+    )
     private var config: OfflineRecognizerConfig? = null
 
-    override fun initialize(vocabPath: String) {
-        if (::recognizer.isInitialized) {
+    override fun initialize() {
+        if (isInitialized) {
             Log.d("test", "Already OnnxSpeechToText has been initialized")
             return
         }
@@ -58,7 +66,7 @@ class OnnxSpeechToText @Inject constructor(
     }
 
     override fun release() {
-        if(!isInitialized) { //TODO SingleActivity 구조가 아니면, 문제 발생 가능
+        if (isInitialized) {
             recognizer.release()
             isInitialized = false
         }
@@ -76,14 +84,15 @@ class OnnxSpeechToText @Inject constructor(
 
             recognizer.getResult(stream).let { result ->
                 Log.d("test", "recognized: ${result.text}")
+
                 if (result.text.isNotEmpty() && result.timestamps.isNotEmpty())
                     with(transcribeResult) {
                         transcription.apply {
                             appendLine(this@with.idx++)
                             appendLine(
-                                "${formatSrtTime(result.timestamps.first() + transcribeResult.startTime)} --> ${
+                                "${formatSrtTime(startTime + standardTime)} --> ${
                                     formatSrtTime(
-                                        result.timestamps.last() + transcribeResult.startTime
+                                        endTime + standardTime
                                     )
                                 }"
                             )
@@ -110,15 +119,32 @@ class OnnxSpeechToText @Inject constructor(
         }
     }
 
-    data class InferenceInfo(
+    class InferenceInfo(
         var idx: Int,
         override val transcription: StringBuilder,
+        var standardTime: Float,
         var startTime: Float,
+        var endTime: Float,
+        var speakers: MutableMap<Int, String>,
+        var currentSpeaker: Int,
     ) : TranscribeResult()
 
-    fun setStartTime(startTime: Float) {
-        transcribeResult.startTime = startTime
+    fun setStandardTime(time: Float) {
+        transcribeResult.standardTime = time
     }
+
+    fun setTimes(start: Float, end: Float) {
+        transcribeResult.apply {
+            startTime = start
+            endTime = end
+        }
+    }
+
+    fun setCurrentSpeaker(speaker: Int) {
+        transcribeResult.currentSpeaker = speaker
+    }
+
+    fun getStartTime(): Float = transcribeResult.startTime
 
     companion object {
         const val TAG = "OnnxSpeechToText"

@@ -4,7 +4,8 @@ package jinproject.aideo.core.runtime.api
  * 오디오(Speech) 를 문자(Text) 로 추론(변환)의 수행을 담당
  */
 abstract class SpeechToText(
-    val modelPath: String,
+    protected val modelPath: String,
+    protected val vocabPath: String,
 ) {
     protected abstract val transcribeResult: TranscribeResult
     protected var language: String = "auto"
@@ -16,9 +17,7 @@ abstract class SpeechToText(
 
     protected var isInitialized = false
 
-    fun checkIsInitialized(): Boolean = isInitialized
-
-    abstract fun initialize(vocabPath: String)
+    abstract fun initialize()
     abstract fun release()
 
     open suspend fun transcribe(audioData: FloatArray) {

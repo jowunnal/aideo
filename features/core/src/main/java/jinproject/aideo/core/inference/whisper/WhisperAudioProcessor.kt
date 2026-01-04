@@ -615,13 +615,5 @@ object AudioConfig {
     const val CHANNELS = 1
     const val AUDIO_CHUNK_SECONDS = 30
 
-    /**
-     * SamplingRate * 30초 * 채널 수
-     */
-    const val WHISPER_CHUNK_SAMPLES = SAMPLE_RATE * AUDIO_CHUNK_SECONDS * CHANNELS
-
-    /**
-     * WHISPER_CHUNK_SAMPLES(SamplingRate * 30초 * 채널 수)
-     */
-    const val PROCESSING_CHUNK_SAMPLES = WHISPER_CHUNK_SAMPLES
+    const val SAMPLE_CHUNK_PER_SECONDS = SAMPLE_RATE * CHANNELS
 }
