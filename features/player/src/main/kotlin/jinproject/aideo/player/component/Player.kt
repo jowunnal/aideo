@@ -34,8 +34,8 @@ import androidx.media3.ui.compose.state.PlayPauseButtonState
 import androidx.media3.ui.compose.state.SeekBackButtonState
 import androidx.media3.ui.compose.state.SeekForwardButtonState
 import jinproject.aideo.design.utils.PreviewAideoTheme
+import jinproject.aideo.player.PlayerState
 import jinproject.aideo.player.PlayerUiStatePreviewParameter.Companion.getPreviewPlayerControllerState
-import jinproject.aideo.player.PlayingState
 import kotlinx.coroutines.launch
 
 internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor(
@@ -46,25 +46,27 @@ internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor
 
 @OptIn(UnstableApi::class)
 @Composable
-internal fun rememberPlayerControllerState(player: Player): PlayerControllerState {
-    val playerControllerState = remember(player) {
-        PlayerControllerState(
-            playPauseButtonState = PlayPauseButtonState(player),
-            seekBackButtonState = SeekBackButtonState(player),
-            seekForwardButtonState = SeekForwardButtonState(player),
-        )
+internal fun rememberPlayerControllerState(player: Player?): PlayerControllerState? {
+    val playerControllerState: PlayerControllerState? = remember(player) {
+        player?.let {
+            PlayerControllerState(
+                playPauseButtonState = PlayPauseButtonState(player),
+                seekBackButtonState = SeekBackButtonState(player),
+                seekForwardButtonState = SeekForwardButtonState(player),
+            )
+        }
     }
 
     LaunchedEffect(player) {
-        with(playerControllerState) {
+        playerControllerState?.let { state ->
             launch {
-                playPauseButtonState.observe()
+                state.playPauseButtonState.observe()
             }
             launch {
-                seekBackButtonState.observe()
+                state.seekBackButtonState.observe()
             }
             launch {
-                seekForwardButtonState.observe()
+                state.seekForwardButtonState.observe()
             }
         }
     }
@@ -77,31 +79,33 @@ internal fun rememberPlayerControllerState(player: Player): PlayerControllerStat
 @Composable
 internal fun PlayerController(
     modifier: Modifier = Modifier,
-    playerControllerState: PlayerControllerState,
+    playerControllerState: PlayerControllerState?,
     transitionState: Transition<Boolean>,
 ) {
     transitionState.AnimatedVisibility(
-        visible = { it },
+        visible = { it && playerControllerState != null },
         modifier = modifier,
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                SeekBackButton(
-                    state = playerControllerState.seekBackButtonState,
-                    modifier = Modifier.weight(1f)
-                )
-                PlayPauseButton(
-                    state = playerControllerState.playPauseButtonState,
-                    modifier = Modifier.weight(1f)
-                )
-                SeekForwardButton(
-                    state = playerControllerState.seekForwardButtonState,
-                    modifier = Modifier.weight(1f)
-                )
+        playerControllerState?.let { state ->
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SeekBackButton(
+                        state = state.seekBackButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PlayPauseButton(
+                        state = state.playPauseButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SeekForwardButton(
+                        state = state.seekForwardButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -177,24 +181,25 @@ internal fun SeekForwardButton(
 @Composable
 internal fun PlayProgressBar(
     modifier: Modifier = Modifier,
-    playingState: PlayingState,
+    playerState: PlayerState,
     seekTo: (Long) -> Unit,
 ) {
-    Slider(
-        value = playingState.currentPosition.toFloat(),
-        onValueChange = { position ->
-            seekTo(position.toLong())
-        },
-        valueRange = 0f..playingState.duration.toFloat(),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = SliderDefaults.colors(
-            thumbColor = MaterialTheme.colorScheme.onPrimary,
-            activeTrackColor = MaterialTheme.colorScheme.onPrimary,
-            inactiveTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+    if (playerState is PlayerState.Playing)
+        Slider(
+            value = playerState.currentPosition.toFloat(),
+            onValueChange = { position ->
+                seekTo(position.toLong())
+            },
+            valueRange = 0f..playerState.duration.toFloat(),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.onPrimary,
+                activeTrackColor = MaterialTheme.colorScheme.onPrimary,
+                inactiveTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+            )
         )
-    )
 }
 
 @OptIn(UnstableApi::class)

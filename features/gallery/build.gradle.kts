@@ -6,7 +6,6 @@ plugins {
 
 android {
     namespace = "jinproject.aideo.gallery"
-    compileSdk = 35
 }
 
 dependencies {

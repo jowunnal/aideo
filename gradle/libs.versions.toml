@@ -1,6 +1,7 @@
 [versions]
 
 activity = "1.8.2"
+ads-interactive-media = "3.38.0"
 android-test-ext = "1.1.5"
 appCompat = "1.6.1"
 billing = "7.1.1"
@@ -17,7 +18,7 @@ espresso = "3.5.1"
 executorchAndroid = "1.0.1"
 media3 = "1.9.0"
 firebaseBom = "33.8.0"
-gms-service-ads = "23.2.0"
+gms-service-ads = "24.9.0"
 hilt = "1.2.0"
 javapoet = "1.13.0"
 junit = "4.13.2"
@@ -117,6 +118,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 
 # Gms
 google-gms-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "gms-service-ads" }
+google-ads-interactive-media = {module = "com.google.ads.interactivemedia.v3:interactivemedia", version.ref = "ads-interactive-media"}
 
 # Hilt
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt" }
@@ -128,7 +130,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 
 # Lifecycle
 lifecycle-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-lifecycle-process = {module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle"}
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycle-common" }
@@ -147,12 +149,14 @@ airbnb-android-lottie-compose = { group = "com.airbnb.android", name = "lottie-c
 
 # Media3
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-exoplayer-ima = { module = "androidx.media3:media3-exoplayer-ima", version.ref = "media3" }
 media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
 media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3" }
 media3-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "media3" }
 media3-extractor = { module = "androidx.media3:media3-extractor", version.ref = "media3" }
 media3-inspector = { module = "androidx.media3:media3-inspector", version.ref = "media3" }
 media3-transformer = { group = "androidx.media3", name = "media3-transformer", version.ref = "media3" }
+media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
 
 # MLKit
@@ -207,7 +211,7 @@ billing = ["billing-client", "billing-ktx"]
 compose = ["compose-material3", "compose-foundation", "compose-ui", "compose-ui-preview", "compose-animation"]
 composeAdaptive = ["compose-material3-adaptive", "compose-material3-adaptive-layout", "compose-material3-adaptive-navigation", "compose-material3-adaptive-navigation-suite"]
 coroutines = ["coroutines-core"]
-media3 = ["media3-exoplayer", "media3-common", "media3-common-ktx", "media3-effect", "media3-transformer", "media3-ui-compose", "media3-extractor", "media3-inspector"]
+media3 = ["media3-exoplayer", "media3-exoplayer-ima", "media3-common", "media3-common-ktx", "media3-effect", "media3-transformer", "media3-ui", "media3-ui-compose", "media3-extractor", "media3-inspector"]
 firebase = ["firebase-analytics", "firebase-crashlytics"]
 kotest = ["io-kotest-junit", "io-kotest-assertions"]
 lifecycle = ["lifecycle-compose", "lifecycle-viewmodel-ktx", "lifecycle-runtime-ktx", "lifecycle-runtime-compose", "lifecycle-service"]

@@ -115,7 +115,7 @@ class SenseVoiceManager @Inject constructor(
             extractedAudioChannel.close()*/
         }
 
-        async {
+        launch {
             val windowSize = 512
             val buffer = FixedChunkBuffer(windowSize)
             val resumeSignal = Channel<Unit>(capacity = 1)
@@ -155,11 +155,7 @@ class SenseVoiceManager @Inject constructor(
             speechToText.updateLanguage(language)
 
             for (i in inferenceAudioChannel) {
-                try {
-                    vad.acceptWaveform(i)
-                } catch (e: Exception) {
-                    Log.d("test", "e: ${e.stackTraceToString()}")
-                }
+                vad.acceptWaveform(i)
                 processedAudioSize += i.size
 
                 if (vad.isSpeechDetected()) {
@@ -181,7 +177,6 @@ class SenseVoiceManager @Inject constructor(
             }
 
             vad.flush()
-            Log.d("test", "has been flushed")
             while (vad.hasSegment()) {
                 vad.getNextSegment().also { nextVadSegment ->
                     transcribeSingleSegment(nextVadSegment)
@@ -250,8 +245,6 @@ class SenseVoiceManager @Inject constructor(
             speechToText.setTimes(sd.start, sd.end)
             speechToText.transcribe(nextVadSegment.samples.copyOfRange(startIdx, endIdx))
         }
-
-        //speechToText.processSingleSegment(startTime)
     }
 
     companion object {

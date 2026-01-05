@@ -1,5 +1,6 @@
 package jinproject.aideo.player
 
+import android.view.ViewGroup
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -39,8 +40,6 @@ class PlayerViewModel @Inject constructor(
     private val currentVideoUri: String =
         savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
-    private var job: Job? = null
-
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
         localPlayerDataSource.getLanguageSetting().onEach { language ->
@@ -55,12 +54,20 @@ class PlayerViewModel @Inject constructor(
                 mediaRepository.translateSubtitle(id)
             }
 
-            prepareExoplayer(language)
+            getExoPlayer().also {
+                if (exoPlayerManager.playerState.value is PlayerState.Playing && (exoPlayerManager.playerState.value as PlayerState.Playing).isSubTitleAdded) {
+                    exoPlayerManager.replaceSubtitle(
+                        videoUri = currentVideoUri,
+                        languageCode = language
+                    )
+                } else
+                    prepareExoplayer(language)
+            }
         }.flatMapLatest { language ->
-            exoPlayerManager.playingState.map { playingState ->
+            exoPlayerManager.playerState.map { playingState ->
                 PlayerUiState(
                     currentLanguage = language,
-                    playingState = playingState,
+                    playerState = playingState,
                 )
             }
         }.stateIn(
@@ -68,7 +75,7 @@ class PlayerViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
             initialValue = PlayerUiState(
                 currentLanguage = Locale.getDefault().language,
-                playingState = PlayingState()
+                playerState = PlayerState.Idle
             )
         )
 
@@ -83,49 +90,29 @@ class PlayerViewModel @Inject constructor(
             videoUri = currentVideoUri,
             languageCode = languageCode,
         )
-        observePlayerPosition()
-    }
-
-    fun releaseExoPlayer() {
-        exoPlayerManager.release()
-        cancelObservingPlayerPosition()
+        viewModelScope.launch {
+            exoPlayerManager.observePlayerPosition()
+        }
     }
 
     fun seekTo(pos: Long) {
         exoPlayerManager.seekTo(pos)
     }
 
-    fun getExoPlayer(): Player = exoPlayerManager.getExoPlayer()
+    fun getExoPlayer(): Player? = exoPlayerManager.getExoPlayer()
 
-    private fun observePlayerPosition() {
-        if (job == null)
-            job = viewModelScope.launch {
-                uiState.collectLatest { uiState ->
-                    if (uiState.playingState.isPlaying) {
-                        with(getExoPlayer()) {
-                            while (uiState.playingState.isPlaying) {
-                                exoPlayerManager.updateCurrentPosition(currentPosition)
-                                delay(50)
-                            }
-                        }
-                    }
-                }
-            }
-    }
-
-    private fun cancelObservingPlayerPosition() {
-        job?.cancel()
-        job = null
+    fun initExoPlayer(playerView: ViewGroup) {
+        exoPlayerManager.initialize(playerView)
     }
 
     override fun onCleared() {
-        releaseExoPlayer()
+        exoPlayerManager.release()
         super.onCleared()
     }
 }
 
 @Stable
 data class PlayerUiState(
-    val playingState: PlayingState,
+    val playerState: PlayerState,
     val currentLanguage: String,
 )

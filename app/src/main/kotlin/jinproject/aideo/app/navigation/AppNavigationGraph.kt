@@ -1,5 +1,9 @@
 package jinproject.aideo.app.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors
@@ -30,7 +34,13 @@ internal fun NavigationGraph(
     NavHost(
         navController = navController,
         startDestination = GalleryRoute.GalleryGraph,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            fadeIn() + slideInHorizontally()
+        },
+        exitTransition = {
+            fadeOut() + slideOutHorizontally()
+        }
     ) {
         galleryNavGraph(navigateToPlayerGraph = { videoUri, navOptions ->
             navController.navigateToPlayerGraph(

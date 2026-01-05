@@ -2,6 +2,7 @@ import com.android.build.api.dsl.AaptOptions
 import com.android.build.api.dsl.AndroidResources
 import com.android.build.api.dsl.Packaging
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import org.gradle.kotlin.dsl.coreLibraryDesugaring
 
 plugins {
     id("jinProject.android.application")
@@ -9,13 +10,16 @@ plugins {
 
 android {
     namespace = "jinproject.aideo.app"
-    compileSdk = 35
 
     defaultConfig {
         applicationId = "jinproject.aideo.app"
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+    }
+
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildTypes {
@@ -68,4 +72,5 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.bundles.firebase)
     implementation(libs.lifecycle.process)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

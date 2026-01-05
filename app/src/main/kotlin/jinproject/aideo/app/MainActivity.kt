@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,10 +50,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
+import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
+import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
+import com.google.ads.interactivemedia.v3.impl.JavaScriptMessage
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -89,6 +95,7 @@ import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
+import jinproject.aideo.player.ExoPlayerManager
 import jinproject.aideo.player.navigateToPlayerGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -138,6 +145,9 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var firebaseAnalytics: FirebaseAnalytics
 
+    @Inject
+    lateinit var exoPlayerManager: ExoPlayerManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
 
@@ -150,6 +160,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
+        exoPlayerManager.initAdsLoader(installIMA())
     }
 
     @Composable
@@ -179,7 +190,7 @@ class MainActivity : ComponentActivity() {
 
         DisposableEffect(Unit) {
             val onNewIntentConsumer = Consumer<Intent> {
-                if(it.getBooleanExtra("deepLink", true))
+                if (it.getBooleanExtra("deepLink", true))
                     navController.handleDeepLink(it)
                 else {
                     it.getStringExtra("videoUri")?.let { uri ->
@@ -373,6 +384,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun installIMA(): ImaAdsLoader {
+        val imaSdkSettings = ImaSdkFactory.getInstance().createImaSdkSettings()
+        ImaSdkFactory.getInstance().initialize(this, imaSdkSettings)
+
+        return ImaAdsLoader.Builder(this)
+            .setImaSdkSettings(imaSdkSettings)
+            .build()
     }
 
     private fun loggingAnalyticsEvent(event: AnalyticsEvent) {

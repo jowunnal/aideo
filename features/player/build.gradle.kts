@@ -4,7 +4,6 @@ plugins {
 
 android {
     namespace = "jinproject.aideo.player"
-    compileSdk = 35
 }
 
 dependencies {

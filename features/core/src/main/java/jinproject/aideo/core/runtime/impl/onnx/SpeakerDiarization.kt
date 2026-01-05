@@ -41,12 +41,12 @@ class SpeakerDiarization @Inject constructor(
             minDurationOff = 0.3f,
         )
 
-        diarization = OfflineSpeakerDiarization(assetManager = context.assets,config=config)
+        diarization = OfflineSpeakerDiarization(assetManager = context.assets, config = config)
         isInitialized = true
     }
 
     fun release() {
-        if(isInitialized) {
+        if (isInitialized) {
             diarization.release()
             isInitialized = false
         }

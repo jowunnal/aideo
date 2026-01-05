@@ -2,12 +2,10 @@ package jinproject.aideo.player
 
 import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.view.View
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.updateTransition
@@ -18,31 +16,25 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,26 +54,22 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.PlayerView
 import androidx.media3.ui.compose.ContentFrame
-import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.PresentationState
 import androidx.media3.ui.compose.state.rememberPresentationState
-import com.google.common.math.LinearTransformation.vertical
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.design.component.PopUpInfo
-import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
-import jinproject.aideo.design.component.button.combinedClickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.lazyList.rememberTimeScheduler
 import jinproject.aideo.design.component.text.AppBarText
@@ -123,12 +111,12 @@ fun PlayerScreen(
         if (visibility) {
             timeScheduler.setTime(5000L)
 
-            if(configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
                 windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-                windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                windowInsetsController.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
             }
-        }
-        else {
+        } else {
             timeScheduler.cancel()
 
             windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
@@ -166,26 +154,40 @@ fun PlayerScreen(
                                 }
 
                                 if (offset.x > centerXPos)
-                                    playerControllerState.seekForwardButtonState.onClick()
+                                    playerControllerState?.seekForwardButtonState?.onClick()
                                 else
-                                    playerControllerState.seekBackButtonState.onClick()
+                                    playerControllerState?.seekBackButtonState?.onClick()
+                            },
+                            onTap = {
+                                visibility = !visibility
                             }
                         )
                     }
                     .align(Alignment.Center)
             ) {
 
-                ContentFrame(
-                    player = viewModel.getExoPlayer(),
-                    contentScale = ContentScale.Fit,
+                AndroidView(
+                    factory = {
+                        PlayerView(context).apply {
+                            keepScreenOn = true
+                        }.apply {
+                            viewModel.initExoPlayer(this)
+                            player = viewModel.getExoPlayer()
+                        }
+                    },
+                    update = { it.player = viewModel.getExoPlayer() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
+                        .resizeWithContentScale(
+                            contentScale = ContentScale.Fit,
+                            presentationState.videoSizeDp
+                        )
                 )
 
-                if (uiState.playingState.subTitle.isNotBlank()) {
+                if ((uiState.playerState as? PlayerState.Playing)?.subTitle?.isNotBlank() ?: false) {
                     DescriptionMediumText(
-                        text = uiState.playingState.subTitle,
+                        text = (uiState.playerState as PlayerState.Playing).subTitle,
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentWidth()
@@ -237,7 +239,15 @@ private fun PlayerScreen(
             }
         ) {
             Column(
-                modifier = Modifier.background(MaterialTheme.colorScheme.background)
+                modifier = Modifier
+                    .shadow(
+                        1.dp,
+                        RoundedCornerShape(20.dp)
+                    )
+                    .background(
+                        MaterialTheme.colorScheme.background,
+                        RoundedCornerShape(20.dp)
+                    )
             ) {
                 LanguageCode.entries.toTypedArray().forEach { language ->
                     DescriptionMediumText(
@@ -337,19 +347,10 @@ private fun PlayerScreen(
             exit = fadeOut(),
         ) {
             PlayProgressBar(
-                playingState = uiState.playingState,
+                playerState = uiState.playerState,
                 seekTo = seekTo,
             )
         }
-    }
-}
-
-internal data class PopUpInfo(val offset: IntOffset) {
-    var visibility: Boolean by mutableStateOf(false)
-        private set
-
-    fun changeVisibility(visible: Boolean) {
-        visibility = visible
     }
 }
 
