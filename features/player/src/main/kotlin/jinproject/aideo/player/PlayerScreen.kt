@@ -170,6 +170,8 @@ fun PlayerScreen(
                     factory = {
                         PlayerView(context).apply {
                             keepScreenOn = true
+                            useController = false
+                            controllerAutoShow = false
                         }.apply {
                             viewModel.initExoPlayer(this)
                             player = viewModel.getExoPlayer()

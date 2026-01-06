@@ -63,11 +63,10 @@ class SenseVoiceManager @Inject constructor(
     }
 
     fun release() {
-        extractedAudioChannel.cancel()
-        inferenceAudioChannel.cancel()
         speechToText.release()
         vad.release()
-        speakerDiarization.release()
+        extractedAudioChannel.cancel()
+        inferenceAudioChannel.cancel()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
@@ -190,35 +189,34 @@ class SenseVoiceManager @Inject constructor(
         }.await()
 
         Log.d("test", "Transcribed Result:\n$transcribedSrtText")
+        /*
+                val languageCode = TranslationManager.detectLanguage(transcribedSrtText)
 
-        val languageCode = TranslationManager.detectLanguage(transcribedSrtText)
-
-        localFileDataSource.createFileAndWriteOnOutputStream(
-            fileIdentifier = getSubtitleFileIdentifier(
-                id = videoItem.id,
-                languageCode = languageCode
-            ),
-            writeContentOnFile = { outputStream ->
-                runCatching {
-                    outputStream.bufferedWriter().use { writer ->
-                        writer.write(transcribedSrtText)
+                localFileDataSource.createFileAndWriteOnOutputStream(
+                    fileIdentifier = getSubtitleFileIdentifier(
+                        id = videoItem.id,
+                        languageCode = languageCode
+                    ),
+                    writeContentOnFile = { outputStream ->
+                        runCatching {
+                            outputStream.bufferedWriter().use { writer ->
+                                writer.write(transcribedSrtText)
+                            }
+                        }.map {
+                            true
+                        }.getOrElse {
+                            false
+                        }
                     }
-                }.map {
-                    true
-                }.getOrElse {
-                    false
-                }
-            }
-        )
+                )*/
 
         inferenceProgress.value = 1f
         vad.reset()
     }
 
     private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment) {
-        val chunkSize = ceil(nextVadSegment.samples.size * 0.1f)
         val standardTime =
-            nextVadSegment.start / chunkSize
+            nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
 
         val sdResult = speakerDiarization.process(nextVadSegment.samples)
 
@@ -234,10 +232,8 @@ class SenseVoiceManager @Inject constructor(
         var lastEndIdx = 0
 
         sdResult.forEach { sd ->
-            val startIdx = (chunkSize * floor(sd.start)).toInt()
-                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
-            val endIdx =
-                (chunkSize * ceil(sd.end)).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
             lastEndIdx = endIdx
 
             Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")

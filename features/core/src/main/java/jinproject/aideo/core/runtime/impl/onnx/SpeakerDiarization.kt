@@ -36,8 +36,8 @@ class SpeakerDiarization @Inject constructor(
                 model = "models/embedding.onnx",
                 numThreads = 1,
             ),
-            clustering = FastClusteringConfig(numClusters = -1, threshold = 0.8f),
-            minDurationOn = 0.05f,
+            clustering = FastClusteringConfig(numClusters = -1, threshold = 0.85f),
+            minDurationOn = 0.2f,
             minDurationOff = 0.3f,
         )
 

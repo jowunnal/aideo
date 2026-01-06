@@ -32,8 +32,8 @@ class SileroVad @Inject constructor(
             config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = SenseVoiceManager.VAD_MODEL_PATH,
-                    threshold = 0.05f,
-                    minSilenceDuration = 0.05f,
+                    threshold = 0.1f,
+                    minSilenceDuration = 0.5f,
                     minSpeechDuration = 0.1f,
                     maxSpeechDuration = 10.0f,
                     windowSize = 512,
@@ -49,6 +49,7 @@ class SileroVad @Inject constructor(
 
     fun release() {
         if(isInitialized) {
+            vad.clear()
             vad.release()
             isInitialized = false
         }
