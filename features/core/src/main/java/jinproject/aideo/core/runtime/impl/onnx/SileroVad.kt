@@ -33,7 +33,7 @@ class SileroVad @Inject constructor(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = SenseVoiceManager.VAD_MODEL_PATH,
                     threshold = 0.1f,
-                    minSilenceDuration = 0.5f,
+                    minSilenceDuration = 0.05f,
                     minSpeechDuration = 0.1f,
                     maxSpeechDuration = 10.0f,
                     windowSize = 512,

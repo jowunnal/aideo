@@ -24,19 +24,19 @@ annotation class ExecutorchSTT
  */
 class ExecutorchSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val vocabUtils: VocabUtils,
     modelPath: String,
     vocabPath: String,
 ) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
     lateinit var module: Module
-    private lateinit var vocabUtils: VocabUtils
-    override val transcribeResult = InferenceInfo(index = 0, lastSeconds = 0f, transcription = StringBuilder())
+    override val transcribeResult =
+        InferenceInfo(index = 0, lastSeconds = 0f, transcription = StringBuilder())
 
     private fun loadModel(modelPath: String): Module {
         return Module.load(modelPath)
     }
 
     override fun initialize() {
-        vocabUtils = VocabUtils()
         val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
         module = loadModel(File(context.filesDir, modelPath).absolutePath)
 
@@ -47,13 +47,14 @@ class ExecutorchSpeechToText @Inject constructor(
         module.destroy()
     }
 
-    fun decode(encoderOutputs: EValue): FloatArray {
+    private fun decode(encoderOutputs: EValue, language: String): FloatArray {
         val maxSeqLen = module.execute("get_max_seq_len", EValue.optionalNone())[0].toInt().toInt()
         val noTimeStampTokenId = module.execute("no_timestamps_token_id")[0].toInt()
         val forcedTokens = longArrayOf(
-            VocabUtils.Companion.SOT.toLong(),
-            VocabUtils.Companion.TRANSCRIBE.toLong(),
-            50364L
+            VocabUtils.SOT.toLong(),
+            VocabUtils.Companion.LanguageCode.findByName(language).code,
+            VocabUtils.TRANSCRIBE.toLong(),
+            50364L // 시작 토큰값 [0.00]
         )
 
         Log.d("test", "maxSegLen: $maxSeqLen")
@@ -124,7 +125,7 @@ class ExecutorchSpeechToText @Inject constructor(
         return maxIdx.toFloat()
     }
 
-    override suspend fun transcribeByModel(audioData: FloatArray) {
+    override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
         module = loadModel(File(context.filesDir, modelPath).absolutePath)
 
         val melSpectrogram = vocabUtils.calMelSpectrogram(audioData)
@@ -136,7 +137,7 @@ class ExecutorchSpeechToText @Inject constructor(
 
             // module.execute("text_decoder", encoded)[0].toTensor().dataAsFloatArray
 
-            decode(encoded)
+            decode(encoderOutputs = encoded, language = language)
         }
         Log.d("test", "d: ${module.readLogBuffer().joinToString(", ")}")
 
@@ -300,5 +301,5 @@ class ExecutorchSpeechToText @Inject constructor(
         var index: Int,
         var lastSeconds: Float,
         override val transcription: StringBuilder,
-    ): TranscribeResult()
+    ) : TranscribeResult()
 }

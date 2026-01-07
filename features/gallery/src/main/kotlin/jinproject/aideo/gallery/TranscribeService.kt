@@ -16,7 +16,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
+import jinproject.aideo.core.inference.SpeechRecognitionManager
+import jinproject.aideo.core.inference.senseVoice.SenseVoice
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
@@ -36,7 +37,8 @@ class TranscribeService : LifecycleService() {
     lateinit var androidMediaFileManager: AndroidMediaFileManager
 
     @Inject
-    lateinit var senseVoiceManager: SenseVoiceManager
+    @SenseVoice
+    lateinit var speechRecognitionManager: SpeechRecognitionManager
 
     @Inject
     lateinit var localPlayerDataSource: LocalPlayerDataSource
@@ -50,7 +52,7 @@ class TranscribeService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
 
-        senseVoiceManager.inferenceProgress.onEach { p ->
+        speechRecognitionManager.inferenceProgress.onEach { p ->
             notifyTranscribe(
                 contentTitle = "자막 생성 중",
                 progress = p
@@ -82,15 +84,15 @@ class TranscribeService : LifecycleService() {
         val offFlag = intent?.getBooleanExtra("status", false)
 
         if (offFlag != null && offFlag) {
-            senseVoiceManager.release()
+            speechRecognitionManager.release()
             stopSelf()
         }
 
         if (videoItem != null && job == null)
             job = lifecycleScope.launch(Dispatchers.Default) {
                 notificationManager.cancel(NOTIFICATION_RESULT_ID)
-                senseVoiceManager.initialize()
-                if (senseVoiceManager.isReady) {
+                speechRecognitionManager.initialize()
+                if (speechRecognitionManager.isReady) {
                     Log.d("test", "aaa")
                     processSubtitle(videoItem)
                     Log.d("test", "bbb")
@@ -146,7 +148,7 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, language: String) {
         runCatching {
-            senseVoiceManager.transcribe(videoItem = videoItem, language = language)
+            speechRecognitionManager.transcribe(videoItem = videoItem, language = language)
             //mediaRepository.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
@@ -156,6 +158,7 @@ class TranscribeService : LifecycleService() {
             )
             //launchPlayer(videoItem.uri)
         }.onFailure { exception ->
+            Log.d("test", "error: ${exception.stackTraceToString()}")
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
                 description = "자막 생성에 실패했어요. (${exception.message})",
@@ -256,7 +259,7 @@ class TranscribeService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        senseVoiceManager.release()
+        speechRecognitionManager.release()
         job?.cancel()
         job = null
         super.onDestroy()

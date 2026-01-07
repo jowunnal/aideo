@@ -1,6 +1,8 @@
 package jinproject.aideo.core.inference.whisper
 
+import android.content.Context
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -14,7 +16,9 @@ import kotlin.math.cos
 import kotlin.math.log10
 import kotlin.math.sin
 
-class VocabUtils @Inject constructor() {
+class VocabUtils @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
 
     private lateinit var filters: FloatArray
     private val tokenToWord: MutableMap<Int, ByteArray> = HashMap<Int, ByteArray>()
@@ -24,7 +28,7 @@ class VocabUtils @Inject constructor() {
     }
 
     fun loadFiltersAndVocab(vocabPath: String): Boolean {
-        val vocabBuf = ByteBuffer.wrap(Files.readAllBytes(Paths.get(vocabPath))).apply {
+        val vocabBuf = ByteBuffer.wrap(context.assets.open(vocabPath).readAllBytes()).apply {
             order(ByteOrder.LITTLE_ENDIAN)
         }
 
@@ -241,5 +245,16 @@ class VocabUtils @Inject constructor() {
         const val TRANSLATE = 50358
         const val MULTILINGUAL = 51865
         const val END = 51864
+
+        enum class LanguageCode(val code: Long) {
+            ko(50264L),
+            en(50259L),
+            ja(50266L),
+            zh(50260L);
+
+            companion object {
+                fun findByName(name: String): LanguageCode = LanguageCode.entries.find { it.name == name } ?: ko
+            }
+        }
     }
 }

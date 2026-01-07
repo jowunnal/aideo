@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.core.inference.whisper.WhisperManager
 import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
+import jinproject.aideo.core.inference.whisper.VocabUtils
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.executorch.ExecutorchSTT
 import jinproject.aideo.core.runtime.impl.executorch.ExecutorchSpeechToText
@@ -24,11 +25,13 @@ object SpeechToTextModule {
     @ExecutorchSTT
     fun providesExecutorchSpeechToText(
         @ApplicationContext context: Context,
+        vocabUtils: VocabUtils,
     ): SpeechToText {
         return ExecutorchSpeechToText(
             context = context,
             modelPath = WhisperManager.MODEL_FILE_PATH,
-            vocabPath = WhisperManager.VOCAB_FILE_PATH
+            vocabPath = WhisperManager.VOCAB_FILE_PATH,
+            vocabUtils = vocabUtils
         )
     }
 

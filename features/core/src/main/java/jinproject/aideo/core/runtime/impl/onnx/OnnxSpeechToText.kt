@@ -13,7 +13,6 @@ import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
 import javax.inject.Inject
 import javax.inject.Qualifier
-import kotlin.plus
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -31,7 +30,7 @@ class OnnxSpeechToText @Inject constructor(
         startTime = 0f,
         standardTime = 0f,
         endTime = 0f,
-        speakers = HashMap<Int, String>(),
+        speakers = HashMap(),
         currentSpeaker = 0,
     )
     private var config: OfflineRecognizerConfig? = null
@@ -46,7 +45,7 @@ class OnnxSpeechToText @Inject constructor(
             modelConfig = OfflineModelConfig(
                 senseVoice = OfflineSenseVoiceModelConfig(
                     model = modelPath,
-                    language = language,
+                    language = "auto",
                     useInverseTextNormalization = true,
                 ),
                 tokens = vocabPath,
@@ -72,10 +71,8 @@ class OnnxSpeechToText @Inject constructor(
         }
     }
 
-    override suspend fun transcribeByModel(audioData: FloatArray) {
-        recognizer.setConfig(config!!.apply {
-            modelConfig.senseVoice.language = language
-        })
+    override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
+        updateLanguageConfig(language)
         val stream = recognizer.createStream()
 
         try {
@@ -85,7 +82,7 @@ class OnnxSpeechToText @Inject constructor(
             recognizer.getResult(stream).let { result ->
                 Log.d("test", "recognized: ${result.text}")
 
-                if (result.text.isNotEmpty() && result.timestamps.isNotEmpty())
+                if (result.text.isNotEmpty())
                     with(transcribeResult) {
                         transcription.apply {
                             appendLine(this@with.idx++)
@@ -140,11 +137,11 @@ class OnnxSpeechToText @Inject constructor(
         }
     }
 
-    fun setCurrentSpeaker(speaker: Int) {
-        transcribeResult.currentSpeaker = speaker
+    private fun updateLanguageConfig(language: String) {
+        recognizer.setConfig(config!!.apply {
+            modelConfig.senseVoice.language = language
+        })
     }
-
-    fun getStartTime(): Float = transcribeResult.startTime
 
     companion object {
         const val TAG = "OnnxSpeechToText"

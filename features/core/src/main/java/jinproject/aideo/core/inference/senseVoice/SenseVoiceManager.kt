@@ -4,6 +4,7 @@ import android.media.AudioFormat
 import android.util.Log
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.SpeechSegment
+import jinproject.aideo.core.inference.SpeechRecognitionManager
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
@@ -14,9 +15,7 @@ import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
-import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,78 +32,81 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Qualifier
 import kotlin.math.ceil
 import kotlin.math.floor
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class SenseVoice
 
 class SenseVoiceManager @Inject constructor(
     val mediaFileManager: MediaFileManager,
     @OnnxSTT private val speechToText: SpeechToText,
     private val vad: SileroVad,
     private val speakerDiarization: SpeakerDiarization,
-    private val localFileDataSource: LocalFileDataSource,
-) {
-    var isReady: Boolean = false
-
+    localFileDataSource: LocalFileDataSource,
+) : SpeechRecognitionManager(localFileDataSource) {
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
     private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
 
-    /**
-     * 0 ~ 1f
-     */
-    val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
+    override val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
 
-    fun initialize() {
+    override fun initialize() {
         isReady = true
         speechToText.initialize()
         vad.initialize()
         speakerDiarization.initialize()
     }
 
-    fun release() {
+    override fun release() {
         speechToText.release()
         vad.release()
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
+        isReady = false
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
-    suspend fun transcribe(
+    override suspend fun transcribe(
         videoItem: VideoItem,
         language: String,
-    ) = withContext(Dispatchers.Default) {
-        launch(Dispatchers.IO) {
-            mediaFileManager.extractAudioData(
-                videoContentUri = videoItem.uri.toUri(),
-                extractedAudioChannel = extractedAudioChannel,
-                audioPreProcessor = { audioInfo ->
-                    when (audioInfo.mediaInfo.encodingBytes) {
-                        AudioFormat.ENCODING_PCM_16BIT -> {
-                            normalizeAudioSample(
-                                audioChunk = audioInfo.audioData,
-                                sampleRate = audioInfo.mediaInfo.sampleRate,
-                                channelCount = audioInfo.mediaInfo.channelCount
-                            )
-                        }
+    ) {
+        withContext(Dispatchers.Default) {
+            launch(Dispatchers.IO) {
+                mediaFileManager.extractAudioData(
+                    videoContentUri = videoItem.uri.toUri(),
+                    extractedAudioChannel = extractedAudioChannel,
+                    audioPreProcessor = { audioInfo ->
+                        when (audioInfo.mediaInfo.encodingBytes) {
+                            AudioFormat.ENCODING_PCM_16BIT -> {
+                                normalizeAudioSample(
+                                    audioChunk = audioInfo.audioData,
+                                    sampleRate = audioInfo.mediaInfo.sampleRate,
+                                    channelCount = audioInfo.mediaInfo.channelCount
+                                )
+                            }
 
-                        AudioFormat.ENCODING_PCM_FLOAT -> {
-                            val floatBuffer =
-                                ByteBuffer.wrap(audioInfo.audioData).order(ByteOrder.nativeOrder())
-                                    .asFloatBuffer()
+                            AudioFormat.ENCODING_PCM_FLOAT -> {
+                                val floatBuffer =
+                                    ByteBuffer.wrap(audioInfo.audioData)
+                                        .order(ByteOrder.nativeOrder())
+                                        .asFloatBuffer()
 
-                            FloatArray(floatBuffer.remaining()).apply {
-                                floatBuffer.get(this)
+                                FloatArray(floatBuffer.remaining()).apply {
+                                    floatBuffer.get(this)
+                                }
+                            }
+
+                            else -> {
+                                throw IllegalArgumentException("Unsupported encoding type")
                             }
                         }
-
-                        else -> {
-                            throw IllegalArgumentException("Unsupported encoding type")
-                        }
                     }
-                }
-            )
-            /*val (samples, sampleRate) = WaveReader.readWave(
+                )
+                /*val (samples, sampleRate) = WaveReader.readWave(
                 assetManager = context.assets,
                 filename = "ja.wav"
             )
@@ -112,109 +114,101 @@ class SenseVoiceManager @Inject constructor(
 
             extractedAudioChannel.send(samples)
             extractedAudioChannel.close()*/
-        }
-
-        launch {
-            val windowSize = 512
-            val buffer = FixedChunkBuffer(windowSize)
-            val resumeSignal = Channel<Unit>(capacity = 1)
-
-            val job = launch {
-                for (i in extractedAudioChannel) {
-                    buffer.write(i)
-                    if (buffer.totalSamples >= windowSize)
-                        resumeSignal.send(Unit)
-                }
-
-                resumeSignal.close()
             }
+
 
             launch {
-                while (job.isActive || buffer.totalSamples >= windowSize) {
-                    val chunk = buffer.readChunk()
-                    if (chunk != null) {
-                        inferenceAudioChannel.send(chunk)
-                    } else {
-                        try {
-                            resumeSignal.receive()
-                        } catch (e: Exception) {
-                            if (e is ClosedReceiveChannelException)
-                                break
-                        }
+                val windowSize = 512
+                val buffer = FixedChunkBuffer(windowSize)
+                val resumeSignal = Channel<Unit>(capacity = 1)
+
+                val job = launch {
+                    for (i in extractedAudioChannel) {
+                        buffer.write(i)
+                        if (buffer.totalSamples >= windowSize)
+                            resumeSignal.send(Unit)
                     }
+
+                    resumeSignal.close()
                 }
 
-                inferenceAudioChannel.send(buffer.flush())
-                inferenceAudioChannel.close()
-            }
-        }
-
-        val transcribedSrtText = async {
-            var processedAudioSize = 0
-            speechToText.updateLanguage(language)
-
-            for (i in inferenceAudioChannel) {
-                vad.acceptWaveform(i)
-                processedAudioSize += i.size
-
-                if (vad.isSpeechDetected()) {
-                    while (vad.hasSegment()) {
-                        vad.getNextSegment().also { nextVadSegment ->
-                            transcribeSingleSegment(nextVadSegment)
-
-                            (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
-                                val total =
-                                    AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
-
-                                inferenceProgress.value =
-                                    processedAudioSize.toFloat() / (total).toFloat()
+                launch {
+                    while (job.isActive || buffer.totalSamples >= windowSize) {
+                        val chunk = buffer.readChunk()
+                        if (chunk != null) {
+                            inferenceAudioChannel.send(chunk)
+                        } else {
+                            try {
+                                resumeSignal.receive()
+                            } catch (e: Exception) {
+                                if (e is ClosedReceiveChannelException)
+                                    break
                             }
                         }
-                        vad.popSegment()
                     }
+
+                    inferenceAudioChannel.send(buffer.flush())
+                    inferenceAudioChannel.close()
                 }
             }
 
-            vad.flush()
-            while (vad.hasSegment()) {
-                vad.getNextSegment().also { nextVadSegment ->
-                    transcribeSingleSegment(nextVadSegment)
+            val transcribedSrtText = async {
+                var processedAudioSize = 0
+
+                for (i in inferenceAudioChannel) {
+                    vad.acceptWaveform(i)
+                    processedAudioSize += i.size
+
+                    if (vad.isSpeechDetected()) {
+                        while (vad.hasSegment()) {
+                            vad.getNextSegment().also { nextVadSegment ->
+                                transcribeSingleSegment(
+                                    nextVadSegment = nextVadSegment,
+                                    language = language
+                                )
+
+                                (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
+                                    val total =
+                                        AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
+
+                                    inferenceProgress.value =
+                                        processedAudioSize.toFloat() / (total).toFloat()
+                                }
+                            }
+                            vad.popSegment()
+                        }
+                    }
                 }
-                vad.popSegment()
-            }
+
+                vad.flush()
+                while (vad.hasSegment()) {
+                    vad.getNextSegment().also { nextVadSegment ->
+                        transcribeSingleSegment(
+                            nextVadSegment = nextVadSegment,
+                            language = language
+                        )
+                    }
+                    vad.popSegment()
+                }
+
+                inferenceProgress.value = 1f
+
+                speechToText.getResult()
+            }.await()
+
+            Log.d("test", "Transcribed Result:\n$transcribedSrtText")
+
+            /*storeSubtitleFile(
+            subtitle = transcribedSrtText,
+            videoItemId = videoItem.id,
+        )*/
 
             inferenceProgress.value = 1f
-
-            speechToText.getResult()
-        }.await()
-
-        Log.d("test", "Transcribed Result:\n$transcribedSrtText")
-        /*
-                val languageCode = TranslationManager.detectLanguage(transcribedSrtText)
-
-                localFileDataSource.createFileAndWriteOnOutputStream(
-                    fileIdentifier = getSubtitleFileIdentifier(
-                        id = videoItem.id,
-                        languageCode = languageCode
-                    ),
-                    writeContentOnFile = { outputStream ->
-                        runCatching {
-                            outputStream.bufferedWriter().use { writer ->
-                                writer.write(transcribedSrtText)
-                            }
-                        }.map {
-                            true
-                        }.getOrElse {
-                            false
-                        }
-                    }
-                )*/
-
-        inferenceProgress.value = 1f
-        vad.reset()
+            vad.reset()
+        }
     }
 
-    private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment) {
+    private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment, language: String) {
         val standardTime =
             nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
 
@@ -232,14 +226,21 @@ class SenseVoiceManager @Inject constructor(
         var lastEndIdx = 0
 
         sdResult.forEach { sd ->
-            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
-            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt().coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
+                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
+                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
             lastEndIdx = endIdx
 
             Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
 
             speechToText.setTimes(sd.start, sd.end)
-            speechToText.transcribe(nextVadSegment.samples.copyOfRange(startIdx, endIdx))
+            speechToText.transcribe(
+                audioData = nextVadSegment.samples.copyOfRange(
+                    startIdx,
+                    endIdx
+                ), language = language
+            )
         }
     }
 

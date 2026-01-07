@@ -184,7 +184,8 @@ fabric.properties
 *.wav
 *.onnx
 *.pte
-tokens.txt
+features/core/src/main/assets/models/*tokens.txt
+
 
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin
