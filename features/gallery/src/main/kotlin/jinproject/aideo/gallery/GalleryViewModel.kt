@@ -27,7 +27,7 @@ class GalleryViewModel @Inject constructor(
 
     val uiState: RestartableStateFlow<DownloadableUiState> = combine(
         localPlayerDataSource.getVideoUris(),
-        localPlayerDataSource.getLanguageSetting()
+        localPlayerDataSource.getInferenceTargetLanguage()
     ) { videoUris, language ->
         val videoItems = videoUris.mapNotNull {
             androidMediaFileManager.getVideoInfo(it)
@@ -57,7 +57,7 @@ class GalleryViewModel @Inject constructor(
 
     fun updateLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setLanguageSetting(languageCode.code)
+            localPlayerDataSource.setInferenceTargetLanguage(languageCode.code)
         }
     }
 }

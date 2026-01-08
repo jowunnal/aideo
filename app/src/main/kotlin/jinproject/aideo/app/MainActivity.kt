@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -37,11 +36,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -57,8 +54,6 @@ import androidx.navigation.compose.rememberNavController
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
 import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
-import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
-import com.google.ads.interactivemedia.v3.impl.JavaScriptMessage
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -90,8 +85,6 @@ import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
-import jinproject.aideo.core.utils.parseUri
-import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
@@ -347,8 +340,7 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         update = {
-                            it.visibility =
-                                if (isAdViewRemoved || configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) View.GONE else View.VISIBLE
+                            it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
                         }
                     )
 

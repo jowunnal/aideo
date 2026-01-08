@@ -3,15 +3,12 @@ package jinproject.aideo.core.runtime.api
 /**
  * 오디오(Speech) 를 문자(Text) 로 추론(변환)의 수행을 담당
  */
-abstract class SpeechToText(
-    protected val modelPath: String,
-    protected val vocabPath: String,
-) {
+abstract class SpeechToText {
     protected abstract val transcribeResult: TranscribeResult
 
     protected var isInitialized = false
 
-    abstract fun initialize()
+    abstract fun initialize(r: InitRequirement)
     abstract fun release()
 
     open suspend fun transcribe(audioData: FloatArray, language: String) {
@@ -32,12 +29,8 @@ abstract class SpeechToText(
         abstract val transcription: StringBuilder
     }
 
-    companion object {
-        const val MAX_TOKEN_LENGTH = 448
-
-        /**
-         * 타임 스탬프 간격: 0.02
-         */
-        const val TS_STEP = 0.02
-    }
+    abstract class InitRequirement(
+        val modelPath: String,
+        val vocabPath: String
+    )
 }

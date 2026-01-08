@@ -14,7 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -30,7 +29,7 @@ class MediaRepositoryImpl @Inject constructor(
             val sourceLanguageCode =
                 localFileDataSource.getOriginSubtitleLanguageCode(id)
 
-            val targetLanguageCode = localPlayerDataSource.getLanguageSetting().first()
+            val targetLanguageCode = localPlayerDataSource.getInferenceTargetLanguage().first()
 
             val srtContent = localFileDataSource.getFileContent(
                 getSubtitleFileIdentifier(

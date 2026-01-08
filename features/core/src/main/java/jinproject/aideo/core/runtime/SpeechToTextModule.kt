@@ -29,8 +29,6 @@ object SpeechToTextModule {
     ): SpeechToText {
         return ExecutorchSpeechToText(
             context = context,
-            modelPath = WhisperManager.MODEL_FILE_PATH,
-            vocabPath = WhisperManager.VOCAB_FILE_PATH,
             vocabUtils = vocabUtils
         )
     }
@@ -41,10 +39,6 @@ object SpeechToTextModule {
     fun providesOnnxSpeechToText(
         @ApplicationContext context: Context,
     ): SpeechToText {
-        return OnnxSpeechToText(
-            context = context,
-            modelPath = SenseVoiceManager.SENSE_VOICE_MODEL_PATH,
-            vocabPath = SenseVoiceManager.VOCAB_PATH,
-        )
+        return OnnxSpeechToText(context = context)
     }
 }

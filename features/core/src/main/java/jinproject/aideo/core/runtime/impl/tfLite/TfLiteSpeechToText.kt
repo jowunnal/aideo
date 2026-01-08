@@ -15,16 +15,14 @@ import javax.inject.Inject
 
 class TfLiteSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
-    modelPath: String,
-    vocabPath: String,
-) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
+) : SpeechToText() {
     private lateinit var interpreter: InterpreterApi
     private lateinit var vocabUtils: VocabUtils
     override val transcribeResult: TranscribeResult =
         TfLiteTranscribeResult(tokens = null, transcription = StringBuilder())
 
-    override fun initialize() {
-        val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
+    override fun initialize(r: InitRequirement) {
+        val isVocabLoaded = vocabUtils.loadFiltersAndVocab(r.vocabPath)
 
         val interpreterOption =
             Interpreter.Options()
@@ -33,14 +31,14 @@ class TfLiteSpeechToText @Inject constructor(
                 .setUseXNNPACK(false)
 
         interpreter = Interpreter(
-            FileUtil.loadMappedFile(context, modelPath),
+            FileUtil.loadMappedFile(context, r.modelPath),
             interpreterOption
         )
 
         isInitialized = isVocabLoaded
     }
 
-    override suspend fun transcribeByModel(audioData: FloatArray) {
+    override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
         Log.d("test", "getMelSpectrogram")
         val melSpectrogram = vocabUtils.calMelSpectrogram(audioData)
         Log.d("test", "melSpectrogram result: ${melSpectrogram.size}")

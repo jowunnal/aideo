@@ -63,7 +63,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
-import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.PresentationState
 import androidx.media3.ui.compose.state.rememberPresentationState
@@ -133,7 +132,7 @@ fun PlayerScreen(
         uiState = uiState,
         transitionState = transitionState,
         seekTo = viewModel::seekTo,
-        updateLanguageCode = viewModel::updateLanguage,
+        updateLanguageCode = viewModel::updateSubtitleLanguage,
         updateTransitionState = { visibility = !visibility },
         navigatePopBackStack = navigatePopBackStack,
         playerSurfaceViewComposable = {
@@ -251,7 +250,7 @@ private fun PlayerScreen(
                         RoundedCornerShape(20.dp)
                     )
             ) {
-                LanguageCode.entries.toTypedArray().forEach { language ->
+                LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray().forEach { language ->
                     DescriptionMediumText(
                         text = language.name,
                         modifier = Modifier

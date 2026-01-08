@@ -19,6 +19,7 @@ import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.galleryNavGraph
+import jinproject.aideo.gallery.navigateToSetting
 import jinproject.aideo.player.navigateToPlayerGraph
 import jinproject.aideo.player.playerNavGraph
 
@@ -42,12 +43,10 @@ internal fun NavigationGraph(
             fadeOut() + slideOutHorizontally()
         }
     ) {
-        galleryNavGraph(navigateToPlayerGraph = { videoUri, navOptions ->
-            navController.navigateToPlayerGraph(
-                videoUri = videoUri,
-                navOptions = navOptions
-            )
-        })
+        galleryNavGraph(
+            navigateToSetting = navController::navigateToSetting,
+            navigatePopBackStack = navController::popBackStackIfCan,
+        )
 
         playerNavGraph(
             navigatePopBackStack = navController::popBackStackIfCan

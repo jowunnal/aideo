@@ -20,13 +20,26 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
             }
         }
 
-    fun getLanguageSetting(): Flow<String> = data.map { it.language }
+    fun getTotalSettings(): Flow<PlayerSetting> = data.map {
+        PlayerSetting(
+            inferenceLanguage = it.inferenceLanguage,
+            subtitleLanguage = it.subtitleLanguage,
+            videoUris = it.videosList,
+            selectedModel = it.selectedModel
+        )
+    }
+
+    fun getInferenceTargetLanguage(): Flow<String> = data.map { it.inferenceLanguage }
 
     fun getVideoUris(): Flow<List<String>> = data.map { it.videosList }
 
-    suspend fun setLanguageSetting(language: String) {
+    fun getSubtitleLanguage(): Flow<String> = data.map { it.subtitleLanguage }
+
+    fun getSelectedModel(): Flow<String> = data.map { it.selectedModel }
+
+    suspend fun setInferenceTargetLanguage(language: String) {
         playerDataStore.updateData {
-            it.toBuilder().setLanguage(language).build()
+            it.toBuilder().setInferenceLanguage(language).build()
         }
     }
 
@@ -38,4 +51,23 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
                 .build()
         }
     }
+
+    suspend fun setSubtitleLanguage(language: String) {
+        playerDataStore.updateData {
+            it.toBuilder().setSubtitleLanguage(language).build()
+        }
+    }
+
+    suspend fun setSelectedModel(model: String) {
+        playerDataStore.updateData {
+            it.toBuilder().setSelectedModel(model).build()
+        }
+    }
 }
+
+data class PlayerSetting(
+    val inferenceLanguage: String,
+    val subtitleLanguage: String,
+    val videoUris: List<String>,
+    val selectedModel: String,
+)

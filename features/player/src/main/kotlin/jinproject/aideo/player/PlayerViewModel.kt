@@ -15,11 +15,8 @@ import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -42,7 +39,7 @@ class PlayerViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
-        localPlayerDataSource.getLanguageSetting().onEach { language ->
+        localPlayerDataSource.getInferenceTargetLanguage().onEach { language ->
             val id = currentVideoUri.toVideoItemId()
 
             val subtitleExist = androidMediaFileManager.checkSubtitleFileExist(
@@ -79,9 +76,9 @@ class PlayerViewModel @Inject constructor(
             )
         )
 
-    fun updateLanguage(languageCode: LanguageCode) {
+    fun updateSubtitleLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setLanguageSetting(languageCode.code)
+            localPlayerDataSource.setSubtitleLanguage(languageCode.code)
         }
     }
 

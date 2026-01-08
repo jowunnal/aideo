@@ -25,9 +25,7 @@ annotation class ExecutorchSTT
 class ExecutorchSpeechToText @Inject constructor(
     @ApplicationContext private val context: Context,
     private val vocabUtils: VocabUtils,
-    modelPath: String,
-    vocabPath: String,
-) : SpeechToText(modelPath = modelPath, vocabPath = vocabPath) {
+) : SpeechToText() {
     lateinit var module: Module
     override val transcribeResult =
         InferenceInfo(index = 0, lastSeconds = 0f, transcription = StringBuilder())
@@ -35,9 +33,11 @@ class ExecutorchSpeechToText @Inject constructor(
     private fun loadModel(modelPath: String): Module {
         return Module.load(modelPath)
     }
+    private lateinit var modelPath: String
 
-    override fun initialize() {
-        val isVocabLoaded = vocabUtils.loadFiltersAndVocab(vocabPath)
+    override fun initialize(r: InitRequirement) {
+        val isVocabLoaded = vocabUtils.loadFiltersAndVocab(r.vocabPath)
+        modelPath = r.modelPath
         module = loadModel(File(context.filesDir, modelPath).absolutePath)
 
         isInitialized = isVocabLoaded
@@ -302,4 +302,16 @@ class ExecutorchSpeechToText @Inject constructor(
         var lastSeconds: Float,
         override val transcription: StringBuilder,
     ) : TranscribeResult()
+
+    class ExecutorchWhisperRequirement(
+        modelPath: String,
+        vocabPath: String
+    ): InitRequirement(modelPath = modelPath, vocabPath = vocabPath)
+
+    companion object {
+        /**
+         * 타임 스탬프 간격: 0.02
+         */
+        const val TS_STEP = 0.02
+    }
 }

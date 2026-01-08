@@ -2,18 +2,24 @@ package jinproject.aideo.core.inference.whisper
 
 import android.content.Context
 import android.media.AudioFormat
+import android.util.Log
 import androidx.core.net.toUri
+import com.k2fsa.sherpa.onnx.SpeechSegment
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.SpeechRecognitionManager
 import jinproject.aideo.core.inference.senseVoice.FixedChunkBuffer
+import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager.Companion.ROOT_DIR
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.runtime.api.SpeechToText
-import jinproject.aideo.core.runtime.impl.executorch.ExecutorchSTT
+import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
+import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
+import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -28,6 +34,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Qualifier
+import kotlin.math.ceil
+import kotlin.math.floor
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -38,10 +46,11 @@ annotation class Whisper
  */
 class WhisperManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    localFileDataSource: LocalFileDataSource,
     private val mediaFileManager: MediaFileManager,
-    @ExecutorchSTT private val speechToText: SpeechToText,
+    @OnnxSTT private val speechToText: SpeechToText,
     private val vad: SileroVad,
+    private val speakerDiarization: SpeakerDiarization,
+    localFileDataSource: LocalFileDataSource,
 ) : SpeechRecognitionManager(localFileDataSource) {
     private val extractedAudioChannel =
         Channel<FloatArray>(capacity = Channel.BUFFERED)
@@ -55,13 +64,27 @@ class WhisperManager @Inject constructor(
     )
 
     override fun initialize() {
-        copyBinaryDataFromAssets()
-        loadBaseModel()
+        //copyBinaryDataFromAssets()
+        initOnnxWhisper()
         vad.initialize()
+        speakerDiarization.initialize()
 
         isReady = true
     }
 
+    private fun initOnnxWhisper() {
+        speechToText.initialize(
+            OnnxSpeechToText.OnnxRequirement(
+                modelPath = WHISPER_ENCODER_PATH_ONNX,
+                vocabPath = WHISPER_VOCAB_PATH_ONNX,
+                availableModel = OnnxSpeechToText.AvailableModel.Whisper(decoderPath = WHISPER_DECODER_PATH_ONNX)
+            )
+        )
+    }
+
+    /**
+     * Whisper Executorch 모델의 binary file 을 load
+     */
     private fun copyBinaryDataFromAssets() {
         context.assets.list("models/") ?: return
 
@@ -70,23 +93,19 @@ class WhisperManager @Inject constructor(
         if (!modelsPath.exists())
             modelsPath.mkdirs()
 
-        val vocab = File(modelsPath, VOCAB_FILE_NAME)
-        context.assets.open(VOCAB_FILE_PATH).use { input ->
+        val vocab = File(modelsPath, WHISPER_VOCAB_NAME_PTE)
+        context.assets.open(WHISPER_VOCAB_PATH_PTE).use { input ->
             vocab.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
 
-        val model = File(modelsPath, MODEL_FILE_NAME)
-        context.assets.open(MODEL_FILE_PATH).use { input ->
+        val model = File(modelsPath, WHISPER_MODEL_NAME_PTE)
+        context.assets.open(WHISPER_MODEL_PATH_PTE).use { input ->
             model.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
-    }
-
-    private fun loadBaseModel() {
-        speechToText.initialize()
     }
 
     /**
@@ -100,41 +119,8 @@ class WhisperManager @Inject constructor(
         language: String,
     ) {
         withContext(Dispatchers.IO) {
-
-            /**
-             * 미디어로 부터 음성 트랙을 추출
-             */
             launch {
-                mediaFileManager.extractAudioData(
-                    videoContentUri = videoItem.uri.toUri(),
-                    extractedAudioChannel = extractedAudioChannel,
-                    audioPreProcessor = { audioInfo ->
-                        when (audioInfo.mediaInfo.encodingBytes) {
-                            AudioFormat.ENCODING_PCM_16BIT -> {
-                                normalizeAudioSample(
-                                    audioChunk = audioInfo.audioData,
-                                    sampleRate = audioInfo.mediaInfo.sampleRate,
-                                    channelCount = audioInfo.mediaInfo.channelCount
-                                )
-                            }
-
-                            AudioFormat.ENCODING_PCM_FLOAT -> {
-                                val floatBuffer =
-                                    ByteBuffer.wrap(audioInfo.audioData)
-                                        .order(ByteOrder.nativeOrder())
-                                        .asFloatBuffer()
-
-                                FloatArray(floatBuffer.remaining()).apply {
-                                    floatBuffer.get(this)
-                                }
-                            }
-
-                            else -> {
-                                throw IllegalArgumentException("Unsupported encoding type")
-                            }
-                        }
-                    }
-                )
+                extractAudioFromVideo(videoItem.uri)
             }
 
             launch {
@@ -182,17 +168,8 @@ class WhisperManager @Inject constructor(
                     if (vad.isSpeechDetected()) {
                         while (vad.hasSegment()) {
                             vad.getNextSegment().also { nextVadSegment ->
-                                val paddedSamples =
-                                    FloatArray(AudioConfig.SAMPLE_RATE * AudioConfig.AUDIO_CHUNK_SECONDS).apply {
-                                        repeat(nextVadSegment.samples.size) { idx ->
-                                            this[idx] = nextVadSegment.samples[idx]
-                                        }
-                                    }
 
-                                speechToText.transcribe(
-                                    audioData = paddedSamples,
-                                    language = language
-                                )
+                                transcribeSingleSegment(nextVadSegment = nextVadSegment, language = language)
 
                                 (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
                                     val total =
@@ -210,17 +187,14 @@ class WhisperManager @Inject constructor(
                 vad.flush()
                 while (vad.hasSegment()) {
                     vad.getNextSegment().also { nextVadSegment ->
-                        val paddedSamples =
+                        /*val paddedSamples =
                             FloatArray(AudioConfig.SAMPLE_RATE * AudioConfig.AUDIO_CHUNK_SECONDS).apply {
                                 repeat(nextVadSegment.samples.size) { idx ->
                                     this[idx] = nextVadSegment.samples[idx]
                                 }
-                            }
+                            }*/
 
-                        speechToText.transcribe(
-                            audioData = paddedSamples,
-                            language = language
-                        )
+                        transcribeSingleSegment(nextVadSegment = nextVadSegment, language = language)
                     }
                     vad.popSegment()
                 }
@@ -237,19 +211,95 @@ class WhisperManager @Inject constructor(
         }
     }
 
+    private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment, language: String) {
+        val standardTime =
+            nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
+
+        val sdResult = speakerDiarization.process(nextVadSegment.samples)
+
+        Log.d(
+            "test",
+            "sdResult: ${sdResult.joinToString("\n") { "[${it.speaker}] : ${it.start} ~ ${it.end}" }}"
+        )
+
+        with(speechToText as OnnxSpeechToText) {
+            setStandardTime(standardTime)
+        }
+
+        var lastEndIdx = 0
+
+        sdResult.forEach { sd ->
+            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
+                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
+                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+            lastEndIdx = endIdx
+
+            Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
+
+            speechToText.setTimes(sd.start, sd.end)
+            speechToText.transcribe(
+                audioData = nextVadSegment.samples.copyOfRange(
+                    startIdx,
+                    endIdx
+                ), language = language
+            )
+        }
+    }
+
+    private suspend fun extractAudioFromVideo(videoUri: String) {
+        mediaFileManager.extractAudioData(
+            videoContentUri = videoUri.toUri(),
+            extractedAudioChannel = extractedAudioChannel,
+            audioPreProcessor = { audioInfo ->
+                when (audioInfo.mediaInfo.encodingBytes) {
+                    AudioFormat.ENCODING_PCM_16BIT -> {
+                        normalizeAudioSample(
+                            audioChunk = audioInfo.audioData,
+                            sampleRate = audioInfo.mediaInfo.sampleRate,
+                            channelCount = audioInfo.mediaInfo.channelCount
+                        )
+                    }
+
+                    AudioFormat.ENCODING_PCM_FLOAT -> {
+                        val floatBuffer =
+                            ByteBuffer.wrap(audioInfo.audioData)
+                                .order(ByteOrder.nativeOrder())
+                                .asFloatBuffer()
+
+                        FloatArray(floatBuffer.remaining()).apply {
+                            floatBuffer.get(this)
+                        }
+                    }
+
+                    else -> {
+                        throw IllegalArgumentException("Unsupported encoding type")
+                    }
+                }
+            }
+        )
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
     override fun release() {
         speechToText.release()
         vad.release()
         extractedAudioChannel.cancel()
+        if(inferenceAudioChannel.isClosedForReceive) // 추론 중에 cancel 되면 native error 발생
+            speakerDiarization.release()
         inferenceAudioChannel.cancel()
 
         isReady = false
     }
 
     companion object {
-        const val VOCAB_FILE_NAME = "filters_vocab_multilingual.bin"
-        const val VOCAB_FILE_PATH = "models/$VOCAB_FILE_NAME"
-        const val MODEL_FILE_NAME = "model.pte"
-        const val MODEL_FILE_PATH = "models/$MODEL_FILE_NAME"
+        const val WHISPER_VOCAB_NAME_PTE = "filters_vocab_multilingual.bin"
+        const val WHISPER_VOCAB_PATH_PTE = "models/$WHISPER_VOCAB_NAME_PTE"
+        const val WHISPER_MODEL_NAME_PTE = "model.pte"
+        const val WHISPER_MODEL_PATH_PTE = "models/$WHISPER_MODEL_NAME_PTE"
+
+        const val WHISPER_ENCODER_PATH_ONNX = "$ROOT_DIR/small-encoder.int8.onnx"
+        const val WHISPER_DECODER_PATH_ONNX = "$ROOT_DIR/small-decoder.int8.onnx"
+        const val WHISPER_VOCAB_PATH_ONNX = "$ROOT_DIR/small-tokens.txt"
     }
 }

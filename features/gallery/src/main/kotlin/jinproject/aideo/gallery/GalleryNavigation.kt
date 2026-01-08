@@ -19,16 +19,27 @@ sealed class GalleryRoute {
         override val icon: Int = jinproject.aideo.design.R.drawable.icon_simulator
         override val iconClicked: Int = jinproject.aideo.design.R.drawable.icon_simulator
     }
+
+    @Serializable
+    data object Setting : GalleryRoute()
 }
 
 fun NavGraphBuilder.galleryNavGraph(
-    navigateToPlayerGraph: (videoUri: String, navOptions: NavOptions?) -> Unit,
+    navigateToSetting: () -> Unit,
+    navigatePopBackStack: () -> Unit,
 ) {
     navigation<GalleryRoute.GalleryGraph>(
         startDestination = GalleryRoute.Gallery
     ) {
         composable<GalleryRoute.Gallery> {
-            GalleryScreen()
+            GalleryScreen(
+                navigateToSetting = navigateToSetting,
+            )
+        }
+        composable<GalleryRoute.Setting> {
+            SettingScreen(
+                navigatePopBackStack = navigatePopBackStack
+            )
         }
     }
 }
@@ -36,3 +47,5 @@ fun NavGraphBuilder.galleryNavGraph(
 fun NavController.navigateToGalleryGraph(navOptions: NavOptions?) {
     navigate(GalleryRoute.GalleryGraph, navOptions)
 }
+
+fun NavController.navigateToSetting() = navigate(GalleryRoute.Setting)

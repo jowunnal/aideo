@@ -56,7 +56,13 @@ class SenseVoiceManager @Inject constructor(
 
     override fun initialize() {
         isReady = true
-        speechToText.initialize()
+        speechToText.initialize(
+            OnnxSpeechToText.OnnxRequirement(
+                modelPath = SENSE_VOICE_MODEL_PATH,
+                vocabPath = SENSE_VOICE_VOCAB_PATH,
+                availableModel = OnnxSpeechToText.AvailableModel.SenseVoice
+            )
+        )
         vad.initialize()
         speakerDiarization.initialize()
     }
@@ -76,44 +82,7 @@ class SenseVoiceManager @Inject constructor(
     ) {
         withContext(Dispatchers.Default) {
             launch(Dispatchers.IO) {
-                mediaFileManager.extractAudioData(
-                    videoContentUri = videoItem.uri.toUri(),
-                    extractedAudioChannel = extractedAudioChannel,
-                    audioPreProcessor = { audioInfo ->
-                        when (audioInfo.mediaInfo.encodingBytes) {
-                            AudioFormat.ENCODING_PCM_16BIT -> {
-                                normalizeAudioSample(
-                                    audioChunk = audioInfo.audioData,
-                                    sampleRate = audioInfo.mediaInfo.sampleRate,
-                                    channelCount = audioInfo.mediaInfo.channelCount
-                                )
-                            }
-
-                            AudioFormat.ENCODING_PCM_FLOAT -> {
-                                val floatBuffer =
-                                    ByteBuffer.wrap(audioInfo.audioData)
-                                        .order(ByteOrder.nativeOrder())
-                                        .asFloatBuffer()
-
-                                FloatArray(floatBuffer.remaining()).apply {
-                                    floatBuffer.get(this)
-                                }
-                            }
-
-                            else -> {
-                                throw IllegalArgumentException("Unsupported encoding type")
-                            }
-                        }
-                    }
-                )
-                /*val (samples, sampleRate) = WaveReader.readWave(
-                assetManager = context.assets,
-                filename = "ja.wav"
-            )
-            Log.d("test", "sampleRate: $sampleRate")
-
-            extractedAudioChannel.send(samples)
-            extractedAudioChannel.close()*/
+                extractAudioFromVideo(videoItem.uri)
             }
 
 
@@ -244,10 +213,52 @@ class SenseVoiceManager @Inject constructor(
         }
     }
 
+    private suspend fun extractAudioFromVideo(videoUri: String) {
+        mediaFileManager.extractAudioData(
+            videoContentUri = videoUri.toUri(),
+            extractedAudioChannel = extractedAudioChannel,
+            audioPreProcessor = { audioInfo ->
+                when (audioInfo.mediaInfo.encodingBytes) {
+                    AudioFormat.ENCODING_PCM_16BIT -> {
+                        normalizeAudioSample(
+                            audioChunk = audioInfo.audioData,
+                            sampleRate = audioInfo.mediaInfo.sampleRate,
+                            channelCount = audioInfo.mediaInfo.channelCount
+                        )
+                    }
+
+                    AudioFormat.ENCODING_PCM_FLOAT -> {
+                        val floatBuffer =
+                            ByteBuffer.wrap(audioInfo.audioData)
+                                .order(ByteOrder.nativeOrder())
+                                .asFloatBuffer()
+
+                        FloatArray(floatBuffer.remaining()).apply {
+                            floatBuffer.get(this)
+                        }
+                    }
+
+                    else -> {
+                        throw IllegalArgumentException("Unsupported encoding type")
+                    }
+                }
+            }
+        )
+        /*val (samples, sampleRate) = WaveReader.readWave(
+        assetManager = context.assets,
+        filename = "ja.wav"
+    )
+    Log.d("test", "sampleRate: $sampleRate")
+
+    extractedAudioChannel.send(samples)
+    extractedAudioChannel.close()*/
+    }
+
     companion object {
-        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
-        const val VOCAB_PATH = "models/tokens.txt"
-        const val VAD_MODEL_PATH = "models/silero_vad.onnx"
+        const val ROOT_DIR = "models"
+        const val SENSE_VOICE_MODEL_PATH = "$ROOT_DIR/model.int8.onnx"
+        const val SENSE_VOICE_VOCAB_PATH = "$ROOT_DIR/tokens.txt"
+        const val VAD_MODEL_PATH = "$ROOT_DIR/silero_vad.onnx"
     }
 }
 

@@ -37,7 +37,6 @@ class TranscribeService : LifecycleService() {
     lateinit var androidMediaFileManager: AndroidMediaFileManager
 
     @Inject
-    @SenseVoice
     lateinit var speechRecognitionManager: SpeechRecognitionManager
 
     @Inject
@@ -105,7 +104,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun processSubtitle(videoItem: VideoItem) {
-        val languageCode = localPlayerDataSource.getLanguageSetting().first()
+        val languageCode = localPlayerDataSource.getInferenceTargetLanguage().first()
         val isSubtitleExist = androidMediaFileManager.checkSubtitleFileExist(
             id = videoItem.id,
             languageCode = languageCode
