@@ -1,5 +1,4 @@
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -11,16 +10,13 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    includeBuild("build-logic")
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        maven {
-            name = "TarsosDSP repository"
-            url = uri("https://mvn.0110.be/releases")
-        }
     }
 }
 
@@ -32,3 +28,4 @@ include(":data")
 include(":features:gallery")
 include(":features:core")
 include(":features:player")
+include(":ai_pack")

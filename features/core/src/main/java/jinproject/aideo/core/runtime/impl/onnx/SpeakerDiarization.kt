@@ -10,6 +10,7 @@ import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationModelConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationPyannoteModelConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.utils.getAiPackAssets
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,10 +31,10 @@ class SpeakerDiarization @Inject constructor(
 
         val config = OfflineSpeakerDiarizationConfig(
             segmentation = OfflineSpeakerSegmentationModelConfig(
-                pyannote = OfflineSpeakerSegmentationPyannoteModelConfig("models/segmentation.onnx"),
+                pyannote = OfflineSpeakerSegmentationPyannoteModelConfig(SEGMENTATION_MODEL_PATH),
             ),
             embedding = SpeakerEmbeddingExtractorConfig(
-                model = "models/embedding.onnx",
+                model = EMBEDDING_MODEL_PATH,
                 numThreads = 1,
             ),
             clustering = FastClusteringConfig(numClusters = -1, threshold = 0.85f),
@@ -41,7 +42,10 @@ class SpeakerDiarization @Inject constructor(
             minDurationOff = 0.3f,
         )
 
-        diarization = OfflineSpeakerDiarization(assetManager = context.assets, config = config)
+        diarization = OfflineSpeakerDiarization(
+            assetManager = context.getAiPackAssets(),
+            config = config
+        )
         isInitialized = true
     }
 
@@ -54,5 +58,10 @@ class SpeakerDiarization @Inject constructor(
 
     fun process(audioData: FloatArray): Array<OfflineSpeakerDiarizationSegment> {
         return diarization.process(audioData)
+    }
+
+    companion object {
+        const val SEGMENTATION_MODEL_PATH = "models/segmentation.onnx"
+        const val EMBEDDING_MODEL_PATH = "models/embedding.onnx"
     }
 }

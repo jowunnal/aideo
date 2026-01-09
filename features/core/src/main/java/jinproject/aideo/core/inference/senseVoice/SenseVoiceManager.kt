@@ -267,9 +267,8 @@ class SenseVoiceManager @Inject constructor(
     }
 
     companion object {
-        const val ROOT_DIR = "models"
-        const val SENSE_VOICE_MODEL_PATH = "$ROOT_DIR/model.int8.onnx"
-        const val SENSE_VOICE_VOCAB_PATH = "$ROOT_DIR/tokens.txt"
+        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
+        const val SENSE_VOICE_VOCAB_PATH = "models/tokens.txt"
     }
 }
 

@@ -50,5 +50,9 @@ gradlePlugin {
             id = "jinProject.kotlin.library"
             implementationClass = "jinproject.aideo.convention.kotlin.KotlinLibraryPlugin"
         }
+        register("AiPack") {
+            id = "jinProject.android.aipack"
+            implementationClass = "jinproject.aideo.convention.android.AndroidAiPackPlugin"
+        }
     }
 }

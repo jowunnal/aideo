@@ -8,7 +8,6 @@ import com.k2fsa.sherpa.onnx.SpeechSegment
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.SpeechRecognitionManager
 import jinproject.aideo.core.inference.senseVoice.FixedChunkBuffer
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager.Companion.ROOT_DIR
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
@@ -298,8 +297,8 @@ class WhisperManager @Inject constructor(
         const val WHISPER_MODEL_NAME_PTE = "model.pte"
         const val WHISPER_MODEL_PATH_PTE = "models/$WHISPER_MODEL_NAME_PTE"
 
-        const val WHISPER_ENCODER_PATH_ONNX = "$ROOT_DIR/small-encoder.int8.onnx"
-        const val WHISPER_DECODER_PATH_ONNX = "$ROOT_DIR/small-decoder.int8.onnx"
-        const val WHISPER_VOCAB_PATH_ONNX = "$ROOT_DIR/small-tokens.txt"
+        const val WHISPER_ENCODER_PATH_ONNX = "models/small-encoder.int8.onnx"
+        const val WHISPER_DECODER_PATH_ONNX = "models/small-decoder.int8.onnx"
+        const val WHISPER_VOCAB_PATH_ONNX = "models/small-tokens.txt"
     }
 }

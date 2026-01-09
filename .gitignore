@@ -182,5 +182,8 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 features/core/src/main/assets/
+ai_pack/src/main/assets/
+bundletool.jar
+debug-install.apks
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin

@@ -1,8 +1,4 @@
-import com.android.build.api.dsl.AaptOptions
-import com.android.build.api.dsl.AndroidResources
-import com.android.build.api.dsl.Packaging
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import org.gradle.kotlin.dsl.coreLibraryDesugaring
 
 plugins {
     id("jinProject.android.application")
@@ -49,11 +45,11 @@ android {
         buildConfig = true
     }
 
-    android {
-        androidResources {
-            noCompress += "tflite"
-        }
+    androidResources {
+        noCompress += "tflite"
     }
+
+    assetPacks += listOf(":ai_pack")
 }
 
 fun getLocalKey(propertyKey:String):String{

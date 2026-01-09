@@ -11,6 +11,7 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
+import jinproject.aideo.core.utils.getAiPackAssets
 import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
 import java.util.Locale
@@ -69,7 +70,7 @@ class OnnxSpeechToText @Inject constructor(
         }
 
         recognizer = OfflineRecognizer(
-            assetManager = context.assets,
+            assetManager = context.getAiPackAssets(),
             config = config,
         )
 

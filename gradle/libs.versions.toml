@@ -44,14 +44,12 @@ retrofit = "3.0.0"
 room = "2.7.1"
 
 # plugin
-agp = "8.6.0"
+agp = "8.8.0"
 gmsGoogleServicePlugin = "4.4.2"
 firebaseCrashlyticsPlugin = "2.9.9"
 kotlin = "2.1.20"
 kotlinKsp = "2.1.20-1.0.31"
 protobufPlugin = "0.9.4"
-agpVersion = "8.6.0"
-kotlinVersion = "2.1.20"
 material = "1.10.0"
 
 [libraries]
@@ -200,10 +198,6 @@ junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engi
 test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "android-test-ext" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-
-[plugins]
-android-library = { id = "com.android.library", version.ref = "agpVersion" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinVersion" }
 
 [bundles]
 
