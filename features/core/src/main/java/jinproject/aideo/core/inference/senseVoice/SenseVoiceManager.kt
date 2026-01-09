@@ -12,6 +12,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
+import jinproject.aideo.core.runtime.impl.onnx.Punctuation
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
@@ -30,7 +31,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Qualifier
 import kotlin.math.ceil
@@ -42,10 +42,11 @@ annotation class SenseVoice
 
 class SenseVoiceManager @Inject constructor(
     val mediaFileManager: MediaFileManager,
-    @OnnxSTT private val speechToText: SpeechToText,
+    @param:OnnxSTT private val speechToText: SpeechToText,
     private val vad: SileroVad,
     private val speakerDiarization: SpeakerDiarization,
     localFileDataSource: LocalFileDataSource,
+    private val punctuation: Punctuation,
 ) : SpeechRecognitionManager(localFileDataSource) {
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
     private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
@@ -70,6 +71,7 @@ class SenseVoiceManager @Inject constructor(
     override fun release() {
         speechToText.release()
         vad.release()
+        punctuation.release()
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
         isReady = false
@@ -123,6 +125,8 @@ class SenseVoiceManager @Inject constructor(
 
             val transcribedSrtText = async {
                 var processedAudioSize = 0
+                if (punctuation.isAvailableLanguage(language))
+                    punctuation.initialize()
 
                 for (i in inferenceAudioChannel) {
                     vad.acceptWaveform(i)
@@ -167,10 +171,18 @@ class SenseVoiceManager @Inject constructor(
 
             Log.d("test", "Transcribed Result:\n$transcribedSrtText")
 
-            /*storeSubtitleFile(
-            subtitle = transcribedSrtText,
-            videoItemId = videoItem.id,
-        )*/
+            val punctuatedSrtText =
+                if (punctuation.isAvailableLanguage(language))
+                    punctuation.addPunctuationOnSrt(transcribedSrtText)
+                else
+                    transcribedSrtText
+
+            Log.d("test", "Punctuated Result:\n$punctuatedSrtText")
+
+            storeSubtitleFile(
+                subtitle = punctuatedSrtText,
+                videoItemId = videoItem.id,
+            )
 
             inferenceProgress.value = 1f
             vad.reset()
@@ -258,7 +270,6 @@ class SenseVoiceManager @Inject constructor(
         const val ROOT_DIR = "models"
         const val SENSE_VOICE_MODEL_PATH = "$ROOT_DIR/model.int8.onnx"
         const val SENSE_VOICE_VOCAB_PATH = "$ROOT_DIR/tokens.txt"
-        const val VAD_MODEL_PATH = "$ROOT_DIR/silero_vad.onnx"
     }
 }
 
@@ -297,25 +308,5 @@ class FixedChunkBuffer(private val chunkSize: Int = 512) {
         }
         totalSamples = 0
         return chunk
-    }
-}
-
-/**
- * SRT 자막 포맷터
- */
-object SubtitleFormatter {
-    fun formatSrtTime(seconds: Float): String {
-        val hours = (seconds / 3600).toInt()
-        val minutes = ((seconds % 3600) / 60).toInt()
-        val secs = (seconds % 60).toInt()
-        val millis = ((seconds % 1) * 1000).toInt()
-        return String.format(
-            Locale.getDefault(),
-            "%02d:%02d:%02d,%03d",
-            hours,
-            minutes,
-            secs,
-            millis
-        )
     }
 }

@@ -12,6 +12,7 @@ import jinproject.aideo.core.inference.whisper.WhisperManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
+import jinproject.aideo.core.runtime.impl.onnx.Punctuation
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
@@ -33,6 +34,7 @@ object SpeechRecognitionModule {
         vad: SileroVad,
         speakerDiarization: SpeakerDiarization,
         localFileDataSource: LocalFileDataSource,
+        punctuation: Punctuation,
     ): SpeechRecognitionManager {
         val selectedModel = runBlocking {
             localPlayerDataSource.getSelectedModel().first()
@@ -45,7 +47,8 @@ object SpeechRecognitionModule {
                     speechToText = speechToText,
                     vad = vad,
                     speakerDiarization = speakerDiarization,
-                    localFileDataSource = localFileDataSource
+                    localFileDataSource = localFileDataSource,
+                    punctuation = punctuation
                 )
             }
 

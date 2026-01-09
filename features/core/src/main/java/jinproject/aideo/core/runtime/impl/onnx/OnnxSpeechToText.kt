@@ -9,11 +9,10 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.senseVoice.SubtitleFormatter.formatSrtTime
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.data.BuildConfig
-import java.lang.IllegalArgumentException
+import jinproject.aideo.data.TranslationManager
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Qualifier
@@ -100,8 +99,8 @@ class OnnxSpeechToText @Inject constructor(
                         transcription.apply {
                             appendLine(this@with.idx++)
                             appendLine(
-                                "${formatSrtTime(startTime + standardTime)} --> ${
-                                    formatSrtTime(
+                                "${TranslationManager.formatSrtTime(startTime + standardTime)} --> ${
+                                    TranslationManager.formatSrtTime(
                                         endTime + standardTime
                                     )
                                 }"

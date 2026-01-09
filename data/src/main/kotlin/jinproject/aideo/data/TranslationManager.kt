@@ -3,6 +3,7 @@ package jinproject.aideo.data
 import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.languageid.LanguageIdentificationOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -48,7 +49,7 @@ object TranslationManager {
     }
 
     /**
-     * srt 포맷의 문자열에서 자막 내용만 추출하는 함수
+     * srt 포맷의 문자열에서 자막 내용을 '@' 문자로 분리하여 추출하는 함수
      *
      * @param srtContent
      * 1
@@ -99,5 +100,23 @@ object TranslationManager {
             val nextText = if (texts.hasNext()) texts.next() else ""
             "$header$nextText"
         }
+    }
+
+    /**
+     * 초 단위를 SRT 포맷에 맞는 [시:분:초:밀리초] 로 변환
+     */
+    fun formatSrtTime(seconds: Float): String {
+        val hours = (seconds / 3600).toInt()
+        val minutes = ((seconds % 3600) / 60).toInt()
+        val secs = (seconds % 60).toInt()
+        val millis = ((seconds % 1) * 1000).toInt()
+        return String.format(
+            Locale.getDefault(),
+            "%02d:%02d:%02d,%03d",
+            hours,
+            minutes,
+            secs,
+            millis
+        )
     }
 }

@@ -148,14 +148,14 @@ class TranscribeService : LifecycleService() {
     private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, language: String) {
         runCatching {
             speechRecognitionManager.transcribe(videoItem = videoItem, language = language)
-            //mediaRepository.translateSubtitle(videoItem.id)
+            mediaRepository.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
                 title = "자막 생성 완료",
                 description = "자막 생성이 성공적으로 완료되었어요.",
                 videoUri = videoItem.uri
             )
-            //launchPlayer(videoItem.uri)
+            launchPlayer(videoItem.uri)
         }.onFailure { exception ->
             Log.d("test", "error: ${exception.stackTraceToString()}")
             notifyTranscriptionResult(

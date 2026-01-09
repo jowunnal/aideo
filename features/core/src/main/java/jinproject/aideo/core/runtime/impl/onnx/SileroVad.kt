@@ -4,11 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.SpeechSegment
-import com.k2fsa.sherpa.onnx.TenVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager
 import jinproject.aideo.core.inference.whisper.AudioConfig
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +29,7 @@ class SileroVad @Inject constructor(
             assetManager = context.assets,
             config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
-                    model = SenseVoiceManager.VAD_MODEL_PATH,
+                    model = VAD_MODEL_PATH,
                     threshold = 0.1f,
                     minSilenceDuration = 0.05f,
                     minSpeechDuration = 0.1f,
@@ -48,7 +46,7 @@ class SileroVad @Inject constructor(
     }
 
     fun release() {
-        if(isInitialized) {
+        if (isInitialized) {
             vad.clear()
             vad.release()
             isInitialized = false
@@ -76,4 +74,8 @@ class SileroVad @Inject constructor(
     }
 
     fun reset() = vad.reset()
+
+    companion object {
+        const val VAD_MODEL_PATH = "models/silero_vad.onnx"
+    }
 }
