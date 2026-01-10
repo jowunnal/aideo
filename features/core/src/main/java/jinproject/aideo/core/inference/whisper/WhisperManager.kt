@@ -11,12 +11,13 @@ import jinproject.aideo.core.inference.senseVoice.FixedChunkBuffer
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.media.audio.AudioConfig
+import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
-import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -168,7 +169,10 @@ class WhisperManager @Inject constructor(
                         while (vad.hasSegment()) {
                             vad.getNextSegment().also { nextVadSegment ->
 
-                                transcribeSingleSegment(nextVadSegment = nextVadSegment, language = language)
+                                transcribeSingleSegment(
+                                    nextVadSegment = nextVadSegment,
+                                    language = language
+                                )
 
                                 (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
                                     val total =
@@ -193,7 +197,10 @@ class WhisperManager @Inject constructor(
                                 }
                             }*/
 
-                        transcribeSingleSegment(nextVadSegment = nextVadSegment, language = language)
+                        transcribeSingleSegment(
+                            nextVadSegment = nextVadSegment,
+                            language = language
+                        )
                     }
                     vad.popSegment()
                 }
@@ -256,7 +263,6 @@ class WhisperManager @Inject constructor(
                         normalizeAudioSample(
                             audioChunk = audioInfo.audioData,
                             sampleRate = audioInfo.mediaInfo.sampleRate,
-                            channelCount = audioInfo.mediaInfo.channelCount
                         )
                     }
 
@@ -284,7 +290,7 @@ class WhisperManager @Inject constructor(
         speechToText.release()
         vad.release()
         extractedAudioChannel.cancel()
-        if(inferenceAudioChannel.isClosedForReceive) // 추론 중에 cancel 되면 native error 발생
+        if (inferenceAudioChannel.isClosedForReceive) // 추론 중에 cancel 되면 native error 발생
             speakerDiarization.release()
         inferenceAudioChannel.cancel()
 

@@ -14,6 +14,7 @@ composeBom = "2025.06.00"
 composeFoundation = "1.7.0"
 dagger = "2.53.1"
 datastore = "1.1.0"
+desugar_jdk_libs = "2.1.5"
 espresso = "3.5.1"
 executorchAndroid = "1.0.1"
 media3 = "1.9.0"
@@ -44,7 +45,7 @@ retrofit = "3.0.0"
 room = "2.7.1"
 
 # plugin
-agp = "8.8.0"
+agp = "8.10.0"
 gmsGoogleServicePlugin = "4.4.2"
 firebaseCrashlyticsPlugin = "2.9.9"
 kotlin = "2.1.20"
@@ -65,6 +66,9 @@ gradle-kotlin-compose = { module = "org.jetbrains.kotlin:compose-compiler-gradle
 gradle-kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 gradle-protobuf = { group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobufPlugin" }
 gradle-room = { module = "androidx.room:room-gradle-plugin", version.ref = "room" }
+
+# AndroidTool
+android-tools-desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
 # Androidx
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }

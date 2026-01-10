@@ -7,9 +7,11 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.whisper.AudioConfig
+import jinproject.aideo.core.inference.senseVoice.QNN_MODELS_ROOT_DIR
+import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.utils.getAiPackAssets
 import jinproject.aideo.data.BuildConfig
@@ -41,14 +43,13 @@ class OnnxSpeechToText @Inject constructor(
             return
         }
 
-        val requirements =
-            r as? OnnxRequirement ?: throw IllegalArgumentException("[$r] is not OnnxRequirements")
+        val requirements = (r as? OnnxRequirement) ?: throw IllegalArgumentException("[$r] is not OnnxRequirements")
 
         config = OfflineRecognizerConfig(
             modelConfig = OfflineModelConfig(
                 tokens = r.vocabPath,
                 numThreads = 1,
-                provider = "cpu",
+                provider = if(requirements.isQnn) "qnn" else "cpu",
                 debug = true,
             ),
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80)
@@ -56,16 +57,17 @@ class OnnxSpeechToText @Inject constructor(
 
         when (requirements.availableModel) {
             is AvailableModel.Whisper -> setWhisperModelConfig(
-                encoderPath = r.modelPath,
-                decoderPath = (r.availableModel as AvailableModel.Whisper).decoderPath,
-                vocabPath = r.vocabPath,
+                encoderPath = requirements.modelPath,
+                decoderPath = requirements.availableModel.decoderPath,
+                vocabPath = requirements.vocabPath,
                 language = Locale.getDefault().language
             )
 
             is AvailableModel.SenseVoice -> setSenseVoiceModelConfig(
-                modelPath = r.modelPath,
+                modelPath = requirements.modelPath,
                 language = "auto",
-                vocabPath = r.vocabPath
+                vocabPath = requirements.vocabPath,
+                isQnn = requirements.isQnn,
             )
         }
 
@@ -153,6 +155,7 @@ class OnnxSpeechToText @Inject constructor(
         modelPath: String,
         language: String,
         vocabPath: String,
+        isQnn: Boolean = false,
     ) {
         setModelConfig(
             OfflineModelConfig(
@@ -164,7 +167,16 @@ class OnnxSpeechToText @Inject constructor(
                 whisper = OfflineWhisperModelConfig(),
                 tokens = vocabPath,
                 debug = BuildConfig.DEBUG,
-            )
+            ).apply {
+                if (isQnn) {
+                    senseVoice.model = "$QNN_MODELS_ROOT_DIR/libmodel.so"
+                    senseVoice.qnnConfig = QnnConfig(
+                        backendLib = "libQnnHtp.so",
+                        systemLib = "libQnnSystem.so",
+                        contextBinary = modelPath,
+                    )
+                }
+            }
         )
     }
 
@@ -223,5 +235,6 @@ class OnnxSpeechToText @Inject constructor(
         modelPath: String,
         vocabPath: String,
         val availableModel: AvailableModel,
+        val isQnn: Boolean = false,
     ) : InitRequirement(modelPath = modelPath, vocabPath = vocabPath)
 }

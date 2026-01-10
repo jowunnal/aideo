@@ -1,21 +1,23 @@
 package jinproject.aideo.core.inference.senseVoice
 
 import android.media.AudioFormat
+import android.os.Build
 import android.util.Log
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.SpeechSegment
 import jinproject.aideo.core.inference.SpeechRecognitionManager
-import jinproject.aideo.core.inference.whisper.AudioConfig
+import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager.Companion.SENSE_VOICE_MODEL_NAME
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.media.audio.AudioConfig
+import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.core.runtime.api.SpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.Punctuation
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
 import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
-import jinproject.aideo.core.utils.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -57,15 +59,27 @@ class SenseVoiceManager @Inject constructor(
 
     override fun initialize() {
         isReady = true
+
+        val availableSoCModel = getAvailableSoCModel()
         speechToText.initialize(
             OnnxSpeechToText.OnnxRequirement(
-                modelPath = SENSE_VOICE_MODEL_PATH,
+                modelPath = availableSoCModel.path,
                 vocabPath = SENSE_VOICE_VOCAB_PATH,
-                availableModel = OnnxSpeechToText.AvailableModel.SenseVoice
+                availableModel = OnnxSpeechToText.AvailableModel.SenseVoice,
+                isQnn = availableSoCModel.isQnnModel()
             )
         )
+
         vad.initialize()
         speakerDiarization.initialize()
+    }
+
+    private fun getAvailableSoCModel(): AvailableSoCModel {
+        return if (Build.VERSION.SDK_INT > 31)
+            AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
+        else
+            AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
+
     }
 
     override fun release() {
@@ -235,7 +249,6 @@ class SenseVoiceManager @Inject constructor(
                         normalizeAudioSample(
                             audioChunk = audioInfo.audioData,
                             sampleRate = audioInfo.mediaInfo.sampleRate,
-                            channelCount = audioInfo.mediaInfo.channelCount
                         )
                     }
 
@@ -267,7 +280,7 @@ class SenseVoiceManager @Inject constructor(
     }
 
     companion object {
-        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
+        const val SENSE_VOICE_MODEL_NAME = "model.int8.onnx"
         const val SENSE_VOICE_VOCAB_PATH = "models/tokens.txt"
     }
 }
@@ -307,5 +320,26 @@ class FixedChunkBuffer(private val chunkSize: Int = 512) {
         }
         totalSamples = 0
         return chunk
+    }
+}
+
+const val QNN_MODELS_ROOT_DIR = "qnn_models"
+
+enum class AvailableSoCModel(val path: String) {
+    SM8450("$QNN_MODELS_ROOT_DIR/model_sm8450.bin"),
+    SM8475("$QNN_MODELS_ROOT_DIR/model_sm8475.bin"),
+    SM8550("$QNN_MODELS_ROOT_DIR/model_sm8550.bin"),
+    SM8650("$QNN_MODELS_ROOT_DIR/model_sm8650.bin"),
+    SM8750("$QNN_MODELS_ROOT_DIR/model_sm8750.bin"),
+    SM8850("$QNN_MODELS_ROOT_DIR/model_sm8850.bin"),
+    QCS9100("$QNN_MODELS_ROOT_DIR/model_qcs9100.bin"),
+    Default("$QNN_MODELS_ROOT_DIR/$SENSE_VOICE_MODEL_NAME");
+
+    fun isQnnModel(): Boolean = this != Default
+
+    companion object {
+        fun findByName(name: String): AvailableSoCModel {
+            return entries.find { it.name == name } ?: Default
+        }
     }
 }

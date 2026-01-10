@@ -50,6 +50,33 @@ android {
     }
 
     assetPacks += listOf(":ai_pack")
+
+    bundle {
+        deviceTargetingConfig = file("device_targeting_config.xml")
+        deviceGroup {
+            enableSplit = true
+            defaultGroup = "other"
+        }
+    }
+
+    flavorDimensions += "htp_version"
+    productFlavors {
+        create("htp_v69") {
+            dimension = "htp_version"
+        }
+        create("htp_v73") {
+            dimension = "htp_version"
+        }
+        create("htp_v75") {
+            dimension = "htp_version"
+        }
+        create("htp_v79") {
+            dimension = "htp_version"
+        }
+        create("htp_v81") {
+            dimension = "htp_version"
+        }
+    }
 }
 
 fun getLocalKey(propertyKey:String):String{
@@ -68,5 +95,5 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.bundles.firebase)
     implementation(libs.lifecycle.process)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    coreLibraryDesugaring(libs.android.tools.desugar.jdk.libs)
 }

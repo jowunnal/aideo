@@ -7,7 +7,7 @@ import com.k2fsa.sherpa.onnx.SpeechSegment
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.whisper.AudioConfig
+import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.getAiPackAssets
 import javax.inject.Inject
 import javax.inject.Singleton

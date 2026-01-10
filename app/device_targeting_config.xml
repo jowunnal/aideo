@@ -1,0 +1,36 @@
+<config:device-targeting-config
+    xmlns:config="http://schemas.android.com/apk/config">
+
+    <config:device-group name="v69">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8450"/>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8475"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v73">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8550"/>
+            <config:system-on-chip manufacturer="Qualcomm" model="QCS9100"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v75">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8650"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v79">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8750"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v81">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="Qualcomm" model="SM8850"/>
+        </config:device-selector>
+    </config:device-group>
+
+</config:device-targeting-config>

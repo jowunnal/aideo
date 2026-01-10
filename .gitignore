@@ -182,6 +182,7 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 features/core/src/main/assets/
+features/core/src/htp*
 ai_pack/src/main/assets/
 bundletool.jar
 debug-install.apks

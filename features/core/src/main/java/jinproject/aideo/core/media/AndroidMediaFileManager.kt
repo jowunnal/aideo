@@ -20,7 +20,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import jinproject.aideo.core.inference.whisper.AudioConfig
+import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import jinproject.aideo.data.toSubtitleFileIdentifier
@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import java.io.IOException
-import java.lang.IllegalStateException
 import java.nio.ByteOrder
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -270,7 +269,8 @@ class AndroidMediaFileManager @Inject constructor(
                                 },
                                 duration = format.getLong(MediaFormat.KEY_DURATION) / 1_000_000
                             ).apply {
-                                audioData = ByteArray(sampleRate * 1 * encodingBytes * AudioConfig.AUDIO_CHUNK_SECONDS) // 30 초 분량의 오디오 단위 처리
+                                audioData =
+                                    ByteArray(sampleRate * 1 * encodingBytes * AudioConfig.AUDIO_CHUNK_SECONDS) // 30 초 분량의 오디오 단위 처리
                             }
                         }
                     } else if (outputBufferId >= 0) {
@@ -323,7 +323,7 @@ class AndroidMediaFileManager @Inject constructor(
                     }
                 }
 
-                if(currentPointer != 0 && audioData != null) {
+                if (currentPointer != 0 && audioData != null) {
                     extractedAudioChannel.send(
                         audioPreProcessor.preProcess(
                             ExtractedAudioInfo(
