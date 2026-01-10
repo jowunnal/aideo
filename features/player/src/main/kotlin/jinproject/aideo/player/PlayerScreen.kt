@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +53,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -62,11 +60,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.ui.PlayerView
+import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.PresentationState
 import androidx.media3.ui.compose.state.rememberPresentationState
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.core.utils.LocalShowRewardAd
 import jinproject.aideo.design.component.PopUpInfo
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
@@ -100,6 +99,7 @@ fun PlayerScreen(
     )
 
     val transitionState = updateTransition(visibility, label = "animateState")
+    val localShowRewardAd = LocalShowRewardAd.current
 
     RememberEffect(visibility) {
         val windowInsetsController = WindowCompat.getInsetsController(
@@ -126,6 +126,10 @@ fun PlayerScreen(
 
     RememberEffect(Unit) {
         (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+        localShowRewardAd.invoke {
+            viewModel.prepareExoplayer(uiState.currentLanguage)
+        }
     }
 
     PlayerScreen(
@@ -165,25 +169,9 @@ fun PlayerScreen(
                     .align(Alignment.Center)
             ) {
 
-                AndroidView(
-                    factory = {
-                        PlayerView(context).apply {
-                            keepScreenOn = true
-                            useController = false
-                            controllerAutoShow = false
-                        }.apply {
-                            viewModel.initExoPlayer(this)
-                            player = viewModel.getExoPlayer()
-                        }
-                    },
-                    update = { it.player = viewModel.getExoPlayer() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .resizeWithContentScale(
-                            contentScale = ContentScale.Fit,
-                            presentationState.videoSizeDp
-                        )
+                ContentFrame(
+                    player = viewModel.getExoPlayer(),
+                    modifier = Modifier.fillMaxSize(),
                 )
 
                 if ((uiState.playerState as? PlayerState.Playing)?.subTitle?.isNotBlank() ?: false) {
@@ -250,20 +238,21 @@ private fun PlayerScreen(
                         RoundedCornerShape(20.dp)
                     )
             ) {
-                LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray().forEach { language ->
-                    DescriptionMediumText(
-                        text = language.name,
-                        modifier = Modifier
-                            .clickableAvoidingDuplication {
-                                updateLanguageCode(language)
-                            }
-                            .padding(vertical = 8.dp, horizontal = 16.dp)
-                            .graphicsLayer {
-                                alpha =
-                                    if (language.code == uiState.currentLanguage) 1f else 0.5f
-                            },
-                    )
-                }
+                LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray()
+                    .forEach { language ->
+                        DescriptionMediumText(
+                            text = language.name,
+                            modifier = Modifier
+                                .clickableAvoidingDuplication {
+                                    updateLanguageCode(language)
+                                }
+                                .padding(vertical = 8.dp, horizontal = 16.dp)
+                                .graphicsLayer {
+                                    alpha =
+                                        if (language.code == uiState.currentLanguage) 1f else 0.5f
+                                },
+                        )
+                    }
             }
         }
 

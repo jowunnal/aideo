@@ -27,8 +27,6 @@ import jinproject.aideo.player.playerNavGraph
 internal fun NavigationGraph(
     modifier: Modifier = Modifier,
     router: Router,
-    showRewardedAd: (() -> Unit) -> Unit,
-    showSnackBar: (SnackBarMessage) -> Unit,
 ) {
     val navController = router.navController
 

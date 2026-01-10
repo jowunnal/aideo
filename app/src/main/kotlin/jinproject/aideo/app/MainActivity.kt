@@ -85,6 +85,8 @@ import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
+import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
@@ -138,9 +140,6 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var firebaseAnalytics: FirebaseAnalytics
 
-    @Inject
-    lateinit var exoPlayerManager: ExoPlayerManager
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
 
@@ -153,7 +152,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        exoPlayerManager.initAdsLoader(installIMA())
     }
 
     @Composable
@@ -161,7 +159,6 @@ class MainActivity : ComponentActivity() {
         navController: NavHostController = rememberNavController(),
         coroutineScope: CoroutineScope = rememberCoroutineScope(),
         context: Context = LocalContext.current,
-        configuration: Configuration = LocalConfiguration.current,
     ) {
         val snackBarHostState = remember { SnackbarHostState() }
 
@@ -199,7 +196,7 @@ class MainActivity : ComponentActivity() {
 
         val isAdViewRemoved by adMobManager.isAdviewRemoved.collectAsStateWithLifecycle()
 
-        val showSnackBar = { snackBarMessage: SnackBarMessage ->
+        val showSnackBar: (SnackBarMessage) -> Unit = { snackBarMessage: SnackBarMessage ->
             snackBarChannel.trySend(snackBarMessage)
         }
 
@@ -282,13 +279,11 @@ class MainActivity : ComponentActivity() {
         )
         val drawerItemColors = NavigationDrawerItemDefaults.colors()
 
-        val navigationSuiteItemColors = remember {
-            NavigationSuiteItemColors(
-                navigationBarItemColors = navBarItemColors,
-                navigationRailItemColors = railBarItemColors,
-                navigationDrawerItemColors = drawerItemColors,
-            )
-        }
+        val navigationSuiteItemColors = NavigationSuiteItemColors(
+            navigationBarItemColors = navBarItemColors,
+            navigationRailItemColors = railBarItemColors,
+            navigationDrawerItemColors = drawerItemColors,
+        )
 
         val router = rememberRouter(navController = navController)
         val currentDestination by rememberUpdatedState(newValue = router.currentDestination)
@@ -304,6 +299,8 @@ class MainActivity : ComponentActivity() {
             LocalTonalElevationEnabled provides false,
             LocalAnalyticsLoggingEvent provides ::loggingAnalyticsEvent,
             LocalBillingModule provides billingModule,
+            LocalShowSnackBar provides showSnackBar,
+            LocalShowRewardAd provides ::showRewardedAd,
         ) {
             NavigationSuiteScaffold(
                 navigationSuiteItems = {
@@ -365,27 +362,11 @@ class MainActivity : ComponentActivity() {
                                     end = paddingValues.calculateStartPadding(LayoutDirection.Rtl),
                                 ),
                             router = router,
-                            showRewardedAd = { onResult ->
-                                showRewardedAd(onResult)
-                            },
-                            showSnackBar = { snackBarMessage ->
-                                showSnackBar(snackBarMessage)
-                            },
                         )
                     }
                 }
             }
         }
-    }
-
-    @OptIn(UnstableApi::class)
-    fun installIMA(): ImaAdsLoader {
-        val imaSdkSettings = ImaSdkFactory.getInstance().createImaSdkSettings()
-        ImaSdkFactory.getInstance().initialize(this, imaSdkSettings)
-
-        return ImaAdsLoader.Builder(this)
-            .setImaSdkSettings(imaSdkSettings)
-            .build()
     }
 
     private fun loggingAnalyticsEvent(event: AnalyticsEvent) {

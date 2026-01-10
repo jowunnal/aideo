@@ -1,6 +1,5 @@
 package jinproject.aideo.player
 
-import android.view.ViewGroup
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -34,6 +33,10 @@ class PlayerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
+    init {
+        initExoPlayer()
+    }
+
     private val currentVideoUri: String =
         savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
@@ -57,8 +60,7 @@ class PlayerViewModel @Inject constructor(
                         videoUri = currentVideoUri,
                         languageCode = language
                     )
-                } else
-                    prepareExoplayer(language)
+                }
             }
         }.flatMapLatest { language ->
             exoPlayerManager.playerState.map { playingState ->
@@ -98,8 +100,8 @@ class PlayerViewModel @Inject constructor(
 
     fun getExoPlayer(): Player? = exoPlayerManager.getExoPlayer()
 
-    fun initExoPlayer(playerView: ViewGroup) {
-        exoPlayerManager.initialize(playerView)
+    fun initExoPlayer() {
+        exoPlayerManager.initialize()
     }
 
     override fun onCleared() {

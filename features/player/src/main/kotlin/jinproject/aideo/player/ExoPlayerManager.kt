@@ -2,7 +2,6 @@ package jinproject.aideo.player
 
 import android.content.Context
 import android.util.Log
-import android.view.ViewGroup
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -12,7 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaItem.AdsConfiguration
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
@@ -21,12 +19,7 @@ import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.ima.ImaAdsLoader
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.MediaSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
@@ -47,8 +40,6 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
 
     private var exoPlayer: ExoPlayer? = null
 
-    private var adsLoader: ImaAdsLoader? = null
-
     val playerState: StateFlow<PlayerState> field: MutableStateFlow<PlayerState> = MutableStateFlow(
         PlayerState.Idle
     )
@@ -56,42 +47,21 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
     private var playerPositionObserver: Job? = null
 
     @OptIn(UnstableApi::class)
-    fun initialize(playerView: ViewGroup) {
-        require(adsLoader != null) {
-            "AdsLoader has not been initialized."
-        }
-
+    fun initialize() {
         if (exoPlayer == null) {
-            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context)
-
-            val mediaSourceFactory: MediaSource.Factory =
-                DefaultMediaSourceFactory(dataSourceFactory)
-                    .setLocalAdInsertionComponents(
-                        { adsLoader },
-                        { playerView }
-                    )
-
             exoPlayer =
                 ExoPlayer.Builder(context)
-                    .setMediaSourceFactory(mediaSourceFactory)
                     .build().apply {
                         setSeekBackIncrementMs(5000)
                         setupPlayerListener()
                     }
-
-            adsLoader!!.setPlayer(exoPlayer)
         }
     }
 
     fun release() {
         cancelObservingPlayerPosition()
-        adsLoader?.setPlayer(null)
         exoPlayer?.release()
         exoPlayer = null
-    }
-
-    fun initAdsLoader(adsLoader: ImaAdsLoader) {
-        this.adsLoader = adsLoader
     }
 
     suspend fun observePlayerPosition() {
@@ -179,7 +149,6 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         val mediaItem = MediaItem.Builder()
             .setUri(videoUri.toUri())
             .setSubtitleConfigurations(listOf(subTitleConfiguration))
-            .setAdsConfiguration(AdsConfiguration.Builder(SAMPLE_VAST_TAG_URL.toUri()).build())
             .build()
 
         exoPlayer?.let { player ->
@@ -220,13 +189,6 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
 
     private fun updateCurrentPosition(pos: Long) {
         (playerState.value as? PlayerState.Playing)?.updateCurrentPos(pos)
-    }
-
-    companion object {
-        const val SAMPLE_VAST_TAG_URL: String =
-            ("https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/"
-                    + "single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90"
-                    + "&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&correlator=")
     }
 }
 
