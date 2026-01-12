@@ -26,8 +26,11 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -39,10 +42,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -64,6 +70,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.RowScopedTitleAppBar
 import jinproject.aideo.design.component.button.DefaultIconButton
+import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.layout.DownloadableLayout
 import jinproject.aideo.design.component.layout.DownloadableUiState
@@ -192,34 +199,33 @@ private fun VideoGridItem(
     videoItem: VideoItem,
     onClick: () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp),
-        shape = RoundedCornerShape(20.dp)
+            .height(150.dp)
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.background, RoundedCornerShape(20.dp))
+            .clickableAvoidingDuplication(onClick = onClick),
     ) {
-        Box(
-            Modifier
-                .weight(1f)
-        ) {
+        Box(Modifier.weight(1f)) {
             SubcomposeAsyncImageWithPreview(
                 placeHolderPreview = jinproject.aideo.design.R.drawable.test,
                 model = videoItem.thumbnailPath,
                 contentDescription = videoItem.title,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(4.dp),
-                contentScale = ContentScale.Fit
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                contentScale = ContentScale.FillHeight,
             )
             Image(
                 imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
                 contentDescription = "Play Video",
                 modifier = Modifier
-                    .align(Alignment.Center)
                     .shadow(1.dp, RoundedCornerShape(20.dp))
                     .background(Color.White, RoundedCornerShape(20.dp))
                     .padding(4.dp)
+                    .align(Alignment.Center),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
         }
         DescriptionSmallText(

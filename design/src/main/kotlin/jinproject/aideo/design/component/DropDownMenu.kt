@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,10 +35,10 @@ import jinproject.aideo.design.utils.PreviewAideoTheme
 
 @Composable
 fun DropDownMenuCustom(
-    label: String? = null,
     selectedText: String,
     items: List<String>,
     modifier: Modifier = Modifier,
+    label: String? = null,
     @DrawableRes iconHeader: Int? = null,
     @DrawableRes iconTail: Int? = null,
     onClickItem: (String) -> Unit,
@@ -47,7 +48,7 @@ fun DropDownMenuCustom(
         mutableStateOf(false)
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clickable {
                 dropDownExpandedState.value = !dropDownExpandedState.value
             },
@@ -62,7 +63,8 @@ fun DropDownMenuCustom(
         }
         VerticalSpacer(height = 1.dp)
         Row(
-            modifier = modifier
+            modifier = Modifier
+                .fillMaxWidth()
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.scrim,
@@ -102,7 +104,8 @@ fun DropDownMenuCustom(
         DropdownMenu(
             expanded = dropDownExpandedState.value,
             onDismissRequest = { dropDownExpandedState.value = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.background)
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.background)
         ) {
             items.forEach {
                 DropdownMenuItem(
@@ -112,7 +115,8 @@ fun DropDownMenuCustom(
                     onClick = {
                         onClickItem(it)
                         dropDownExpandedState.value = false
-                    }
+                    },
+                    modifier = Modifier
                 )
             }
         }

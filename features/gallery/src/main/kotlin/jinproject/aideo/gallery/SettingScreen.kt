@@ -3,6 +3,7 @@ package jinproject.aideo.gallery
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -168,7 +169,7 @@ private fun LanguageSetting(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AideoColor.grey_300.color.copy(0.3f)),
-            iconTail = jinproject.aideo.design.R.drawable.ic_arrow_down_outlined
+            iconTail = jinproject.aideo.design.R.drawable.ic_arrow_down_outlined,
         )
         VerticalSpacer(8.dp)
         DescriptionSmallText(

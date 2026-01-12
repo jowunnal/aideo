@@ -66,7 +66,10 @@ import androidx.media3.ui.compose.state.PresentationState
 import androidx.media3.ui.compose.state.rememberPresentationState
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.design.component.HorizontalSpacer
+import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.PopUpInfo
+import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.lazyList.rememberTimeScheduler
@@ -74,6 +77,7 @@ import jinproject.aideo.design.component.text.AppBarText
 import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.design.utils.tu
+import jinproject.aideo.player.PreviewPlayer.seekTo
 import jinproject.aideo.player.component.PlayProgressBar
 import jinproject.aideo.player.component.PlayerController
 import jinproject.aideo.player.component.rememberPlayerControllerState
@@ -135,7 +139,6 @@ fun PlayerScreen(
     PlayerScreen(
         uiState = uiState,
         transitionState = transitionState,
-        seekTo = viewModel::seekTo,
         updateLanguageCode = viewModel::updateSubtitleLanguage,
         updateTransitionState = { visibility = !visibility },
         navigatePopBackStack = navigatePopBackStack,
@@ -174,18 +177,34 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                if ((uiState.playerState as? PlayerState.Playing)?.subTitle?.isNotBlank() ?: false) {
-                    DescriptionMediumText(
-                        text = (uiState.playerState as PlayerState.Playing).subTitle,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentWidth()
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                            .padding(bottom = 12.dp)
-                            .align(Alignment.BottomCenter),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                ) {
+                    if ((uiState.playerState as? PlayerState.Playing)?.subTitle?.isNotBlank() ?: false) {
+                        DescriptionMediumText(
+                            text = (uiState.playerState as PlayerState.Playing).subTitle,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentWidth(),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+
+                    transitionState.AnimatedVisibility(
+                        visible = { it && uiState.playerState is PlayerState.Playing },
+                        modifier = Modifier,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        PlayProgressBar(
+                            modifier = Modifier,
+                            playerState = uiState.playerState as PlayerState.Playing,
+                            seekTo = viewModel::seekTo,
+                        )
+                    }
                 }
 
                 PlayerController(
@@ -206,7 +225,6 @@ private fun PlayerScreen(
     uiState: PlayerUiState,
     transitionState: Transition<Boolean>,
     density: Density = LocalDensity.current,
-    seekTo: (Long) -> Unit,
     updateLanguageCode: (LanguageCode) -> Unit,
     updateTransitionState: () -> Unit,
     navigatePopBackStack: () -> Unit,
@@ -259,7 +277,7 @@ private fun PlayerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
+            .background(Color.Black)
             .clickableAvoidingDuplication {
                 updateTransitionState()
             }
@@ -276,26 +294,18 @@ private fun PlayerScreen(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(
+                DefaultIconButton(
+                    icon = jinproject.aideo.design.R.drawable.ic_arrow_left,
                     onClick = navigatePopBackStack,
-                    modifier = Modifier
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = jinproject.aideo.design.R.drawable.ic_arrow_left),
-                        contentDescription = "뒤로 가기",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                AppBarText(
-                    text = "재생",
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    backgroundTint = Color.Black,
+                    iconTint = MaterialTheme.colorScheme.onBackground,
                 )
-                IconButton(
+                HorizontalWeightSpacer(1f)
+                DefaultIconButton(
                     onClick = {
                         popUpInfo.changeVisibility(!popUpInfo.visibility)
                     },
+                    icon = jinproject.aideo.design.R.drawable.ic_translation_language,
                     modifier = Modifier.onGloballyPositioned { layoutCoordinates ->
                         popUpInfo = PopUpInfo(
                             offset = run {
@@ -307,14 +317,10 @@ private fun PlayerScreen(
                                 )
                             }
                         )
-                    }
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = jinproject.aideo.design.R.drawable.ic_build_filled),
-                        contentDescription = "언어 설정",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                    },
+                    backgroundTint = Color.Black,
+                    iconTint = MaterialTheme.colorScheme.onBackground,
+                )
             }
         }
 
@@ -327,18 +333,6 @@ private fun PlayerScreen(
                     .padding(vertical = 60.dp)
                     .background(Color.Black)
                     .align(Alignment.Center)
-            )
-        }
-
-        transitionState.AnimatedVisibility(
-            visible = { it },
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
-            PlayProgressBar(
-                playerState = uiState.playerState,
-                seekTo = seekTo,
             )
         }
     }
@@ -357,7 +351,6 @@ private fun PlayerScreenPreview(
         PlayerScreen(
             uiState = playerUiState,
             transitionState = updateTransition(state),
-            seekTo = {},
             updateLanguageCode = {},
             updateTransitionState = { state = !state },
             navigatePopBackStack = {},
@@ -379,7 +372,6 @@ private fun PlayerScreenTruePreview(
         PlayerScreen(
             uiState = playerUiState,
             transitionState = updateTransition(state),
-            seekTo = {},
             updateLanguageCode = {},
             updateTransitionState = { state = !state },
             navigatePopBackStack = {},
