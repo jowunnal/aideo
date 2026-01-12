@@ -186,5 +186,6 @@ features/core/src/htp*
 ai_pack/src/main/assets/
 bundletool.jar
 debug-install.apks
+buildAndInstallApksWithBundletool.sh
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin

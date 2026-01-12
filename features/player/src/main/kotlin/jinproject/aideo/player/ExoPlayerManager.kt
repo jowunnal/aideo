@@ -155,7 +155,6 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             player.apply {
                 setMediaItem(mediaItem)
                 prepare()
-                playWhenReady = true
             }
         }
     }

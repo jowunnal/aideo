@@ -127,7 +127,7 @@ fun PlayerScreen(
     RememberEffect(Unit) {
         (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
-        localShowRewardAd.invoke {
+        localShowRewardAd {
             viewModel.prepareExoplayer(uiState.currentLanguage)
         }
     }

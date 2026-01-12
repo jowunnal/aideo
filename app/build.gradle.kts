@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.AaptOptions
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 
 plugins {
@@ -12,6 +13,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     compileOptions {
@@ -46,7 +50,11 @@ android {
     }
 
     androidResources {
-        noCompress += "tflite"
+        noCompress += listOf<String>("tflite", "so", "bin", "onnx")
+    }
+
+    packaging {
+        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
     assetPacks += listOf(":ai_pack")

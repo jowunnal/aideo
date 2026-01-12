@@ -8,7 +8,7 @@ import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.audio.AudioConfig
-import jinproject.aideo.core.utils.getAiPackAssets
+import jinproject.aideo.core.utils.getApplicationAssets
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,14 +27,14 @@ class SileroVad @Inject constructor(
         }
 
         vad = Vad(
-            assetManager = context.getAiPackAssets(),
+            assetManager = context.getApplicationAssets(),
             config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = VAD_MODEL_PATH,
                     threshold = 0.1f,
                     minSilenceDuration = 0.05f,
                     minSpeechDuration = 0.1f,
-                    maxSpeechDuration = 10.0f,
+                    maxSpeechDuration = 9.5f,
                     windowSize = 512,
                 ),
                 sampleRate = AudioConfig.SAMPLE_RATE,

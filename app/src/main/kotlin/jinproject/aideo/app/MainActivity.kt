@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -152,6 +153,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
+        loadRewardedAd()
     }
 
     @Composable
@@ -406,14 +408,15 @@ class MainActivity : ComponentActivity() {
             })
     }
 
-    private fun showRewardedAd(onResult: () -> Unit, recursiveTimes: Int = 2) {
-        if (recursiveTimes > 0)
-            mRewardedAd?.show(this) {
+    private fun showRewardedAd(onResult: () -> Unit) {
+        mRewardedAd?.show(this) {
+            onResult()
+        } ?: run {
+            loadRewardedAd()
+            mRewardedAd?.show(this@MainActivity) {
                 onResult()
-            } ?: run {
-                loadRewardedAd()
-                showRewardedAd(onResult = onResult, recursiveTimes = recursiveTimes - 1)
-            }
+            } ?: onResult()
+        }
     }
 
     override fun onResume() {

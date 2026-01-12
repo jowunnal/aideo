@@ -1,6 +1,7 @@
 package jinproject.aideo.core.runtime.impl.onnx
 
 import android.content.Context
+import android.content.res.AssetManager
 import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
@@ -10,12 +11,14 @@ import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.senseVoice.QNN_MODELS_ROOT_DIR
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
-import jinproject.aideo.core.utils.getAiPackAssets
 import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Qualifier
@@ -43,36 +46,32 @@ class OnnxSpeechToText @Inject constructor(
             return
         }
 
-        val requirements = (r as? OnnxRequirement) ?: throw IllegalArgumentException("[$r] is not OnnxRequirements")
+        val requirements = (r as? OnnxRequirement)
+            ?: throw IllegalArgumentException("[$r] is not OnnxRequirements")
 
         config = OfflineRecognizerConfig(
-            modelConfig = OfflineModelConfig(
-                tokens = r.vocabPath,
-                numThreads = 1,
-                provider = if(requirements.isQnn) "qnn" else "cpu",
-                debug = true,
-            ),
-            featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80)
+            featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
         )
 
+        // Setting Model Config
         when (requirements.availableModel) {
             is AvailableModel.Whisper -> setWhisperModelConfig(
                 encoderPath = requirements.modelPath,
                 decoderPath = requirements.availableModel.decoderPath,
-                vocabPath = requirements.vocabPath,
+                tokensPath = requirements.vocabPath,
                 language = Locale.getDefault().language
             )
 
             is AvailableModel.SenseVoice -> setSenseVoiceModelConfig(
                 modelPath = requirements.modelPath,
                 language = "auto",
-                vocabPath = requirements.vocabPath,
+                tokensPath = requirements.vocabPath,
                 isQnn = requirements.isQnn,
             )
         }
 
         recognizer = OfflineRecognizer(
-            assetManager = context.getAiPackAssets(),
+            assetManager = if (requirements.isQnn) null else context.assets,
             config = config,
         )
 
@@ -95,7 +94,7 @@ class OnnxSpeechToText @Inject constructor(
             recognizer.decode(stream)
 
             recognizer.getResult(stream).let { result ->
-                Log.d("test", "recognized: ${result.text}")
+                //Log.d("test", "recognized: ${result.text}")
 
                 if (result.text.isNotEmpty())
                     with(transcribeResult) {
@@ -143,9 +142,7 @@ class OnnxSpeechToText @Inject constructor(
     }
 
     private fun setModelConfig(modelConfig: OfflineModelConfig) {
-        config = config.apply {
-            this.modelConfig = modelConfig
-        }
+        config.modelConfig = modelConfig
 
         if (isInitialized)
             recognizer.setConfig(config)
@@ -154,47 +151,105 @@ class OnnxSpeechToText @Inject constructor(
     fun setSenseVoiceModelConfig(
         modelPath: String,
         language: String,
-        vocabPath: String,
+        tokensPath: String,
         isQnn: Boolean = false,
     ) {
-        setModelConfig(
+        val offlineModelConfig = if (isQnn) {
+            OfflineRecognizer.prependAdspLibraryPath(context.applicationInfo.nativeLibraryDir)
+
+            val copiedModelPath = copyAssetToInternalStorage(
+                path = "models/libmodel.so",
+                context = context,
+            )
+
+            val copiedBinaryPath = copyAssetToInternalStorage(
+                path = "models/model.bin",
+                context = context,
+            )
+
+            val copiedTokensPath = copyAssetToInternalStorage(
+                path = tokensPath,
+                context = context
+            )
+
+            OfflineModelConfig(
+                senseVoice = OfflineSenseVoiceModelConfig(
+                    model = copiedModelPath,
+                    language = language,
+                    useInverseTextNormalization = true,
+                    qnnConfig = QnnConfig(
+                        backendLib = "libQnnHtp.so",
+                        systemLib = "libQnnSystem.so",
+                        contextBinary = copiedBinaryPath,
+                    )
+                ),
+                provider = "qnn",
+                numThreads = 2,
+                tokens = copiedTokensPath
+            )
+        } else
             OfflineModelConfig(
                 senseVoice = OfflineSenseVoiceModelConfig(
                     model = modelPath,
                     language = language,
                     useInverseTextNormalization = true,
                 ),
-                whisper = OfflineWhisperModelConfig(),
-                tokens = vocabPath,
+                tokens = tokensPath,
                 debug = BuildConfig.DEBUG,
-            ).apply {
-                if (isQnn) {
-                    senseVoice.model = "$QNN_MODELS_ROOT_DIR/libmodel.so"
-                    senseVoice.qnnConfig = QnnConfig(
-                        backendLib = "libQnnHtp.so",
-                        systemLib = "libQnnSystem.so",
-                        contextBinary = modelPath,
-                    )
-                }
+            )
+
+        setModelConfig(offlineModelConfig)
+    }
+
+    fun copyAssetToInternalStorage(path: String, context: Context): String {
+        val targetRoot = context.filesDir
+        val outFile = File(targetRoot, path)
+
+        if (!assetExists(context.assets, path = path)) {
+            outFile.parentFile?.mkdirs()
+            return outFile.absolutePath
+        }
+
+        if (outFile.exists()) {
+            val assetSize = context.assets.open(path).use { it.available() }
+            if (outFile.length() == assetSize.toLong()) {
+                return "$targetRoot/$path"
             }
-        )
+        }
+
+        outFile.parentFile?.mkdirs()
+
+        context.assets.open(path).use { input: InputStream ->
+            FileOutputStream(outFile).use { output: OutputStream ->
+                input.copyTo(output)
+            }
+        }
+
+        return outFile.absolutePath
+    }
+
+    fun assetExists(assetManager: AssetManager, path: String): Boolean {
+        val dir = path.substringBeforeLast('/', "")
+        val fileName = path.substringAfterLast('/')
+
+        val files = assetManager.list(dir) ?: return false
+        return files.contains(fileName)
     }
 
     fun setWhisperModelConfig(
         encoderPath: String,
         decoderPath: String,
-        vocabPath: String,
+        tokensPath: String,
         language: String,
     ) {
         setModelConfig(
             OfflineModelConfig(
-                senseVoice = OfflineSenseVoiceModelConfig(),
                 whisper = OfflineWhisperModelConfig(
                     encoder = encoderPath,
                     decoder = decoderPath,
                     language = language,
                 ),
-                tokens = vocabPath,
+                tokens = tokensPath,
                 debug = BuildConfig.DEBUG,
             )
         )

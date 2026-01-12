@@ -4,9 +4,9 @@ import android.media.AudioFormat
 import android.os.Build
 import android.util.Log
 import androidx.core.net.toUri
+import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
 import jinproject.aideo.core.inference.SpeechRecognitionManager
-import jinproject.aideo.core.inference.senseVoice.SenseVoiceManager.Companion.SENSE_VOICE_MODEL_NAME
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
@@ -60,13 +60,12 @@ class SenseVoiceManager @Inject constructor(
     override fun initialize() {
         isReady = true
 
-        val availableSoCModel = getAvailableSoCModel()
         speechToText.initialize(
             OnnxSpeechToText.OnnxRequirement(
-                modelPath = availableSoCModel.path,
+                modelPath = SENSE_VOICE_MODEL_PATH,
                 vocabPath = SENSE_VOICE_VOCAB_PATH,
                 availableModel = OnnxSpeechToText.AvailableModel.SenseVoice,
-                isQnn = availableSoCModel.isQnnModel()
+                isQnn = getAvailableSoCModel().isQnnModel()
             )
         )
 
@@ -75,7 +74,7 @@ class SenseVoiceManager @Inject constructor(
     }
 
     private fun getAvailableSoCModel(): AvailableSoCModel {
-        return if (Build.VERSION.SDK_INT > 31)
+        return if (Build.VERSION.SDK_INT >= 31)
             AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
         else
             AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
@@ -183,7 +182,7 @@ class SenseVoiceManager @Inject constructor(
                 speechToText.getResult()
             }.await()
 
-            Log.d("test", "Transcribed Result:\n$transcribedSrtText")
+            //Log.d("test", "Transcribed Result:\n$transcribedSrtText")
 
             val punctuatedSrtText =
                 if (punctuation.isAvailableLanguage(language))
@@ -191,7 +190,7 @@ class SenseVoiceManager @Inject constructor(
                 else
                     transcribedSrtText
 
-            Log.d("test", "Punctuated Result:\n$punctuatedSrtText")
+            //Log.d("test", "Punctuated Result:\n$punctuatedSrtText")
 
             storeSubtitleFile(
                 subtitle = punctuatedSrtText,
@@ -207,12 +206,19 @@ class SenseVoiceManager @Inject constructor(
         val standardTime =
             nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
 
-        val sdResult = speakerDiarization.process(nextVadSegment.samples)
+        val sdResult =
+            if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 10)
+                speakerDiarization.process(nextVadSegment.samples)
+            else
+                arrayOf(
+                    OfflineSpeakerDiarizationSegment(
+                        speaker = 0,
+                        start = 0f,
+                        end = 10f
+                    )
+                )
 
-        Log.d(
-            "test",
-            "sdResult: ${sdResult.joinToString("\n") { "[${it.speaker}] : ${it.start} ~ ${it.end}" }}"
-        )
+        //Log.d("test", "sdResult: ${sdResult.joinToString("\n") { "[${it.speaker}] : ${it.start} ~ ${it.end}" }}")
 
         with(speechToText as OnnxSpeechToText) {
             setStandardTime(standardTime)
@@ -227,7 +233,7 @@ class SenseVoiceManager @Inject constructor(
                 .coerceIn(lastEndIdx, nextVadSegment.samples.size)
             lastEndIdx = endIdx
 
-            Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
+            //Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
 
             speechToText.setTimes(sd.start, sd.end)
             speechToText.transcribe(
@@ -280,7 +286,7 @@ class SenseVoiceManager @Inject constructor(
     }
 
     companion object {
-        const val SENSE_VOICE_MODEL_NAME = "model.int8.onnx"
+        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
         const val SENSE_VOICE_VOCAB_PATH = "models/tokens.txt"
     }
 }
@@ -323,17 +329,15 @@ class FixedChunkBuffer(private val chunkSize: Int = 512) {
     }
 }
 
-const val QNN_MODELS_ROOT_DIR = "qnn_models"
-
-enum class AvailableSoCModel(val path: String) {
-    SM8450("$QNN_MODELS_ROOT_DIR/model_sm8450.bin"),
-    SM8475("$QNN_MODELS_ROOT_DIR/model_sm8475.bin"),
-    SM8550("$QNN_MODELS_ROOT_DIR/model_sm8550.bin"),
-    SM8650("$QNN_MODELS_ROOT_DIR/model_sm8650.bin"),
-    SM8750("$QNN_MODELS_ROOT_DIR/model_sm8750.bin"),
-    SM8850("$QNN_MODELS_ROOT_DIR/model_sm8850.bin"),
-    QCS9100("$QNN_MODELS_ROOT_DIR/model_qcs9100.bin"),
-    Default("$QNN_MODELS_ROOT_DIR/$SENSE_VOICE_MODEL_NAME");
+enum class AvailableSoCModel {
+    SM8450,
+    SM8475,
+    SM8550,
+    SM8650,
+    SM8750,
+    SM8850,
+    QCS9100,
+    Default;
 
     fun isQnnModel(): Boolean = this != Default
 

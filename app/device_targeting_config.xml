@@ -1,35 +1,45 @@
 <config:device-targeting-config
     xmlns:config="http://schemas.android.com/apk/config">
 
-    <config:device-group name="v69">
+    <config:device-group name="v69_sm8450">
         <config:device-selector>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8450"/>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8475"/>
+            <config:system-on-chip manufacturer="QTI" model="SM8450"/>
         </config:device-selector>
     </config:device-group>
 
-    <config:device-group name="v73">
+    <config:device-group name="v69_sm8475">
         <config:device-selector>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8550"/>
-            <config:system-on-chip manufacturer="Qualcomm" model="QCS9100"/>
+            <config:system-on-chip manufacturer="QTI" model="SM8475"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v73_sm8550">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="QTI" model="SM8550"/>
+        </config:device-selector>
+    </config:device-group>
+
+    <config:device-group name="v73_qcs9100">
+        <config:device-selector>
+            <config:system-on-chip manufacturer="QTI" model="QCS9100"/>
         </config:device-selector>
     </config:device-group>
 
     <config:device-group name="v75">
         <config:device-selector>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8650"/>
+            <config:system-on-chip manufacturer="QTI" model="SM8650"/>
         </config:device-selector>
     </config:device-group>
 
     <config:device-group name="v79">
         <config:device-selector>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8750"/>
+            <config:system-on-chip manufacturer="QTI" model="SM8750"/>
         </config:device-selector>
     </config:device-group>
 
     <config:device-group name="v81">
         <config:device-selector>
-            <config:system-on-chip manufacturer="Qualcomm" model="SM8850"/>
+            <config:system-on-chip manufacturer="QTI" model="SM8850"/>
         </config:device-selector>
     </config:device-group>
 

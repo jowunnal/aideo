@@ -22,6 +22,7 @@ data class OfflineTransducerModelConfig(
 
 data class OfflineParaformerModelConfig(
     var model: String = "",
+    var qnnConfig: QnnConfig = QnnConfig(),
 )
 
 data class OfflineNemoEncDecCtcModelConfig(
@@ -42,6 +43,10 @@ data class OfflineWenetCtcModelConfig(
 )
 
 data class OfflineOmnilingualAsrCtcModelConfig(
+    var model: String = "",
+)
+
+data class OfflineMedAsrCtcModelConfig(
     var model: String = "",
 )
 
@@ -92,6 +97,7 @@ data class OfflineModelConfig(
     var zipformerCtc: OfflineZipformerCtcModelConfig = OfflineZipformerCtcModelConfig(),
     var wenetCtc: OfflineWenetCtcModelConfig = OfflineWenetCtcModelConfig(),
     var omnilingual: OfflineOmnilingualAsrCtcModelConfig = OfflineOmnilingualAsrCtcModelConfig(),
+    var medasr: OfflineMedAsrCtcModelConfig = OfflineMedAsrCtcModelConfig(),
     var canary: OfflineCanaryModelConfig = OfflineCanaryModelConfig(),
     var teleSpeech: String = "",
     var numThreads: Int = 1,
