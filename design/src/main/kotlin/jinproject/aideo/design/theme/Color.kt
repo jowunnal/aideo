@@ -9,14 +9,14 @@ value class AideoColor private constructor(val color: Color) {
     companion object {
 
         private val primary = AideoColor(Color(0xFF7FD182))
-        private val deep_primary = AideoColor(Color(0xFF315532))
+        val deep_primary = AideoColor(Color(0xFF315532))
         val lightBlack = AideoColor(Color(0xFF1F1F1F))
         val mediumBlack = AideoColor(Color(0xFF1A1A1A))
         private val black = AideoColor(Color(0xFF111111))
         private val white = AideoColor(Color(0XFFFFFFFF))
         private val grey_100 = AideoColor(Color(0xFFF5F5F5))
         private val grey_200 = AideoColor(Color(0xFFEEEEEE))
-        private val grey_300 = AideoColor(Color(0xFFE0E0E0))
+        val grey_300 = AideoColor(Color(0xFFE0E0E0))
         private val grey_400 = AideoColor(Color(0xFFBDBDBD))
         private val grey_500 = AideoColor(Color(0xFF9E9E9E))
         private val grey_600 = AideoColor(Color(0xFF757575))
@@ -28,7 +28,7 @@ value class AideoColor private constructor(val color: Color) {
         val blue = AideoColor(Color(0xFF007AFF))
         val orange = AideoColor(Color(0xFFFF5722))
 
-        val light_primary = lightBlack
+        val light_primary = primary
         val light_onPrimary = white
         val light_secondary = AideoColor(Color(0xFF91E4E1))
         val light_onSecondary = grey_600

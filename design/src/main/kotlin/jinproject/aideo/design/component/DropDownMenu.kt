@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -26,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import jinproject.aideo.design.R
+import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.utils.PreviewAideoTheme
 
 @Composable
@@ -43,7 +47,7 @@ fun DropDownMenuCustom(
         mutableStateOf(false)
     }
     Column(
-        modifier = modifier
+        modifier = Modifier
             .clickable {
                 dropDownExpandedState.value = !dropDownExpandedState.value
             },
@@ -58,9 +62,13 @@ fun DropDownMenuCustom(
         }
         VerticalSpacer(height = 1.dp)
         Row(
-            modifier = Modifier
-                .border(1.dp, MaterialTheme.colorScheme.scrim, RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+            modifier = modifier
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.scrim,
+                    RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             iconHeader?.let {
@@ -80,16 +88,15 @@ fun DropDownMenuCustom(
 
             iconTail?.let {
                 HorizontalSpacer(8.dp)
-                IconButton(
-                    onClick = onClickTailIcon,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = iconTail),
-                        contentDescription = "DropDownMenuIconTail",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                HorizontalWeightSpacer(1f)
+                Icon(
+                    painter = painterResource(id = iconTail),
+                    contentDescription = "DropDownMenuIconTail",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickableAvoidingDuplication(onClick = onClickTailIcon),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
             }
         }
         DropdownMenu(
@@ -119,6 +126,7 @@ private fun PreviewDropDownMenuCustom() {
         DropDownMenuCustom(
             iconHeader = R.drawable.icon_home,
             iconTail = R.drawable.icon_alarm,
+            modifier = Modifier,
             label = "라벨텍스트",
             selectedText = "컨탠트 텍스트",
             items = listOf("컨텐트 텍스트"),
