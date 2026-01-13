@@ -3,17 +3,14 @@ package jinproject.aideo.app
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,25 +39,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ima.ImaAdsLoader
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
-import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -91,11 +86,11 @@ import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
-import jinproject.aideo.player.ExoPlayerManager
 import jinproject.aideo.player.navigateToPlayerGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -145,15 +140,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         super.onCreate(savedInstanceState)
-        firebaseAnalytics = Firebase.analytics
-
         setContent {
             AideoTheme {
                 Content()
             }
         }
+
+        MobileAds.initialize(this@MainActivity) {
+            loadRewardedAd()
+        }
+        firebaseAnalytics = Firebase.analytics
+
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        loadRewardedAd()
     }
 
     @Composable
@@ -378,7 +376,13 @@ class MainActivity : ComponentActivity() {
             }
     }
 
+    private var isLoadingRewardAd = false
+
     private fun loadRewardedAd() {
+        if(isLoadingRewardAd || mRewardedAd != null)
+            return
+
+        isLoadingRewardAd = true
         RewardedAd.load(
             this,
             ADMOB_REWARD_ID,
@@ -386,10 +390,13 @@ class MainActivity : ComponentActivity() {
             object : RewardedAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     mRewardedAd = null
+                    isLoadingRewardAd = false
                 }
 
                 override fun onAdLoaded(rewardedAd: RewardedAd) {
                     mRewardedAd = rewardedAd
+                    isLoadingRewardAd = false
+
                     mRewardedAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             mRewardedAd = null
@@ -429,5 +436,11 @@ class MainActivity : ComponentActivity() {
     private fun requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    override fun onDestroy() {
+        mRewardedAd?.fullScreenContentCallback = null
+        mRewardedAd = null
+        super.onDestroy()
     }
 }

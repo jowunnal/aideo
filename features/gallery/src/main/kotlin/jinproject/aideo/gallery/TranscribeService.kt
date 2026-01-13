@@ -7,7 +7,6 @@ import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -17,7 +16,6 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.core.inference.SpeechRecognitionManager
-import jinproject.aideo.core.inference.senseVoice.SenseVoice
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
@@ -78,7 +76,7 @@ class TranscribeService : LifecycleService() {
         val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             intent?.getParcelableExtra("videoItem", VideoItem::class.java)
         else
-            intent?.getParcelableExtra<VideoItem>("videoItem")
+            intent?.getParcelableExtra("videoItem")
 
         val offFlag = intent?.getBooleanExtra("status", false)
 
@@ -92,9 +90,7 @@ class TranscribeService : LifecycleService() {
                 notificationManager.cancel(NOTIFICATION_RESULT_ID)
                 speechRecognitionManager.initialize()
                 if (speechRecognitionManager.isReady) {
-                    Log.d("test", "aaa")
                     processSubtitle(videoItem)
-                    Log.d("test", "bbb")
                     notificationManager.cancel(NOTIFICATION_TRANSCRIBE_ID)
                     stopSelf()
                 }
@@ -104,10 +100,11 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun processSubtitle(videoItem: VideoItem) {
-        val languageCode = localPlayerDataSource.getInferenceTargetLanguage().first()
+        val inferenceLanguage = localPlayerDataSource.getInferenceTargetLanguage().first()
+        val subtitleLanguage = localPlayerDataSource.getSubtitleLanguage().first()
         val isSubtitleExist = androidMediaFileManager.checkSubtitleFileExist(
             id = videoItem.id,
-            languageCode = languageCode
+            languageCode = subtitleLanguage
         )
 
         when (isSubtitleExist) {
@@ -118,7 +115,10 @@ class TranscribeService : LifecycleService() {
 
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(videoItem = videoItem, language = languageCode)
+                extractAudioAndTranscribe(
+                    videoItem = videoItem,
+                    inferenceLanguage = inferenceLanguage
+                )
             }
 
             else -> {
@@ -130,11 +130,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        try {
-            mediaRepository.translateSubtitle(videoItem.id)
-        } catch (e: Exception) {
-            Log.d("test", "번역 실패 : ${e.stackTraceToString()}")
-        }
+        mediaRepository.translateSubtitle(videoItem.id)
 
         launchPlayer(videoItem.uri)
 
@@ -145,9 +141,12 @@ class TranscribeService : LifecycleService() {
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem, language: String) {
+    private suspend fun extractAudioAndTranscribe(
+        videoItem: VideoItem,
+        inferenceLanguage: String
+    ) {
         runCatching {
-            speechRecognitionManager.transcribe(videoItem = videoItem, language = language)
+            speechRecognitionManager.transcribe(videoItem = videoItem, language = inferenceLanguage)
             mediaRepository.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
@@ -157,7 +156,6 @@ class TranscribeService : LifecycleService() {
             )
             launchPlayer(videoItem.uri)
         }.onFailure { exception ->
-            Log.d("test", "error: ${exception.stackTraceToString()}")
             notifyTranscriptionResult(
                 title = "자막 생성 실패",
                 description = "자막 생성에 실패했어요. (${exception.message})",

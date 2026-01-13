@@ -1,6 +1,5 @@
 package jinproject.aideo.data.repository.impl
 
-import android.util.Log
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
@@ -29,7 +28,7 @@ class MediaRepositoryImpl @Inject constructor(
             val sourceLanguageCode =
                 localFileDataSource.getOriginSubtitleLanguageCode(id)
 
-            val targetLanguageCode = localPlayerDataSource.getInferenceTargetLanguage().first()
+            val targetLanguageCode = localPlayerDataSource.getSubtitleLanguage().first()
 
             val srtContent = localFileDataSource.getFileContent(
                 getSubtitleFileIdentifier(
@@ -63,18 +62,14 @@ class MediaRepositoryImpl @Inject constructor(
                 val conditions = DownloadConditions.Builder()
                     .build()
 
-                Log.d("test","downloading")
                 translator.downloadModelIfNeeded(conditions)
                     .addOnSuccessListener {
-                        Log.d("test","download success")
                         translator.translate(
                             extractSubtitleContent(srtContent)
                         ).addOnSuccessListener { result ->
-                            Log.d("test","translate success")
                             translator.close()
                             cont.resume(result)
                         }.addOnFailureListener { e ->
-                            Log.d("test","translate failure")
                             translator.close()
                             cont.resumeWithException(e)
                         }

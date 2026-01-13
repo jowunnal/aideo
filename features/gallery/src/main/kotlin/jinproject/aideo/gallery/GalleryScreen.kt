@@ -1,7 +1,9 @@
 package jinproject.aideo.gallery
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Resources
 import android.graphics.drawable.VectorDrawable
 import android.view.View
@@ -81,6 +83,7 @@ import jinproject.aideo.design.utils.PreviewAideoTheme
 @Composable
 fun GalleryScreen(
     viewModel: GalleryViewModel = hiltViewModel(),
+    context: Context = LocalContext.current,
     localView: View = LocalView.current,
     navigateToSetting: () -> Unit,
 ) {
@@ -95,6 +98,7 @@ fun GalleryScreen(
         windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
         windowInsetsController.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     GalleryScreen(

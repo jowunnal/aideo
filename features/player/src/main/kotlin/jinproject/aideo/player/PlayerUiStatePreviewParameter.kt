@@ -15,7 +15,7 @@ class PlayerUiStatePreviewParameter : PreviewParameterProvider<PlayerUiState> {
     override val values: Sequence<PlayerUiState>
         get() = sequenceOf(
             PlayerUiState(
-                playerState = PlayerState.Playing(),
+                playerState = PlayerState.Ready(),
                 currentLanguage = "",
             )
         )

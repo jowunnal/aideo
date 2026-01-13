@@ -50,7 +50,7 @@ android {
     }
 
     androidResources {
-        noCompress += listOf<String>("tflite", "so", "bin", "onnx")
+        noCompress += listOf<String>()
     }
 
     packaging {

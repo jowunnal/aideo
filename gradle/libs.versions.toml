@@ -30,11 +30,10 @@ kotlinx-immutable = "0.3.6"
 kotlinx-serialzation-json = "1.7.2"
 lifecycle = "2.6.1"
 lifecycle-common = "2.6.1"
-liteRT = "1.1.1"
 lottie = "6.3.0"
 mockk = "1.13.5"
 mlKit-translate = "17.0.3"
-mlKit-languageId = "17.0.3"
+mlKit-languageId = "17.0.6"
 navigation = "2.8.7"
 oboe = "1.9.3"
 okhttp = "4.12.0"
@@ -138,14 +137,6 @@ lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtim
 lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycle-common" }
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 
-# LiteRT
-ai-edge-litert = { module = "com.google.ai.edge.litert:litert", version.ref = "liteRT" }
-ai-edge-litert-support = { module = "com.google.ai.edge.litert:litert-support", version.ref = "liteRT" }
-ai-edge-litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "liteRT" }
-play-services-tflite-gpu = { module = "com.google.android.gms:play-services-tflite-gpu", version.ref = "play-service-tflite" }
-play-services-tflite-java = { module = "com.google.android.gms:play-services-tflite-java", version.ref = "play-service-tflite" }
-play-services-tflite-support = { module = "com.google.android.gms:play-services-tflite-support", version.ref = "play-service-tflite" }
-
 # Lottie
 airbnb-android-lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 
@@ -216,5 +207,4 @@ lifecycle = ["lifecycle-compose", "lifecycle-viewmodel-ktx", "lifecycle-runtime-
 mlKit = ["mlKit-language", "mlKit-translate"]
 square = ["square-retrofit2", "square-retrofit2-converter-gson", "square-retrofit2-converter-scalars", "square-okhttp3-intercepter"]
 testing = ["jUnit", "junit-jupiter-api", "io-mockk"]
-liteRT = ["ai-edge-litert", "ai-edge-litert-support", "ai-edge-litert-gpu"]
 playInAppUpdate = ["play-app-update", "play-app-update-ktx"]

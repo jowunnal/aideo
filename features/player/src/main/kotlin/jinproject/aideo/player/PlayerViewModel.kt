@@ -4,7 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.media.AndroidMediaFileManager
@@ -13,6 +13,7 @@ import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
 import jinproject.aideo.data.repository.MediaRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,19 +31,20 @@ class PlayerViewModel @Inject constructor(
     private val androidMediaFileManager: AndroidMediaFileManager,
     private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     init {
         initExoPlayer()
     }
 
-    private val currentVideoUri: String =
-        savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
+    private val currentVideoUri: String
+        get() =
+            savedStateHandle.toRoute<PlayerRoute.Player>().videoUri.toOriginUri()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
-        localPlayerDataSource.getInferenceTargetLanguage().onEach { language ->
+        localPlayerDataSource.getSubtitleLanguage().onEach { language ->
             val id = currentVideoUri.toVideoItemId()
 
             val subtitleExist = androidMediaFileManager.checkSubtitleFileExist(
@@ -55,7 +57,7 @@ class PlayerViewModel @Inject constructor(
             }
 
             getExoPlayer().also {
-                if (exoPlayerManager.playerState.value is PlayerState.Playing && (exoPlayerManager.playerState.value as PlayerState.Playing).isSubTitleAdded) {
+                if (exoPlayerManager.playerState.value is PlayerState.Ready && (exoPlayerManager.playerState.value as PlayerState.Ready).isSubTitleAdded) {
                     exoPlayerManager.replaceSubtitle(
                         videoUri = currentVideoUri,
                         languageCode = language
@@ -89,7 +91,7 @@ class PlayerViewModel @Inject constructor(
             videoUri = currentVideoUri,
             languageCode = languageCode,
         )
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Main) {
             exoPlayerManager.observePlayerPosition()
         }
     }
@@ -98,7 +100,7 @@ class PlayerViewModel @Inject constructor(
         exoPlayerManager.seekTo(pos)
     }
 
-    fun getExoPlayer(): Player? = exoPlayerManager.getExoPlayer()
+    fun getExoPlayer(): ExoPlayer? = exoPlayerManager.getExoPlayer()
 
     fun initExoPlayer() {
         exoPlayerManager.initialize()

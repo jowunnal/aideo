@@ -36,7 +36,6 @@ dependencies {
     implementation(libs.firebase.analytics)
     api(libs.bundles.billing)
     api(libs.bundles.media3)
-    implementation(libs.bundles.liteRT)
     implementation(libs.executorch.android)
     api(libs.google.ads.interactive.media)
 }

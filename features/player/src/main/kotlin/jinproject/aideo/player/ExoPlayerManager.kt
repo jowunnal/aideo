@@ -1,7 +1,6 @@
 package jinproject.aideo.player
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +45,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
     )
 
     private var playerPositionObserver: Job? = null
+    private val resumeSignal = Channel<Unit>(capacity = 1)
 
     @OptIn(UnstableApi::class)
     fun initialize() {
@@ -60,6 +61,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
 
     fun release() {
         cancelObservingPlayerPosition()
+        exoPlayer?.stop()
         exoPlayer?.release()
         exoPlayer = null
     }
@@ -68,18 +70,21 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         if (playerPositionObserver == null)
             playerPositionObserver = coroutineScope {
                 launch {
-                    while (playerState == PlayerState.Playing) {
-                        getExoPlayer()?.let { player ->
-                            updateCurrentPosition(player.currentPosition)
-                        }
+                    for (i in resumeSignal) {
+                        while ((playerState.value as? PlayerState.Ready)?.isPlaying ?: false) {
+                            getExoPlayer()?.let { player ->
+                                updateCurrentPosition(player.currentPosition)
+                            }
 
-                        delay(50)
+                            delay(100)
+                        }
                     }
                 }
             }
     }
 
     private fun cancelObservingPlayerPosition() {
+        resumeSignal.cancel()
         playerPositionObserver?.cancel()
         playerPositionObserver = null
     }
@@ -87,9 +92,10 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
     private fun ExoPlayer.setupPlayerListener() {
         addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                (playerState.value as? PlayerState.Ready)?.updateIsPlaying(isPlaying)
+
                 if (isPlaying) {
-                    if (playerState.value !is PlayerState.Playing)
-                        playerState.value = PlayerState.Playing.getDefault()
+                    resumeSignal.trySend(Unit)
                 }
             }
 
@@ -97,23 +103,27 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
                 exoPlayer?.let { player ->
                     when (playbackState) {
                         STATE_READY -> {
-                            (playerState.value as? PlayerState.Playing)?.let { state ->
-                                state.apply {
-                                    updateIsReady(true)
-                                    updateDuration(player.duration)
+                            when (playerState.value) {
+                                PlayerState.Idle -> {
+                                    playerState.value = PlayerState.Ready.getDefault().apply {
+                                        updateDuration(player.duration)
+                                    }
+                                }
+
+                                is PlayerState.Ready -> {
+                                    (playerState.value as PlayerState.Ready).apply {
+                                        updateDuration(player.duration)
+                                    }
                                 }
                             }
                         }
 
-                        STATE_BUFFERING -> {
-                            (playerState.value as? PlayerState.Playing)?.updateIsReady(false)
-                        }
+                        STATE_BUFFERING -> {}
 
                         STATE_ENDED -> {}
 
                         STATE_IDLE -> {
                             playerState.value = PlayerState.Idle
-                            cancelObservingPlayerPosition()
                         }
                     }
                 }
@@ -123,8 +133,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             override fun onCues(cueGroup: CueGroup) {
                 val subtitle = cueGroup.cues.joinToString(separator = "\n") { it.text.toString() }
 
-                Log.d("test", "subtitle : $subtitle")
-                (playerState.value as? PlayerState.Playing)?.updateSubtitle(subtitle)
+                (playerState.value as? PlayerState.Ready)?.updateSubtitle(subtitle)
             }
         })
     }
@@ -174,12 +183,24 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
             .build()
 
-        exoPlayer?.replaceMediaItem(
-            0,
-            MediaItem.Builder()
+        exoPlayer?.let { player ->
+            val mediaItem = MediaItem.Builder()
+                .setUri(videoUri.toUri())
                 .setSubtitleConfigurations(listOf(subTitleConfiguration))
                 .build()
-        )
+
+            player.apply {
+                val currentIdx = currentMediaItemIndex
+                val pos = currentPosition
+
+                stop()
+                removeMediaItem(currentIdx)
+                setMediaItem(mediaItem)
+                prepare()
+                seekTo(pos)
+                playWhenReady = true
+            }
+        }
     }
 
     fun seekTo(pos: Long) {
@@ -187,7 +208,7 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
     }
 
     private fun updateCurrentPosition(pos: Long) {
-        (playerState.value as? PlayerState.Playing)?.updateCurrentPos(pos)
+        (playerState.value as? PlayerState.Ready)?.updateCurrentPos(pos)
     }
 }
 
@@ -195,8 +216,8 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
 sealed class PlayerState {
     object Idle : PlayerState()
 
-    class Playing : PlayerState() {
-        var isReady: Boolean = false
+    class Ready : PlayerState() {
+        var isPlaying: Boolean = false
             private set
 
         var currentPosition: Long by mutableLongStateOf(0L)
@@ -211,8 +232,8 @@ sealed class PlayerState {
         var isSubTitleAdded: Boolean = false
             private set
 
-        fun updateIsReady(bool: Boolean) {
-            isReady = bool
+        fun updateIsPlaying(bool: Boolean) {
+            isPlaying = bool
         }
 
         fun updateCurrentPos(pos: Long) {
@@ -225,11 +246,11 @@ sealed class PlayerState {
         }
 
         fun updateDuration(duration: Long) {
-            this.duration = duration
+            this.duration = duration.coerceAtLeast(0L)
         }
 
         companion object {
-            fun getDefault(): Playing = Playing()
+            fun getDefault(): Ready = Ready()
         }
     }
 }

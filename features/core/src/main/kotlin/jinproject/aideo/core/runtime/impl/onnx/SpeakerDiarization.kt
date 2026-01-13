@@ -11,6 +11,7 @@ import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationPyannoteModelConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.getApplicationAssets
+import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,16 +33,16 @@ class SpeakerDiarization @Inject constructor(
         val config = OfflineSpeakerDiarizationConfig(
             segmentation = OfflineSpeakerSegmentationModelConfig(
                 pyannote = OfflineSpeakerSegmentationPyannoteModelConfig(SEGMENTATION_MODEL_PATH),
-                debug = true
+                debug = BuildConfig.DEBUG
             ),
             embedding = SpeakerEmbeddingExtractorConfig(
                 model = EMBEDDING_MODEL_PATH,
                 numThreads = 1,
-                debug = true
+                debug = BuildConfig.DEBUG
             ),
-            clustering = FastClusteringConfig(numClusters = -1, threshold = 0.85f),
-            minDurationOn = 0.2f,
-            minDurationOff = 0.3f,
+            clustering = FastClusteringConfig(numClusters = -1, threshold = 0.75f),
+            minDurationOn = 0.1f,
+            minDurationOff = 0.05f,
         )
 
         diarization = OfflineSpeakerDiarization(

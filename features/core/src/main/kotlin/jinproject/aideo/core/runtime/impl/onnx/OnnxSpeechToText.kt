@@ -42,7 +42,6 @@ class OnnxSpeechToText @Inject constructor(
 
     override fun initialize(r: InitRequirement) {
         if (isInitialized) {
-            Log.d("test", "Already OnnxSpeechToText has been initialized")
             return
         }
 
@@ -157,16 +156,15 @@ class OnnxSpeechToText @Inject constructor(
         val offlineModelConfig = if (isQnn) {
             OfflineRecognizer.prependAdspLibraryPath(context.applicationInfo.nativeLibraryDir)
 
+            val qnnModelsDir = "qnn_models"
             val copiedModelPath = copyAssetToInternalStorage(
                 path = "models/libmodel.so",
                 context = context,
             )
-
             val copiedBinaryPath = copyAssetToInternalStorage(
                 path = "models/model.bin",
                 context = context,
             )
-
             val copiedTokensPath = copyAssetToInternalStorage(
                 path = tokensPath,
                 context = context
@@ -201,7 +199,7 @@ class OnnxSpeechToText @Inject constructor(
         setModelConfig(offlineModelConfig)
     }
 
-    fun copyAssetToInternalStorage(path: String, context: Context): String {
+    private fun copyAssetToInternalStorage(path: String, context: Context): String {
         val targetRoot = context.filesDir
         val outFile = File(targetRoot, path)
 
@@ -228,7 +226,7 @@ class OnnxSpeechToText @Inject constructor(
         return outFile.absolutePath
     }
 
-    fun assetExists(assetManager: AssetManager, path: String): Boolean {
+    private fun assetExists(assetManager: AssetManager, path: String): Boolean {
         val dir = path.substringBeforeLast('/', "")
         val fileName = path.substringAfterLast('/')
 
@@ -256,13 +254,11 @@ class OnnxSpeechToText @Inject constructor(
     }
 
     private fun updateLanguageConfig(language: String) {
-        config = when (getAvailableModel()) {
-            is AvailableModel.SenseVoice -> config.apply {
-                modelConfig.senseVoice.language = language
-            }
-
-            is AvailableModel.Whisper -> config.apply { modelConfig.whisper.language = language }
+        when (getAvailableModel()) {
+            is AvailableModel.SenseVoice -> config.modelConfig.senseVoice.language = language
+            is AvailableModel.Whisper -> config.modelConfig.whisper.language = language
         }
+
         recognizer.setConfig(config)
     }
 

@@ -57,13 +57,8 @@ class TimeScheduler(
     fun setTime(minimumExecutingTime: Long = STANDARD_MILLIS) {
         scheduledTime = minimumExecutingTime
 
-        job = if (job == null) {
-            execute()
-        } else {
-            if (job!!.isActive)
-                job!!.cancel()
-
-            execute()
+        if (job == null) {
+            job = execute()
         }
     }
 

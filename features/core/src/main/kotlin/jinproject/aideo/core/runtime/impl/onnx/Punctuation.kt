@@ -8,6 +8,7 @@ import com.k2fsa.sherpa.onnx.OfflinePunctuationModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.getApplicationAssets
+import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +32,7 @@ class Punctuation @Inject constructor(
                 ctTransformer = CT_TRANSFORMER_MODEL_PATH,
                 numThreads = 1,
                 provider = "cpu",
-                debug = true
+                debug = BuildConfig.DEBUG
             )
         )
         

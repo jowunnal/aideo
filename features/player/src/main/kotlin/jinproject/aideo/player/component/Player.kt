@@ -21,11 +21,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.SliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -39,8 +37,6 @@ import androidx.media3.ui.compose.state.SeekForwardButtonState
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.player.PlayerState
 import jinproject.aideo.player.PlayerUiStatePreviewParameter.Companion.getPreviewPlayerControllerState
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor(
@@ -187,24 +183,16 @@ internal fun SeekForwardButton(
 @Composable
 internal fun PlayProgressBar(
     modifier: Modifier = Modifier,
-    playerState: PlayerState.Playing,
+    playerState: PlayerState.Ready,
     seekTo: (Long) -> Unit,
 ) {
-    val sliderState = remember(playerState.duration) {
-        SliderState(
-            valueRange = 0f..playerState.duration.toFloat(),
-            onValueChangeFinished = {}
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { sliderState.value }.collectLatest {
-            seekTo(it.toLong())
-        }
-    }
-
     Slider(
-        state = sliderState,
+        value = (playerState.currentPosition).toFloat(),
+        onValueChange = { position ->
+            playerState.updateCurrentPos(position.toLong())
+            seekTo(position.toLong())
+        },
+        valueRange = 0f..(playerState.duration).toFloat(),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
@@ -212,7 +200,7 @@ internal fun PlayProgressBar(
             thumbColor = MaterialTheme.colorScheme.onPrimary,
             activeTrackColor = MaterialTheme.colorScheme.onPrimary,
             inactiveTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-        ),
+        )
     )
 }
 

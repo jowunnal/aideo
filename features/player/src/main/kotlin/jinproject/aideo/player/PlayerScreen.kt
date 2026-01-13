@@ -6,26 +6,21 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,12 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
@@ -46,41 +38,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.ui.compose.ContentFrame
-import androidx.media3.ui.compose.modifiers.resizeWithContentScale
-import androidx.media3.ui.compose.state.PresentationState
-import androidx.media3.ui.compose.state.rememberPresentationState
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.LocalShowRewardAd
-import jinproject.aideo.design.component.HorizontalSpacer
 import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.PopUpInfo
 import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.lazyList.rememberTimeScheduler
-import jinproject.aideo.design.component.text.AppBarText
-import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.design.utils.tu
-import jinproject.aideo.player.PreviewPlayer.seekTo
-import jinproject.aideo.player.component.PlayProgressBar
-import jinproject.aideo.player.component.PlayerController
-import jinproject.aideo.player.component.rememberPlayerControllerState
+import jinproject.aideo.player.component.PlayerPopUp
+import jinproject.aideo.player.component.PlayerSurfaceViewComposable
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -94,7 +74,6 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val playerControllerState = rememberPlayerControllerState(viewModel.getExoPlayer())
     var visibility by remember { mutableStateOf(false) }
     val timeScheduler = rememberTimeScheduler(
         callBack = {
@@ -129,11 +108,13 @@ fun PlayerScreen(
     }
 
     RememberEffect(Unit) {
-        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-
         localShowRewardAd {
             viewModel.prepareExoplayer(uiState.currentLanguage)
         }
+    }
+
+    BackHandler(configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
 
     PlayerScreen(
@@ -142,78 +123,19 @@ fun PlayerScreen(
         updateLanguageCode = viewModel::updateSubtitleLanguage,
         updateTransitionState = { visibility = !visibility },
         navigatePopBackStack = navigatePopBackStack,
+        setTimer = { timeMillis ->
+            timeScheduler.setTime(timeMillis)
+        },
         playerSurfaceViewComposable = {
-            val presentationState: PresentationState =
-                rememberPresentationState(viewModel.getExoPlayer(), false)
-
-            Box(
-                modifier = Modifier
-                    .resizeWithContentScale(
-                        contentScale = ContentScale.Fit,
-                        presentationState.videoSizeDp
-                    )
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onDoubleTap = { offset ->
-                                val centerXPos = with(density) {
-                                    configuration.screenWidthDp.dp.toPx() / 2
-                                }
-
-                                if (offset.x > centerXPos)
-                                    playerControllerState?.seekForwardButtonState?.onClick()
-                                else
-                                    playerControllerState?.seekBackButtonState?.onClick()
-                            },
-                            onTap = {
-                                visibility = !visibility
-                            }
-                        )
-                    }
-                    .align(Alignment.Center)
-            ) {
-
-                ContentFrame(
-                    player = viewModel.getExoPlayer(),
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 12.dp)
-                ) {
-                    if ((uiState.playerState as? PlayerState.Playing)?.subTitle?.isNotBlank() ?: false) {
-                        DescriptionMediumText(
-                            text = (uiState.playerState as PlayerState.Playing).subTitle,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentWidth(),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                    }
-
-                    transitionState.AnimatedVisibility(
-                        visible = { it && uiState.playerState is PlayerState.Playing },
-                        modifier = Modifier,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                    ) {
-                        PlayProgressBar(
-                            modifier = Modifier,
-                            playerState = uiState.playerState as PlayerState.Playing,
-                            seekTo = viewModel::seekTo,
-                        )
-                    }
+            PlayerSurfaceViewComposable(
+                uiState = uiState,
+                transitionState = transitionState,
+                seekTo = viewModel::seekTo,
+                getPlayer = viewModel::getExoPlayer,
+                updateTransitionState = {
+                    visibility = !visibility
                 }
-
-                PlayerController(
-                    modifier = Modifier
-                        .align(Alignment.Center),
-                    playerControllerState = playerControllerState,
-                    transitionState = transitionState,
-                )
-            }
+            )
         }
     )
 }
@@ -228,6 +150,7 @@ private fun PlayerScreen(
     updateLanguageCode: (LanguageCode) -> Unit,
     updateTransitionState: () -> Unit,
     navigatePopBackStack: () -> Unit,
+    setTimer: (Long) -> Unit,
     playerSurfaceViewComposable: @Composable BoxScope.() -> Unit,
 ) {
     var popUpInfo by remember { mutableStateOf(PopUpInfo(IntOffset(0, 0))) }
@@ -238,50 +161,25 @@ private fun PlayerScreen(
         (28.tu.roundToPx() + 16.dp.roundToPx()) / 2
     }
 
-    if (popUpInfo.visibility)
-        Popup(
-            offset = popUpInfo.offset,
-            onDismissRequest = {
-                popUpInfo.changeVisibility(false)
-            }
-        ) {
-            Column(
-                modifier = Modifier
-                    .shadow(
-                        1.dp,
-                        RoundedCornerShape(20.dp)
-                    )
-                    .background(
-                        MaterialTheme.colorScheme.background,
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray()
-                    .forEach { language ->
-                        DescriptionMediumText(
-                            text = language.name,
-                            modifier = Modifier
-                                .clickableAvoidingDuplication {
-                                    updateLanguageCode(language)
-                                }
-                                .padding(vertical = 8.dp, horizontal = 16.dp)
-                                .graphicsLayer {
-                                    alpha =
-                                        if (language.code == uiState.currentLanguage) 1f else 0.5f
-                                },
-                        )
-                    }
-            }
-        }
+    PlayerPopUp(
+        popUpInfo = popUpInfo,
+        uiState = uiState,
+        updateLanguageCode = updateLanguageCode,
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .clickableAvoidingDuplication {
-                updateTransitionState()
-            }
+            .clickableAvoidingDuplication(onClick = updateTransitionState)
             .padding(vertical = 12.dp)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val event = awaitPointerEvent(PointerEventPass.Main)
+                    if (event.changes.any { it.isConsumed })
+                        setTimer(5000)
+                }
+            }
     ) {
         transitionState.AnimatedVisibility(
             visible = { it },
@@ -298,7 +196,7 @@ private fun PlayerScreen(
                     icon = jinproject.aideo.design.R.drawable.ic_arrow_left,
                     onClick = navigatePopBackStack,
                     backgroundTint = Color.Black,
-                    iconTint = MaterialTheme.colorScheme.onBackground,
+                    iconTint = Color.White,
                 )
                 HorizontalWeightSpacer(1f)
                 DefaultIconButton(
@@ -319,7 +217,7 @@ private fun PlayerScreen(
                         )
                     },
                     backgroundTint = Color.Black,
-                    iconTint = MaterialTheme.colorScheme.onBackground,
+                    iconTint = Color.White,
                 )
             }
         }
@@ -354,6 +252,7 @@ private fun PlayerScreenPreview(
             updateLanguageCode = {},
             updateTransitionState = { state = !state },
             navigatePopBackStack = {},
+            setTimer = {},
             playerSurfaceViewComposable = {},
         )
     }
@@ -375,6 +274,7 @@ private fun PlayerScreenTruePreview(
             updateLanguageCode = {},
             updateTransitionState = { state = !state },
             navigatePopBackStack = {},
+            setTimer = {},
             playerSurfaceViewComposable = {},
         )
     }
