@@ -10,6 +10,33 @@ plugins {
 android {
     namespace = "jinproject.aideo.core"
 
+    ndkVersion = "29.0.13599879"
+
+    defaultConfig {
+        ndk {
+            abiFilters.add("arm64-v8a")  // ← arm64-v8a만 빌드
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += "-DANDROID_STL=c++_static"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "4.0.2"
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
+
     flavorDimensions += "htp_version"
     productFlavors {
         create("htp_v69") {

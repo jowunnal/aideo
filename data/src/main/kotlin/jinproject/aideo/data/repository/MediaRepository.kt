@@ -11,6 +11,10 @@ interface MediaRepository {
         id: Long,
     )
 
+    suspend fun translate(
+        sourceText: String
+    ): String
+
     sealed class TranscriptionException : Exception() {
         data class TranscriptionFailed(
             override val message: String?,

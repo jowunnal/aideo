@@ -4,7 +4,9 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.TranslationManager.extractSubtitleContent
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.TranslationManager.restoreMlKitTranslationToSrtFormat
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
@@ -14,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -25,15 +28,15 @@ class MediaRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun translateSubtitle(id: Long) {
         withContext(Dispatchers.Main) {
-            val sourceLanguageCode =
+            val sourceLanguageISOCode =
                 localFileDataSource.getOriginSubtitleLanguageCode(id)
 
-            val targetLanguageCode = localPlayerDataSource.getSubtitleLanguage().first()
+            val targetLanguageISOCode = localPlayerDataSource.getSubtitleLanguage().first()
 
             val srtContent = localFileDataSource.getFileContent(
                 getSubtitleFileIdentifier(
                     id = id,
-                    languageCode = sourceLanguageCode
+                    languageCode = sourceLanguageISOCode
                 )
             )?.joinToString("\n")
                 ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
@@ -41,46 +44,11 @@ class MediaRepositoryImpl @Inject constructor(
                     cause = null
                 )
 
-            val translatedContent = suspendCancellableCoroutine { cont ->
-                val options = TranslatorOptions.Builder()
-                    .setSourceLanguage(
-                        TranslateLanguage.fromLanguageTag(sourceLanguageCode)
-                            ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
-                                message = "source language code is null"
-                            )
-                    )
-                    .setTargetLanguage(
-                        TranslateLanguage.fromLanguageTag(targetLanguageCode)
-                            ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
-                                message = "target language code is null"
-                            )
-                    )
-                    .build()
-
-                val translator = Translation.getClient(options)
-
-                val conditions = DownloadConditions.Builder()
-                    .build()
-
-                translator.downloadModelIfNeeded(conditions)
-                    .addOnSuccessListener {
-                        translator.translate(
-                            extractSubtitleContent(srtContent)
-                        ).addOnSuccessListener { result ->
-                            translator.close()
-                            cont.resume(result)
-                        }.addOnFailureListener { e ->
-                            translator.close()
-                            cont.resumeWithException(e)
-                        }
-                    }.addOnFailureListener { e ->
-                        cont.resumeWithException(e)
-                    }
-
-                cont.invokeOnCancellation {
-                    translator.close()
-                }
-            }
+            val translatedContent = translateTextByMlKit(
+                sourceLanguageISOCode = sourceLanguageISOCode,
+                targetLanguageISOCode = targetLanguageISOCode,
+                sourceText = extractSubtitleContent(srtContent)
+            )
 
             val convertedSrtContent = restoreMlKitTranslationToSrtFormat(
                 originalSrtContent = srtContent,
@@ -90,7 +58,7 @@ class MediaRepositoryImpl @Inject constructor(
             localFileDataSource.createFileAndWriteOnOutputStream(
                 fileIdentifier = getSubtitleFileIdentifier(
                     id = id,
-                    languageCode = targetLanguageCode
+                    languageCode = targetLanguageISOCode
                 ),
                 writeContentOnFile = { outputStream ->
                     runCatching {
@@ -104,7 +72,62 @@ class MediaRepositoryImpl @Inject constructor(
             )
         }
     }
-}
 
-fun getSubtitleFileIdentifier(id: Long, languageCode: String): String =
-    "${id}_$languageCode.srt"
+    override suspend fun translate(sourceText: String): String {
+        val sourceLanguageISOCode = TranslationManager.detectLanguage(sourceText)
+        val targetLanguageISOCode = Locale.getDefault().language
+
+        return translateTextByMlKit(
+            sourceLanguageISOCode = sourceLanguageISOCode,
+            targetLanguageISOCode = targetLanguageISOCode,
+            sourceText = sourceText
+        )
+    }
+
+    private suspend fun translateTextByMlKit(
+        sourceLanguageISOCode: String,
+        targetLanguageISOCode: String,
+        sourceText: String,
+    ): String {
+        return suspendCancellableCoroutine { cont ->
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage(
+                    TranslateLanguage.fromLanguageTag(sourceLanguageISOCode)
+                        ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
+                            message = "source language code is null"
+                        )
+                )
+                .setTargetLanguage(
+                    TranslateLanguage.fromLanguageTag(targetLanguageISOCode)
+                        ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
+                            message = "target language code is null"
+                        )
+                )
+                .build()
+
+            val translator = Translation.getClient(options)
+
+            val conditions = DownloadConditions.Builder()
+                .build()
+
+            translator.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener {
+                    translator.translate(
+                        sourceText
+                    ).addOnSuccessListener { result ->
+                        translator.close()
+                        cont.resume(result)
+                    }.addOnFailureListener { e ->
+                        translator.close()
+                        cont.resumeWithException(e)
+                    }
+                }.addOnFailureListener { e ->
+                    cont.resumeWithException(e)
+                }
+
+            cont.invokeOnCancellation {
+                translator.close()
+            }
+        }
+    }
+}

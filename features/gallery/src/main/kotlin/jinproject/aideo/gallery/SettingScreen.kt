@@ -1,5 +1,6 @@
 package jinproject.aideo.gallery
 
+import android.R.attr.entries
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,7 @@ internal fun SettingScreen(
         LanguageSetting(
             title = "추론 언어",
             description = "음성 인식에 사용할 언어를 선택해 주세요.",
-            items = LanguageCode.entries.map { it.name },
+            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.selectedModel).map { it.name },
             selectedText = settingUiState.inferenceLanguage.name,
             onClickItem = { item ->
                 updateInferenceLanguageCode(LanguageCode.findByName(item))
@@ -91,7 +92,7 @@ internal fun SettingScreen(
         LanguageSetting(
             title = "번역 언어",
             description = "자막으로 번역할 언어를 선택해 주세요.",
-            items = LanguageCode.entries.filter { it != LanguageCode.Auto }.map { it.name },
+            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.selectedModel).map { it.name },
             selectedText = settingUiState.translationLanguage.name,
             onClickItem = { item ->
                 updateTranslationLanguageCode(LanguageCode.findByName(item))

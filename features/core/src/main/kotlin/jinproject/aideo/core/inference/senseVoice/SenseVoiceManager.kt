@@ -13,6 +13,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.core.runtime.api.SpeechToText
+import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.Punctuation
@@ -286,8 +287,8 @@ class SenseVoiceManager @Inject constructor(
     }
 
     companion object {
-        const val SENSE_VOICE_MODEL_PATH = "models/model.int8.onnx"
-        const val SENSE_VOICE_VOCAB_PATH = "models/tokens.txt"
+        const val SENSE_VOICE_MODEL_PATH = "$MODELS_ROOT_DIR/model.int8.onnx"
+        const val SENSE_VOICE_VOCAB_PATH = "$MODELS_ROOT_DIR/tokens.txt"
     }
 }
 

@@ -2,8 +2,8 @@ package jinproject.aideo.core.inference
 
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.data.TranslationManager
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import kotlinx.coroutines.flow.StateFlow
 
 abstract class SpeechRecognitionManager(

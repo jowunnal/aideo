@@ -13,6 +13,8 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.runtime.api.SpeechToText
+import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
 import java.io.File
@@ -156,13 +158,12 @@ class OnnxSpeechToText @Inject constructor(
         val offlineModelConfig = if (isQnn) {
             OfflineRecognizer.prependAdspLibraryPath(context.applicationInfo.nativeLibraryDir)
 
-            val qnnModelsDir = "qnn_models"
             val copiedModelPath = copyAssetToInternalStorage(
-                path = "models/libmodel.so",
+                path = "$MODELS_ROOT_DIR/libmodel.so",
                 context = context,
             )
             val copiedBinaryPath = copyAssetToInternalStorage(
-                path = "models/model.bin",
+                path = "$MODELS_ROOT_DIR/model.bin",
                 context = context,
             )
             val copiedTokensPath = copyAssetToInternalStorage(
@@ -197,41 +198,6 @@ class OnnxSpeechToText @Inject constructor(
             )
 
         setModelConfig(offlineModelConfig)
-    }
-
-    private fun copyAssetToInternalStorage(path: String, context: Context): String {
-        val targetRoot = context.filesDir
-        val outFile = File(targetRoot, path)
-
-        if (!assetExists(context.assets, path = path)) {
-            outFile.parentFile?.mkdirs()
-            return outFile.absolutePath
-        }
-
-        if (outFile.exists()) {
-            val assetSize = context.assets.open(path).use { it.available() }
-            if (outFile.length() == assetSize.toLong()) {
-                return "$targetRoot/$path"
-            }
-        }
-
-        outFile.parentFile?.mkdirs()
-
-        context.assets.open(path).use { input: InputStream ->
-            FileOutputStream(outFile).use { output: OutputStream ->
-                input.copyTo(output)
-            }
-        }
-
-        return outFile.absolutePath
-    }
-
-    private fun assetExists(assetManager: AssetManager, path: String): Boolean {
-        val dir = path.substringBeforeLast('/', "")
-        val fileName = path.substringAfterLast('/')
-
-        val files = assetManager.list(dir) ?: return false
-        return files.contains(fileName)
     }
 
     fun setWhisperModelConfig(

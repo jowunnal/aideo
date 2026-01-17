@@ -14,6 +14,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.core.runtime.api.SpeechToText
+import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
 import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
 import jinproject.aideo.core.runtime.impl.onnx.SileroVad
@@ -64,7 +65,6 @@ class WhisperManager @Inject constructor(
     )
 
     override fun initialize() {
-        //copyBinaryDataFromAssets()
         initOnnxWhisper()
         vad.initialize()
         speakerDiarization.initialize()
@@ -80,32 +80,6 @@ class WhisperManager @Inject constructor(
                 availableModel = OnnxSpeechToText.AvailableModel.Whisper(decoderPath = WHISPER_DECODER_PATH_ONNX)
             )
         )
-    }
-
-    /**
-     * Whisper Executorch 모델의 binary file 을 load
-     */
-    private fun copyBinaryDataFromAssets() {
-        context.assets.list("models/") ?: return
-
-        val modelsPath = File(context.filesDir, "models")
-
-        if (!modelsPath.exists())
-            modelsPath.mkdirs()
-
-        val vocab = File(modelsPath, WHISPER_VOCAB_NAME_PTE)
-        context.assets.open(WHISPER_VOCAB_PATH_PTE).use { input ->
-            vocab.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-
-        val model = File(modelsPath, WHISPER_MODEL_NAME_PTE)
-        context.assets.open(WHISPER_MODEL_PATH_PTE).use { input ->
-            model.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
     }
 
     /**
@@ -299,12 +273,12 @@ class WhisperManager @Inject constructor(
 
     companion object {
         const val WHISPER_VOCAB_NAME_PTE = "filters_vocab_multilingual.bin"
-        const val WHISPER_VOCAB_PATH_PTE = "models/$WHISPER_VOCAB_NAME_PTE"
+        const val WHISPER_VOCAB_PATH_PTE = "$MODELS_ROOT_DIR/$WHISPER_VOCAB_NAME_PTE"
         const val WHISPER_MODEL_NAME_PTE = "model.pte"
-        const val WHISPER_MODEL_PATH_PTE = "models/$WHISPER_MODEL_NAME_PTE"
+        const val WHISPER_MODEL_PATH_PTE = "$MODELS_ROOT_DIR/$WHISPER_MODEL_NAME_PTE"
 
-        const val WHISPER_ENCODER_PATH_ONNX = "models/small-encoder.int8.onnx"
-        const val WHISPER_DECODER_PATH_ONNX = "models/small-decoder.int8.onnx"
-        const val WHISPER_VOCAB_PATH_ONNX = "models/small-tokens.txt"
+        const val WHISPER_ENCODER_PATH_ONNX = "$MODELS_ROOT_DIR/small-encoder.int8.onnx"
+        const val WHISPER_DECODER_PATH_ONNX = "$MODELS_ROOT_DIR/small-decoder.int8.onnx"
+        const val WHISPER_VOCAB_PATH_ONNX = "$MODELS_ROOT_DIR/small-tokens.txt"
     }
 }

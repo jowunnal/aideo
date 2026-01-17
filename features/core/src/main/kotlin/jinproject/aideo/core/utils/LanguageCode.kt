@@ -1,7 +1,7 @@
 package jinproject.aideo.core.utils
 
-import android.util.Log
 import androidx.compose.runtime.Stable
+import jinproject.aideo.core.inference.AvailableModel
 
 @Stable
 enum class LanguageCode(val code: String) {
@@ -9,10 +9,46 @@ enum class LanguageCode(val code: String) {
     Korean("ko"),
     English("en"),
     Japanese("ja"),
-    Chinese("zh");
+    Chinese("zh"),
+    German("de"),
+    Indonesian("id"),
+    French("fr"),
+    Spanish("es"),
+    Russian("ru"),
+    Hindi("hi"),
+    Cantonese("yue");
 
     companion object {
         fun findByName(name: String): LanguageCode = entries.first { it.name == name }
         fun findByCode(code: String): LanguageCode? = entries.find { it.code == code }
+
+        /**
+         * STT 모델에 맞는 추론 언어 코드들을 반환
+         */
+        fun getLanguageCodesByAvailableModel(model: AvailableModel): Array<LanguageCode> {
+            return when(model) {
+                AvailableModel.Whisper -> arrayOf(
+                    Korean,
+                    English,
+                    Japanese,
+                    Chinese,
+                    Cantonese,
+                    German,
+                    Indonesian,
+                    French,
+                    Spanish,
+                    Russian,
+                    Hindi,
+                )
+                AvailableModel.SenseVoice -> arrayOf(
+                    Auto,
+                    Korean,
+                    English,
+                    Japanese,
+                    Chinese,
+                    Cantonese,
+                )
+            }
+        }
     }
 }

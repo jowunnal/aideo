@@ -10,6 +10,7 @@ import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationModelConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationPyannoteModelConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.utils.getApplicationAssets
 import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
@@ -64,7 +65,7 @@ class SpeakerDiarization @Inject constructor(
     }
 
     companion object {
-        const val SEGMENTATION_MODEL_PATH = "models/segmentation.onnx"
-        const val EMBEDDING_MODEL_PATH = "models/embedding.onnx"
+        const val SEGMENTATION_MODEL_PATH = "$MODELS_ROOT_DIR/segmentation.onnx"
+        const val EMBEDDING_MODEL_PATH = "$MODELS_ROOT_DIR/embedding.onnx"
     }
 }

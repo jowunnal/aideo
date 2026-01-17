@@ -1,5 +1,6 @@
 package jinproject.aideo.app.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -35,11 +36,11 @@ internal fun NavigationGraph(
         startDestination = GalleryRoute.GalleryGraph,
         modifier = modifier,
         enterTransition = {
-            fadeIn() + slideInHorizontally()
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
         },
         exitTransition = {
-            fadeOut() + slideOutHorizontally()
-        }
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+        },
     ) {
         galleryNavGraph(
             navigateToSetting = navController::navigateToSetting,

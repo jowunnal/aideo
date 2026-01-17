@@ -21,7 +21,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.toVideoItemId
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope

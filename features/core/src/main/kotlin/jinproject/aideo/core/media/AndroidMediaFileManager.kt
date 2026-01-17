@@ -21,8 +21,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.core.media.audio.AudioConfig
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
 import jinproject.aideo.data.toSubtitleFileIdentifier
 import jinproject.aideo.data.toThumbnailFileIdentifier
 import kotlinx.coroutines.Dispatchers

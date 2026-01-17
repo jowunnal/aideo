@@ -16,7 +16,7 @@ object TranslationManager {
      * 00:00:00,000 --> 00:00:02,000
      * Hello!
      *
-     * @return
+     * @return ISO 코드값
      * en
      *
      * @suppress 입력 문자열은 srt 포맷 이어야 함. 그렇지 않으면 언어를 감지하지 못하고, IllegalStateException 발생 가능
@@ -119,4 +119,7 @@ object TranslationManager {
             millis
         )
     }
+
+    fun getSubtitleFileIdentifier(id: Long, languageCode: String): String =
+        "${id}_$languageCode.srt"
 }
