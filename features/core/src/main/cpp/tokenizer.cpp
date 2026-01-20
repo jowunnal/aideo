@@ -1,230 +1,167 @@
 #include "tokenizer.h"
 #include "json.hpp"
 #include <fstream>
-#include <algorithm>
-#include <limits>
-#include <cmath>
 using json = nlohmann::json;
 
-// SentencePiece 특수 문자 (U+2581)
-static const std::string SPIECE_UNDERLINE = "▁";
+Tokenizer::Tokenizer() : sp_(std::make_unique<sentencepiece::SentencePieceProcessor>()) {}
 
-Tokenizer::Tokenizer() {}
+Tokenizer::~Tokenizer() = default;
 
-bool Tokenizer::load(const std::string& tokenizerPath) {
+bool Tokenizer::loadM2M100(const std::string& spModelPath, const std::string& vocabPath) {
     try {
-        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Loading tokenizer from: %s", tokenizerPath.c_str());
+        // 1. SentencePiece 모델 로드 (텍스트 → pieces 변환용)
+        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Loading SentencePiece model from: %s", spModelPath.c_str());
 
-        std::ifstream file(tokenizerPath);
-        if (!file.is_open()) {
-            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to open tokenizer file");
+        auto status = sp_->Load(spModelPath);
+        if (!status.ok()) {
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load SentencePiece model: %s", status.ToString().c_str());
             return false;
         }
 
-        json data = json::parse(file);
+        AIDEO_LOGI(LOG_TAG_TOKENIZER, "SentencePiece model loaded, internal vocab size: %d", sp_->GetPieceSize());
 
-        // Added tokens (special tokens) 로드
-        if (data.contains("added_tokens")) {
-            for (const auto& token : data["added_tokens"]) {
-                std::string content = token["content"];
-                int64_t id = token["id"];
-                addedTokens_[content] = id;
-                idToToken_[id] = content;
-
-                // 특수 토큰 ID 저장
-                if (content == "<pad>") padTokenId_ = id;
-                else if (content == "</s>") eosTokenId_ = id;
-                else if (content == "<unk>") unkTokenId_ = id;
-            }
+        // 2. vocab.json 로드 (piece string → model ID 매핑)
+        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Loading vocab from: %s", vocabPath.c_str());
+        std::ifstream vocabFile(vocabPath);
+        if (!vocabFile.is_open()) {
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to open vocab.json: %s", vocabPath.c_str());
+            return false;
         }
 
-        // Vocab 로드 (Unigram 형식: [[token, score], ...])
-        if (data.contains("model") && data["model"].contains("vocab")) {
-            for (const auto& item : data["model"]["vocab"]) {
-                std::string token = item[0];
-                float score = item[1];
-                int64_t id = vocab_.size();
+        json vocabJson = json::parse(vocabFile);
 
-                // added_tokens에 이미 있으면 스킵
-                if (addedTokens_.find(token) != addedTokens_.end()) {
-                    continue;
-                }
+        for (auto& [piece, id] : vocabJson.items()) {
+            int64_t tokenId = id.get<int64_t>();
+            vocab_[piece] = tokenId;
+            reverseVocab_[tokenId] = piece;
 
-                vocab_[token] = {id, score};
-                idToToken_[id] = token;
-            }
+            // 특수 토큰 ID 설정
+            if (piece == "<s>") bosTokenId_ = tokenId;
+            else if (piece == "<pad>") padTokenId_ = tokenId;
+            else if (piece == "</s>") eosTokenId_ = tokenId;
+            else if (piece == "<unk>") unkTokenId_ = tokenId;
         }
 
-        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Tokenizer loaded: %zu vocab, %zu added tokens",
-             vocab_.size(), addedTokens_.size());
+        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Vocab loaded: %zu entries", vocab_.size());
+        AIDEO_LOGI(LOG_TAG_TOKENIZER, "Special tokens - BOS: %lld, PAD: %lld, EOS: %lld, UNK: %lld",
+                   (long long)bosTokenId_, (long long)padTokenId_, (long long)eosTokenId_, (long long)unkTokenId_);
+
         return true;
 
     } catch (const std::exception& e) {
-        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load tokenizer: %s", e.what());
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load M2M100 tokenizer: %s", e.what());
         return false;
     }
 }
 
-std::string Tokenizer::preprocess(const std::string& text) {
-    // 텍스트 앞에 ▁ 추가, 공백을 ▁로 변환
-    std::string result = SPIECE_UNDERLINE;
-    for (char c : text) {
-        if (c == ' ') {
-            result += SPIECE_UNDERLINE;
-        } else {
-            result += c;
-        }
-    }
-    return result;
-}
+std::vector<int64_t> Tokenizer::encode(const std::string& text, bool addEos) {
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Encoding text: %s", text.c_str());
 
-std::string Tokenizer::postprocess(const std::string& text) {
-    // ▁를 공백으로 변환, 앞 공백 제거
-    std::string result;
-    size_t i = 0;
+    // 1. SentencePiece로 텍스트를 pieces로 변환
+    std::vector<std::string> pieces;
+    auto status = sp_->Encode(text, &pieces);
 
-    while (i < text.size()) {
-        // UTF-8 ▁ 체크 (3바이트: E2 96 81)
-        if (i + 2 < text.size() &&
-            (unsigned char)text[i] == 0xE2 &&
-            (unsigned char)text[i+1] == 0x96 &&
-            (unsigned char)text[i+2] == 0x81) {
-            if (!result.empty()) {
-                result += ' ';
-            }
-            i += 3;
-        } else {
-            result += text[i];
-            i++;
-        }
-    }
-    return result;
-}
-
-std::vector<int64_t> Tokenizer::encodeUnigram(const std::string& text) {
-    size_t len = text.size();
-    if (len == 0) {
+    if (!status.ok()) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "SentencePiece encode failed: %s", status.ToString().c_str());
         return {};
     }
 
-    // best_path_ends_at[i] = position i에서 끝나는 최적 경로 정보
-    std::vector<BestPathNode> best_path_ends_at(len + 1);
-
-    // 초기화: 모든 위치를 무효(-1)로 설정
-    for (size_t i = 0; i <= len; ++i) {
-        best_path_ends_at[i] = {-1, -std::numeric_limits<float>::infinity(), 0};
+    // 디버그: pieces 출력
+    std::string piecesStr;
+    for (size_t i = 0; i < std::min(pieces.size(), (size_t)10); i++) {
+        piecesStr += "'" + pieces[i] + "' ";
     }
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "SentencePiece pieces (first 10): %s", piecesStr.c_str());
 
-    // 시작점 초기화
-    best_path_ends_at[0] = {-1, 0.0f, 0};
+    // 2. vocab.json을 사용하여 pieces → model IDs 변환
+    std::vector<int64_t> result;
+    result.reserve(pieces.size() + (addEos ? 1 : 0));
 
-    // Forward pass: 각 위치에서 시작하는 모든 토큰 검사
-    for (size_t pos = 0; pos < len; ++pos) {
-        // 이 위치에 도달할 수 있는 경로가 없으면 스킵
-        if (best_path_ends_at[pos].id == -1 && pos > 0) {
-            continue;
-        }
-
-        // 현재 위치에서 시작하는 모든 가능한 토큰 검사
-        for (size_t end = pos + 1; end <= len && end <= pos + 32; ++end) {
-            std::string substr = text.substr(pos, end - pos);
-
-            // Added tokens 먼저 확인
-            auto addedIt = addedTokens_.find(substr);
-            if (addedIt != addedTokens_.end()) {
-                float score = best_path_ends_at[pos].score + 0.0f;  // special tokens have score 0
-                if (best_path_ends_at[end].id == -1 || score > best_path_ends_at[end].score) {
-                    best_path_ends_at[end] = {addedIt->second, score, pos};
-                }
-                continue;
-            }
-
-            // Vocab에서 찾기
-            auto it = vocab_.find(substr);
-            if (it != vocab_.end()) {
-                float score = best_path_ends_at[pos].score + it->second.second;
-                if (best_path_ends_at[end].id == -1 || score > best_path_ends_at[end].score) {
-                    best_path_ends_at[end] = {it->second.first, score, pos};
-                }
-            }
+    for (const std::string& piece : pieces) {
+        auto it = vocab_.find(piece);
+        if (it != vocab_.end()) {
+            result.push_back(it->second);
+        } else {
+            // vocab에 없는 piece는 <unk>로 처리
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Unknown piece '%s', using <unk>", piece.c_str());
+            result.push_back(unkTokenId_);
         }
     }
 
-    // 끝에 도달하지 못한 경우 (unknown 문자 처리)
-    if (best_path_ends_at[len].id == -1) {
-        // Fallback: 단일 문자씩 UNK로 처리
-        std::vector<int64_t> tokens;
-        size_t i = 0;
-        while (i < len) {
-            // UTF-8 문자 길이 계산
-            unsigned char c = text[i];
-            size_t charLen = 1;
-            if ((c & 0x80) == 0) charLen = 1;
-            else if ((c & 0xE0) == 0xC0) charLen = 2;
-            else if ((c & 0xF0) == 0xE0) charLen = 3;
-            else if ((c & 0xF8) == 0xF0) charLen = 4;
-
-            // 이 문자에 대한 토큰 찾기
-            std::string charStr = text.substr(i, charLen);
-            auto it = vocab_.find(charStr);
-            if (it != vocab_.end()) {
-                tokens.push_back(it->second.first);
-            } else {
-                tokens.push_back(unkTokenId_);
-            }
-            i += charLen;
-        }
-        return tokens;
+    // 디버그: 변환된 IDs 출력
+    std::string idsStr;
+    for (size_t i = 0; i < std::min(result.size(), (size_t)10); i++) {
+        idsStr += std::to_string(result[i]) + " ";
     }
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Model IDs (first 10): %s", idsStr.c_str());
 
-    // Backtracking: 끝에서부터 시작점까지 역추적
-    std::vector<int64_t> tokens;
-    size_t pos = len;
-    while (pos > 0) {
-        tokens.push_back(best_path_ends_at[pos].id);
-        pos = best_path_ends_at[pos].starts_at;
-    }
-
-    // 역순으로 수집했으므로 뒤집기
-    std::reverse(tokens.begin(), tokens.end());
-
-    return tokens;
-}
-
-std::vector<int64_t> Tokenizer::encode(const std::string& text, bool addEos) {
-    // 전처리
-    std::string processed = preprocess(text);
-
-    // Unigram encoding (Viterbi)
-    std::vector<int64_t> tokens = encodeUnigram(processed);
-
-    // EOS 토큰 추가
     if (addEos) {
-        tokens.push_back(eosTokenId_);
+        result.push_back(eosTokenId_);
     }
 
-    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Encoded '%s' -> %zu tokens", text.c_str(), tokens.size());
-    return tokens;
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Final token count: %zu (addEos=%d)", result.size(), addEos);
+    return result;
 }
 
 std::string Tokenizer::decode(const std::vector<int64_t>& tokenIds) {
-    std::string result;
+    // 디버그: 입력 토큰 출력
+    std::string debugTokens;
+    for (size_t i = 0; i < std::min(tokenIds.size(), (size_t)20); i++) {
+        debugTokens += std::to_string(tokenIds[i]) + " ";
+    }
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Decode input tokens (first 20): %s", debugTokens.c_str());
+
+    // 1. 토큰 ID → piece 문자열 변환 (reverseVocab 사용)
+    std::vector<std::string> pieces;
+    pieces.reserve(tokenIds.size());
 
     for (int64_t id : tokenIds) {
         // 특수 토큰 스킵
-        if (id == padTokenId_ || id == eosTokenId_) {
+        if (id == padTokenId_ || id == eosTokenId_ || id == bosTokenId_) {
+            AIDEO_LOGI(LOG_TAG_TOKENIZER, "Skipping special token id: %lld", (long long)id);
             continue;
         }
 
-        auto it = idToToken_.find(id);
-        if (it != idToToken_.end()) {
-            result += it->second;
+        // 언어 토큰 스킵 (__xx__ 형태)
+        auto it = reverseVocab_.find(id);
+        if (it != reverseVocab_.end()) {
+            const std::string& piece = it->second;
+            if (piece.size() > 4 && piece.substr(0, 2) == "__" && piece.substr(piece.size() - 2) == "__") {
+                AIDEO_LOGI(LOG_TAG_TOKENIZER, "Skipping language token id: %lld (%s)", (long long)id, piece.c_str());
+                continue;
+            }
+            pieces.push_back(piece);
+            AIDEO_LOGI(LOG_TAG_TOKENIZER, "Token %lld -> '%s'", (long long)id, piece.c_str());
+        } else {
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Token %lld not found in reverseVocab!", (long long)id);
         }
     }
 
-    // 후처리
-    result = postprocess(result);
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Pieces count: %zu", pieces.size());
 
-    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Decoded %zu tokens -> '%s'", tokenIds.size(), result.c_str());
+    // 2. SentencePiece를 사용하여 pieces → 텍스트 변환
+    std::string result;
+    auto status = sp_->Decode(pieces, &result);
+
+    if (!status.ok()) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "SentencePiece decode failed: %s", status.ToString().c_str());
+        return "";
+    }
+
+    AIDEO_LOGI(LOG_TAG_TOKENIZER, "Decoded result: %s", result.c_str());
     return result;
+}
+
+int64_t Tokenizer::getLanguageTokenId(const std::string& langCode) const {
+    // langCode: "ko", "en", "ja", etc.
+    std::string token = "__" + langCode + "__";
+    auto it = vocab_.find(token);
+    if (it != vocab_.end()) {
+        return it->second;
+    }
+    return -1;
+}
+
+size_t Tokenizer::getVocabSize() const {
+    return vocab_.size();
 }

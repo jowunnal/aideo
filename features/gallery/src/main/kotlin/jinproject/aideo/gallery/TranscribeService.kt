@@ -7,6 +7,7 @@ import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -18,9 +19,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.core.inference.SpeechRecognitionManager
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.runtime.impl.onnx.M2M100
 import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
@@ -39,9 +40,9 @@ class TranscribeService : LifecycleService() {
 
     @Inject
     lateinit var localPlayerDataSource: LocalPlayerDataSource
-
+    
     @Inject
-    lateinit var mediaRepository: MediaRepository
+    lateinit var t5: M2M100
 
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
@@ -130,7 +131,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        mediaRepository.translateSubtitle(videoItem.id)
+        t5.translateSubtitle(videoItem.id)
 
         launchPlayer(videoItem.uri)
 
@@ -147,7 +148,10 @@ class TranscribeService : LifecycleService() {
     ) {
         runCatching {
             speechRecognitionManager.transcribe(videoItem = videoItem, language = inferenceLanguage)
-            mediaRepository.translateSubtitle(videoItem.id)
+            Log.d("test","aaaa")
+            try { t5.translateSubtitle(videoItem.id) } catch (e: Exception) {
+                Log.d("test","e: ${e.stackTraceToString()}")
+            }
         }.onSuccess {
             notifyTranscriptionResult(
                 title = "자막 생성 완료",

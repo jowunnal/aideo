@@ -17,30 +17,71 @@ public:
     OnnxInference();
     ~OnnxInference();
 
-    // 모델 로드
-    bool loadModel(const std::string& modelPath);
-
-    // 일반화된 추론 함수 (T5용 int64 지원)
-    // inputValues: 각 입력의 플랫 데이터
-    // inputShapes: 각 입력의 shape
-    std::vector<float> runInt64(
-            const std::vector<const char*>& inputNames,
-            const std::vector<std::vector<int64_t>>& inputValues,
-            const std::vector<std::vector<int64_t>>& inputShapes,
-            const std::vector<const char*>& outputNames
+    // Encoder-Decoder 모델 로드 (M2M100 등)
+    bool loadEncoderDecoderModel(
+            const std::string& encoderPath,
+            const std::string& decoderPath,
+            const std::string& decoderWithPastPath
     );
 
-    // 일반 추론용 (float 입력)
-    std::vector<float> runFloat(
-            const std::vector<const char*>& inputNames,
-            const std::vector<std::vector<float>>& inputValues,
-            const std::vector<std::vector<int64_t>>& inputShapes,
-            const std::vector<const char*>& outputNames
+    // Encoder 추론 - encoder_hidden_states 반환
+    std::vector<float> runEncoder(
+            const std::vector<int64_t>& inputIds,
+            const std::vector<int64_t>& attentionMask,
+            int64_t batchSize,
+            int64_t seqLength
     );
+
+    // Decoder 추론 (첫 토큰) - logits와 present KV cache 반환
+    struct DecoderOutput {
+        std::vector<float> logits;
+        std::vector<std::vector<float>> presentKeyValues;  // [layer][data]
+        std::vector<std::vector<int64_t>> presentKeyValueShapes;  // [layer][shape]
+        std::vector<std::string> kvOutputNames;  // KV 출력 이름 (디버그/매핑용)
+    };
+
+    DecoderOutput runDecoder(
+            const std::vector<int64_t>& inputIds,
+            const std::vector<int64_t>& attentionMask,
+            const std::vector<float>& encoderHiddenStates,
+            int64_t batchSize,
+            int64_t decoderSeqLength,
+            int64_t encoderSeqLength
+    );
+
+    // Decoder with past 추론 (후속 토큰)
+    DecoderOutput runDecoderWithPast(
+            const std::vector<int64_t>& inputIds,
+            const std::vector<int64_t>& attentionMask,
+            const std::vector<float>& encoderHiddenStates,
+            const std::vector<std::vector<float>>& pastKeyValues,
+            const std::vector<std::vector<int64_t>>& pastKeyValueShapes,
+            int64_t batchSize,
+            int64_t encoderSeqLength
+    );
+
     void release();
+
+    // 모델 설정
+    void setNumDecoderLayers(int numLayers) { numDecoderLayers_ = numLayers; }
+    void setNumHeads(int numHeads) { numHeads_ = numHeads; }
+    void setHiddenSize(int hiddenSize) { hiddenSize_ = hiddenSize; }
+
 private:
     Ort::Env env_;
-    std::unique_ptr<Ort::Session> session_;
     Ort::SessionOptions sessionOptions_;
+
+    // 단일 모델용
+    std::unique_ptr<Ort::Session> session_;
+
+    // Encoder-Decoder 모델용
+    std::unique_ptr<Ort::Session> encoderSession_;
+    std::unique_ptr<Ort::Session> decoderSession_;
+    std::unique_ptr<Ort::Session> decoderWithPastSession_;
+
+    // 모델 설정
+    int numDecoderLayers_ = 12;  // M2M100 기본값
+    int numHeads_ = 16;
+    int hiddenSize_ = 1024;
 };
 #endif

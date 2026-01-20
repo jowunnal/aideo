@@ -147,7 +147,7 @@ class MainActivity : ComponentActivity() {
         }
 
         MobileAds.initialize(this@MainActivity) {
-            loadRewardedAd()
+            //loadRewardedAd()
         }
         firebaseAnalytics = Firebase.analytics
 

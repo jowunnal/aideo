@@ -18,8 +18,18 @@ set_target_properties(onnx-runtime PROPERTIES
         IMPORTED_LOCATION ${JNILIB_PATH}/libonnxruntime.so
 )
 
+# SentencePiece Pre-Build 추가
+add_library(sentence-piece SHARED IMPORTED)
+set_target_properties(sentence-piece PROPERTIES
+        IMPORTED_LOCATION ${JNILIB_PATH}/libsentencepiece.so)
+
 # 네이티브 코드 추가
-add_library(onnx-inference SHARED onnxruntime_inference.cpp t5_inference.cpp t5_jni.cpp tokenizer.cpp)
+add_library(onnx-inference SHARED
+        onnxruntime_inference.cpp
+        tokenizer.cpp
+        m2m100_translator.cpp
+        m2m100_jni.cpp
+)
 
 # 라이브러리 링크
-target_link_libraries(onnx-inference onnx-runtime android log)
+target_link_libraries(onnx-inference onnx-runtime sentence-piece android log)
