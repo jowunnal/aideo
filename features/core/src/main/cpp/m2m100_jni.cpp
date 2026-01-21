@@ -86,6 +86,42 @@ Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translate(
     return env->NewStringUTF(result.c_str());
 }
 
+JNIEXPORT jstring JNICALL
+Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translateWithBuffer(
+        JNIEnv* env,
+        jobject /* this */,
+        jobject textBuffer,
+        jint textLength,
+        jstring srcLang,
+        jstring tgtLang,
+        jint maxLength) {
+
+    if (g_translator == nullptr) {
+        return nullptr;
+    }
+
+    const char* textStr = static_cast<const char*>(env->GetDirectBufferAddress(textBuffer));
+    if (textStr == nullptr) {
+        return nullptr;
+    }
+
+    std::string text(textStr, textLength);
+
+    const char* srcLangStr = env->GetStringUTFChars(srcLang, nullptr);
+    const char* tgtLangStr = env->GetStringUTFChars(tgtLang, nullptr);
+
+    std::string result = g_translator->translate(text.c_str(), srcLangStr, tgtLangStr, maxLength);
+
+    env->ReleaseStringUTFChars(srcLang, srcLangStr);
+    env->ReleaseStringUTFChars(tgtLang, tgtLangStr);
+
+    if (result.empty()) {
+        return nullptr;
+    }
+
+    return env->NewStringUTF(result.c_str());
+}
+
 JNIEXPORT jboolean JNICALL
 Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_isLanguageSupported(
         JNIEnv* env,

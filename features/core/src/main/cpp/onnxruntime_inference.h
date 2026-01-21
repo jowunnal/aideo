@@ -71,9 +71,6 @@ private:
     Ort::Env env_;
     Ort::SessionOptions sessionOptions_;
 
-    // 단일 모델용
-    std::unique_ptr<Ort::Session> session_;
-
     // Encoder-Decoder 모델용
     std::unique_ptr<Ort::Session> encoderSession_;
     std::unique_ptr<Ort::Session> decoderSession_;

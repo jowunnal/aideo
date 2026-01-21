@@ -29,13 +29,6 @@ public:
     int64_t getPadTokenId() const { return padTokenId_; }
     int64_t getEosTokenId() const { return eosTokenId_; }
     int64_t getUnkTokenId() const { return unkTokenId_; }
-    int64_t getBosTokenId() const { return bosTokenId_; }
-
-    // 언어 토큰 ID 조회
-    int64_t getLanguageTokenId(const std::string& langCode) const;
-
-    // Vocab 크기 반환
-    size_t getVocabSize() const;
 
 private:
     // SentencePiece processor (텍스트 → pieces 변환용)

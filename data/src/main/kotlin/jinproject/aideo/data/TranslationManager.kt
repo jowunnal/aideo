@@ -70,17 +70,6 @@ object TranslationManager {
             .joinToString("@")
     }
 
-    fun splitSubtitleToList(srtContent: String): List<String> {
-        val srtBlockPattern = Regex(
-            """\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n([\s\S]*?)(?=\n{2,}\d+\n|\z)"""
-        )
-
-        return srtBlockPattern.findAll(srtContent)
-            .map { it.groupValues[1].replace("\n", " ").trim() }
-            .filter { it.isNotBlank() }
-            .toList()
-    }
-
     /**
      * mlKit-Translation 의 번역 결과물을 원본 srt 문자열에 자막 내용물만 대체하는 함수
      *

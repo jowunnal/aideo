@@ -8,11 +8,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.runtime.impl.onnx.M2M100
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,9 +29,9 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
     private val androidMediaFileManager: AndroidMediaFileManager,
-    private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
     private val savedStateHandle: SavedStateHandle,
+    private val m2M100: M2M100,
 ) : ViewModel() {
 
     init {
@@ -53,7 +53,7 @@ class PlayerViewModel @Inject constructor(
             )
 
             if (subtitleExist != 1) {
-                mediaRepository.translateSubtitle(id)
+                m2M100.translateSubtitle(id)
             }
 
             getExoPlayer().also {

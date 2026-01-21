@@ -6,7 +6,6 @@
 #include "json.hpp"
 #include <fstream>
 #include <algorithm>
-#include <cmath>
 #include <regex>
 
 using json = nlohmann::json;
@@ -33,8 +32,6 @@ static std::pair<int, int> parseKvOutputName(const std::string& name) {
 }
 
 M2M100Translator::M2M100Translator() {
-    AIDEO_LOGI(LOG_TAG_M2M100, "M2M100Translator created");
-
     // 모델 파라미터 설정
     inference_.setNumDecoderLayers(NUM_DECODER_LAYERS);
     inference_.setNumHeads(NUM_HEADS);
@@ -55,21 +52,18 @@ bool M2M100Translator::load(
 
     try {
         // 1. ONNX 모델 로드
-        AIDEO_LOGI(LOG_TAG_M2M100, "Loading ONNX models...");
         if (!inference_.loadEncoderDecoderModel(encoderPath, decoderPath, decoderWithPastPath)) {
             AIDEO_LOGE(LOG_TAG_M2M100, "Failed to load ONNX models");
             return false;
         }
 
         // 2. 토크나이저 로드 (SentencePiece model + vocab.json)
-        AIDEO_LOGI(LOG_TAG_M2M100, "Loading tokenizer...");
         if (!tokenizer_.loadM2M100(spModelPath, vocabPath)) {
             AIDEO_LOGE(LOG_TAG_M2M100, "Failed to load tokenizer");
             return false;
         }
 
         // 3. 언어 토큰 매핑 로드 (tokenizer_config.json의 added_tokens_decoder에서 추출)
-        AIDEO_LOGI(LOG_TAG_M2M100, "Loading language tokens from: %s", tokenizerConfigPath.c_str());
         std::ifstream file(tokenizerConfigPath);
         if (!file.is_open()) {
             AIDEO_LOGE(LOG_TAG_M2M100, "Failed to open tokenizer_config.json");
@@ -89,14 +83,11 @@ bool M2M100Translator::load(
             }
         }
 
-        AIDEO_LOGI(LOG_TAG_M2M100, "Loaded %zu language mappings", langToTokenId_.size());
-
         // 특수 토큰 설정
         eosTokenId_ = tokenizer_.getEosTokenId();
         padTokenId_ = tokenizer_.getPadTokenId();
 
         isLoaded_ = true;
-        AIDEO_LOGI(LOG_TAG_M2M100, "M2M100 loaded successfully");
         return true;
 
     } catch (const std::exception& e) {
@@ -180,28 +171,18 @@ std::string M2M100Translator::translate(
         allKVShapes.resize(NUM_DECODER_LAYERS * 4);
 
         // 초기 decoder output에서 KV 캐시를 이름 기반으로 정렬하여 저장
-        // 디버그: 초기 decoder output 이름 모두 출력
-        AIDEO_LOGI(LOG_TAG_M2M100, "Initial decoder KV output names (%zu):", decoderOutput.kvOutputNames.size());
-        for (size_t i = 0; i < std::min(decoderOutput.kvOutputNames.size(), (size_t)10); ++i) {
-            AIDEO_LOGI(LOG_TAG_M2M100, "  [%zu]: %s", i, decoderOutput.kvOutputNames[i].c_str());
-        }
-
         if (decoderOutput.kvOutputNames.size() == decoderOutput.presentKeyValues.size()) {
             // 이름 기반 매핑 사용
-            int successCount = 0, failCount = 0;
             for (size_t i = 0; i < decoderOutput.presentKeyValues.size(); ++i) {
                 auto [layerIdx, typeOffset] = parseKvOutputName(decoderOutput.kvOutputNames[i]);
                 if (layerIdx >= 0 && layerIdx < NUM_DECODER_LAYERS && typeOffset >= 0) {
                     int targetIdx = layerIdx * 4 + typeOffset;
                     allKVCache[targetIdx] = std::move(decoderOutput.presentKeyValues[i]);
                     allKVShapes[targetIdx] = std::move(decoderOutput.presentKeyValueShapes[i]);
-                    successCount++;
                 } else {
                     AIDEO_LOGW(LOG_TAG_M2M100, "Could not parse KV name: %s", decoderOutput.kvOutputNames[i].c_str());
-                    failCount++;
                 }
             }
-            AIDEO_LOGI(LOG_TAG_M2M100, "KV cache mapping: %d success, %d failed", successCount, failCount);
 
             // 빈 슬롯 확인
             int emptySlots = 0;
@@ -215,8 +196,6 @@ std::string M2M100Translator::translate(
             }
         } else {
             // 이름 없으면 순서대로 (기존 방식 - fallback)
-            AIDEO_LOGW(LOG_TAG_M2M100, "Using fallback KV cache ordering (names: %zu, values: %zu)",
-                       decoderOutput.kvOutputNames.size(), decoderOutput.presentKeyValues.size());
             for (size_t i = 0; i < decoderOutput.presentKeyValues.size(); ++i) {
                 allKVCache[i] = std::move(decoderOutput.presentKeyValues[i]);
                 allKVShapes[i] = std::move(decoderOutput.presentKeyValueShapes[i]);
@@ -229,21 +208,6 @@ std::string M2M100Translator::translate(
         for (int step = 0; step < maxLength - 1; ++step) {
             if (nextToken == eosTokenId_) {
                 break;
-            }
-
-            // 첫 스텝에서 KV 캐시 상태 로깅
-            if (step == 0) {
-                AIDEO_LOGI(LOG_TAG_M2M100, "First step KV cache shapes:");
-                for (int i = 0; i < std::min(4, NUM_DECODER_LAYERS); ++i) {
-                    int baseIdx = i * 4;
-                    std::string decKeyShape, decValShape, encKeyShape, encValShape;
-                    for (auto d : allKVShapes[baseIdx]) decKeyShape += std::to_string(d) + ",";
-                    for (auto d : allKVShapes[baseIdx+1]) decValShape += std::to_string(d) + ",";
-                    for (auto d : allKVShapes[baseIdx+2]) encKeyShape += std::to_string(d) + ",";
-                    for (auto d : allKVShapes[baseIdx+3]) encValShape += std::to_string(d) + ",";
-                    AIDEO_LOGI(LOG_TAG_M2M100, "  Layer %d - dec_k:[%s] dec_v:[%s] enc_k:[%s] enc_v:[%s]",
-                               i, decKeyShape.c_str(), decValShape.c_str(), encKeyShape.c_str(), encValShape.c_str());
-                }
             }
 
             nextInputIds[0] = nextToken;
@@ -270,23 +234,17 @@ std::string M2M100Translator::translate(
             // KV 캐시 업데이트 - 이름 기반 매핑 사용
             if (nextOutput.kvOutputNames.size() == nextOutput.presentKeyValues.size()) {
                 // 이름 기반으로 업데이트
-                int updateSuccess = 0, updateFail = 0;
                 for (size_t i = 0; i < nextOutput.presentKeyValues.size(); ++i) {
                     auto [layerIdx, typeOffset] = parseKvOutputName(nextOutput.kvOutputNames[i]);
                     if (layerIdx >= 0 && layerIdx < NUM_DECODER_LAYERS && typeOffset >= 0) {
                         int targetIdx = layerIdx * 4 + typeOffset;
                         allKVCache[targetIdx] = std::move(nextOutput.presentKeyValues[i]);
                         allKVShapes[targetIdx] = std::move(nextOutput.presentKeyValueShapes[i]);
-                        updateSuccess++;
                     } else {
                         if (step == 0) {
                             AIDEO_LOGW(LOG_TAG_M2M100, "Update: could not parse KV name: %s", nextOutput.kvOutputNames[i].c_str());
                         }
-                        updateFail++;
                     }
-                }
-                if (step == 0) {
-                    AIDEO_LOGI(LOG_TAG_M2M100, "KV cache update step 0: %d success, %d failed", updateSuccess, updateFail);
                 }
             } else {
                 // Fallback: 기존 인덱스 기반 방식
@@ -315,15 +273,7 @@ std::string M2M100Translator::translate(
         }
 
         // 7. 토큰 디코딩
-        // 디버그: 생성된 토큰 출력
-        std::string genTokensStr;
-        for (size_t i = 0; i < generatedTokens.size(); i++) {
-            genTokensStr += std::to_string(generatedTokens[i]) + " ";
-        }
-        AIDEO_LOGI(LOG_TAG_M2M100, "Generated tokens (%zu): %s", generatedTokens.size(), genTokensStr.c_str());
-
         std::string result = tokenizer_.decode(generatedTokens);
-        AIDEO_LOGI(LOG_TAG_M2M100, "Translation result: %s", result.c_str());
         return result;
 
     } catch (const std::exception& e) {
@@ -382,19 +332,8 @@ bool M2M100Translator::isLanguageSupported(const std::string& lang) const {
     return langToTokenId_.find(lang) != langToTokenId_.end();
 }
 
-std::vector<std::string> M2M100Translator::getSupportedLanguages() const {
-    std::vector<std::string> languages;
-    languages.reserve(langToTokenId_.size());
-    for (const auto& [lang, _] : langToTokenId_) {
-        languages.push_back(lang);
-    }
-    std::sort(languages.begin(), languages.end());
-    return languages;
-}
-
 void M2M100Translator::release() {
     inference_.release();
     langToTokenId_.clear();
     isLoaded_ = false;
-    AIDEO_LOGI(LOG_TAG_M2M100, "M2M100 released");
 }

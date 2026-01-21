@@ -6,17 +6,15 @@ import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.runtime.impl.onnx.wrapper.M2M100Native
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
-import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
-import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.sequences.joinToString
 
 @Singleton
 class M2M100 @Inject constructor(
@@ -25,8 +23,7 @@ class M2M100 @Inject constructor(
     private val localPlayerDataSource: LocalPlayerDataSource,
 ) {
     private var m2M100Native: M2M100Native? = null
-    var strBuilder: StringBuilder? = null
-        private set
+    private var textBuffer: ByteBuffer? = null
 
     fun initialize(): Boolean {
         if (m2M100Native != null) {
@@ -34,7 +31,7 @@ class M2M100 @Inject constructor(
         }
 
         m2M100Native = M2M100Native()
-        strBuilder = StringBuilder()
+        textBuffer = ByteBuffer.allocateDirect(MAX_TEXT_BUFFER_SIZE)
 
         val isInitialized = m2M100Native!!.initialize()
 
@@ -47,7 +44,8 @@ class M2M100 @Inject constructor(
             copyAssetToInternalStorage(path = DECODER_MODEL_PATH, context = context)
         val decoderWithPastInternalPath =
             copyAssetToInternalStorage(path = DECODER_WITH_PAST_MODEL_PATH, context = context)
-        val spModelInternalPath = copyAssetToInternalStorage(path = SP_MODEL_PATH, context = context)
+        val spModelInternalPath =
+            copyAssetToInternalStorage(path = SP_MODEL_PATH, context = context)
         val vocabInternalPath = copyAssetToInternalStorage(path = VOCAB_PATH, context = context)
         val tokenizerConfigInternalPath =
             copyAssetToInternalStorage(path = TOKENIZER_CONFIG_PATH, context = context)
@@ -69,29 +67,26 @@ class M2M100 @Inject constructor(
             localFileDataSource.getOriginSubtitleLanguageCode(videoId)
         val targetLanguageISOCode = localPlayerDataSource.getSubtitleLanguage().first()
 
-        val srtContent = localFileDataSource.getFileContent(
+        val srtContent = localFileDataSource.getFileContentList(
             getSubtitleFileIdentifier(
                 id = videoId,
                 languageCode = sourceLanguageISOCode
             )
-        )?.joinToString("\n")
-            ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
-                message = "content is null",
-                cause = null
-            )
+        ) ?: throw IllegalStateException("content is null")
 
-        val extracted = TranslationManager.splitSubtitleToList(srtContent).joinToString("@") {
-            translate(
-                text = it,
-                sourceLanguageCode = LanguageCode.findByCode(sourceLanguageISOCode)!!,
-                targetLanguageCode = LanguageCode.findByCode(targetLanguageISOCode)!!
-            )
-        }
+        val srcLang = LanguageCode.findByCode(sourceLanguageISOCode)!!
+        val tgtLang = LanguageCode.findByCode(targetLanguageISOCode)!!
 
-        val translatedText = TranslationManager.restoreMlKitTranslationToSrtFormat(
-            originalSrtContent = srtContent,
-            translatedContent = extracted
-        )
+        val translatedText = srtContent.mapIndexed { idx, s ->
+            if ((idx + 1) % 4 == 3)
+                translateWithBuffer(
+                    text = s.toByteArray(Charsets.UTF_8),
+                    sourceLanguageCode = srcLang,
+                    targetLanguageCode = tgtLang
+                )
+            else
+                s
+        }.joinToString("\n") { it }
 
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
@@ -125,23 +120,54 @@ class M2M100 @Inject constructor(
             text = text,
             srcLang = sourceLanguageCode.code,
             tgtLang = targetLanguageCode.code,
-            maxLength = 200
-        ).also {
-            strBuilder?.clear()
-        } ?: throw IllegalStateException("Translation failed")
+            maxLength = MAX_OUTPUT_LENGTH
+        ) ?: throw IllegalStateException("Translation failed")
+    }
+
+    /**
+     * ByteBuffer를 재사용하여 번역 (JNI 복사 오버헤드 감소)
+     * @throws IllegalStateException : 번역 실패시
+     */
+    private fun translateWithBuffer(
+        text: ByteArray,
+        sourceLanguageCode: LanguageCode,
+        targetLanguageCode: LanguageCode,
+    ): String {
+        if (m2M100Native == null)
+            initialize()
+
+        val buffer = textBuffer!!.apply {
+            clear() // pos = 0
+            put(text) // pos = text.size
+            flip() // pos = 0, limit = text.size
+        }
+
+        return m2M100Native!!.translateWithBuffer(
+            textBuffer = buffer,
+            textLength = text.size,
+            srcLang = sourceLanguageCode.code,
+            tgtLang = targetLanguageCode.code,
+            maxLength = MAX_OUTPUT_LENGTH
+        ) ?: throw IllegalStateException("Translation failed")
     }
 
     fun release() {
         m2M100Native?.release()
+        m2M100Native = null
+        textBuffer = null
     }
 
     companion object {
         const val M2M100 = "m2m100"
         const val ENCODER_MODEL_PATH = "$MODELS_ROOT_DIR/${M2M100}_encoder.int8.onnx"
         const val DECODER_MODEL_PATH = "$MODELS_ROOT_DIR/${M2M100}_decoder.int8.onnx"
-        const val DECODER_WITH_PAST_MODEL_PATH = "$MODELS_ROOT_DIR/${M2M100}_decoder_with_past.int8.onnx"
+        const val DECODER_WITH_PAST_MODEL_PATH =
+            "$MODELS_ROOT_DIR/${M2M100}_decoder_with_past.int8.onnx"
         const val SP_MODEL_PATH = "$MODELS_ROOT_DIR/${M2M100}_sentencepiece.bpe.model"
         const val VOCAB_PATH = "$MODELS_ROOT_DIR/${M2M100}_vocab.json"
         const val TOKENIZER_CONFIG_PATH = "$MODELS_ROOT_DIR/${M2M100}_tokenizer_config.json"
+
+        private const val MAX_TEXT_BUFFER_SIZE = 1024
+        private const val MAX_OUTPUT_LENGTH = 200
     }
 }

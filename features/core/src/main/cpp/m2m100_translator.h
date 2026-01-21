@@ -46,7 +46,6 @@ public:
 
     // 지원 언어 확인
     bool isLanguageSupported(const std::string& lang) const;
-    std::vector<std::string> getSupportedLanguages() const;
 
 private:
     // 언어 코드를 토큰 ID로 변환 (예: "ko" -> 128052)

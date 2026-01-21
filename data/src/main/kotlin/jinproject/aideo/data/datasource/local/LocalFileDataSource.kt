@@ -44,7 +44,7 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
      *
      * @return 한줄씩 읽은 List<String>
      */
-    fun getFileContent(fileIdentifier: String): List<String>? {
+    fun getFileContentList(fileIdentifier: String): List<String>? {
         val file = File(context.filesDir, fileIdentifier)
 
         return if (file.exists()) file.readLines() else null
