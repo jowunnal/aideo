@@ -77,16 +77,28 @@ class M2M100 @Inject constructor(
         val srcLang = LanguageCode.findByCode(sourceLanguageISOCode)!!
         val tgtLang = LanguageCode.findByCode(targetLanguageISOCode)!!
 
-        val translatedText = srtContent.mapIndexed { idx, s ->
-            if ((idx + 1) % 4 == 3)
-                translateWithBuffer(
-                    text = s.toByteArray(Charsets.UTF_8),
-                    sourceLanguageCode = srcLang,
-                    targetLanguageCode = tgtLang
-                )
-            else
-                s
-        }.joinToString("\n") { it }
+        // 자막 텍스트만 추출 (인덱스 % 4 == 2인 라인들: 0-indexed에서 3번째 라인)
+        val subtitleTexts = srtContent.filterIndexed { idx, _ -> (idx + 1) % 4 == 3 }
+
+        // 배치 번역 (JNI 1회 호출)
+        val translatedTexts = translateBatch(
+            texts = subtitleTexts,
+            sourceLanguageCode = srcLang,
+            targetLanguageCode = tgtLang
+        )
+
+        // StringBuilder로 결과 조립
+        val translatedText = buildString {
+            var translatedIdx = 0
+            srtContent.forEachIndexed { idx, line ->
+                if ((idx + 1) % 4 == 3) {
+                    append(translatedTexts[translatedIdx++])
+                } else {
+                    append(line)
+                }
+                if (idx < srtContent.lastIndex) append('\n')
+            }
+        }
 
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
@@ -122,6 +134,26 @@ class M2M100 @Inject constructor(
             tgtLang = targetLanguageCode.code,
             maxLength = MAX_OUTPUT_LENGTH
         ) ?: throw IllegalStateException("Translation failed")
+    }
+
+    /**
+     * 배치 번역 (JNI 호출 최소화)
+     * @throws IllegalStateException : 번역 실패시
+     */
+    fun translateBatch(
+        texts: List<String>,
+        sourceLanguageCode: LanguageCode,
+        targetLanguageCode: LanguageCode,
+    ): List<String> {
+        if (m2M100Native == null)
+            initialize()
+
+        return m2M100Native!!.translateBatch(
+            texts = texts.toTypedArray(),
+            srcLang = sourceLanguageCode.code,
+            tgtLang = targetLanguageCode.code,
+            maxLength = MAX_OUTPUT_LENGTH
+        )?.toList() ?: throw IllegalStateException("Batch translation failed")
     }
 
     /**

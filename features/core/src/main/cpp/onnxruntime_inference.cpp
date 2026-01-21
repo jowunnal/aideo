@@ -5,14 +5,24 @@
 
 OnnxInference::OnnxInference()
         : env_(ORT_LOGGING_LEVEL_WARNING, "OnnxInference") {
-    // 모바일 최적화: 전체 코어의 절반, 최소 2개, 최대 4개
+    // 모바일 최적화: 메모리 Arena 비활성화로 버벅임 해결됨
+    // 스레드 수는 성능을 위해 적정 수준 유지 (코어의 절반, 2~4개)
     unsigned int totalCores = std::thread::hardware_concurrency();
     unsigned int numThreads = std::min(4u, std::max(2u, totalCores / 2));
     if (totalCores == 0) numThreads = 2;  // 감지 실패 시 기본값
 
     // 세션 옵션 설정
-    sessionOptions_.SetIntraOpNumThreads(numThreads);
+    sessionOptions_.SetIntraOpNumThreads(static_cast<int>(numThreads));
     sessionOptions_.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+
+    // 메모리 최적화: Arena allocator 비활성화
+    // Arena는 메모리를 미리 할당하고 해제를 지연시켜 메모리 사용량 증가
+    // 비활성화하면 즉시 해제되어 메모리 사용량 감소
+    sessionOptions_.DisableCpuMemArena();
+
+    // 메모리 패턴 최적화 활성화
+    // 실행 중 메모리 할당 패턴을 분석하여 재사용
+    sessionOptions_.EnableMemPattern();
 }
 
 OnnxInference::~OnnxInference() {
@@ -55,7 +65,7 @@ std::vector<float> OnnxInference::runEncoder(
     Ort::AllocatorWithDefaultOptions allocator;
 
     try {
-        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeDefault);
         std::vector<int64_t> inputShape = {batchSize, seqLength};
 
         // Get actual input/output names from the model
@@ -129,7 +139,7 @@ OnnxInference::DecoderOutput OnnxInference::runDecoder(
     Ort::AllocatorWithDefaultOptions allocator;
 
     try {
-        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeDefault);
 
         // Get actual input names from the model and create tensors in correct order
         std::vector<Ort::AllocatedStringPtr> inputNamePtrs;
@@ -225,7 +235,7 @@ OnnxInference::DecoderOutput OnnxInference::runDecoderWithPast(
     Ort::AllocatorWithDefaultOptions allocator;
 
     try {
-        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeDefault);
 
         // Get actual input names from the model
         std::vector<Ort::AllocatedStringPtr> modelInputNamePtrs;

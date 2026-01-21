@@ -41,6 +41,14 @@ public:
             int maxLength = 256
     );
 
+    // 배치 번역 실행 (JNI 호출 최소화)
+    std::vector<std::string> translateBatch(
+            const std::vector<std::string>& texts,
+            const std::string& srcLang,
+            const std::string& tgtLang,
+            int maxLength = 256
+    );
+
     // 리소스 해제
     void release();
 

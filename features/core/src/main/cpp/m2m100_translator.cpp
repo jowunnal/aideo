@@ -14,8 +14,8 @@ using json = nlohmann::json;
 // 이름 형식: "present.X.decoder.key", "present.X.decoder.value", "present.X.encoder.key", "present.X.encoder.value"
 // 반환값: {레이어 인덱스, 타입 오프셋 (0=dec_key, 1=dec_val, 2=enc_key, 3=enc_val)}, 실패시 {-1, -1}
 static std::pair<int, int> parseKvOutputName(const std::string& name) {
-    // present.X.decoder.key 또는 present.X.encoder.key 등의 형식 파싱
-    std::regex pattern(R"(present\.(\d+)\.(decoder|encoder)\.(key|value))");
+    // static regex로 반복 컴파일 방지 (성능 최적화)
+    static const std::regex pattern(R"(present\.(\d+)\.(decoder|encoder)\.(key|value))");
     std::smatch match;
 
     if (std::regex_search(name, match, pattern) && match.size() == 4) {
@@ -330,6 +330,169 @@ int64_t M2M100Translator::selectNextToken(const std::vector<float>& logits, int6
 
 bool M2M100Translator::isLanguageSupported(const std::string& lang) const {
     return langToTokenId_.find(lang) != langToTokenId_.end();
+}
+
+std::vector<std::string> M2M100Translator::translateBatch(
+        const std::vector<std::string>& texts,
+        const std::string& srcLang,
+        const std::string& tgtLang,
+        int maxLength) {
+
+    std::vector<std::string> results;
+    results.reserve(texts.size());
+
+    if (!isLoaded_) {
+        AIDEO_LOGE(LOG_TAG_M2M100, "Model not loaded");
+        return results;
+    }
+
+    // 언어 토큰 조회 1회
+    int64_t srcLangId = getLanguageTokenId(srcLang);
+    int64_t tgtLangId = getLanguageTokenId(tgtLang);
+
+    if (srcLangId == -1 || tgtLangId == -1) {
+        AIDEO_LOGE(LOG_TAG_M2M100, "Unsupported language: src=%s, tgt=%s",
+                   srcLang.c_str(), tgtLang.c_str());
+        return results;
+    }
+
+    // KV cache 벡터를 루프 밖에서 한 번만 할당 (재사용)
+    std::vector<std::vector<float>> allKVCache(NUM_DECODER_LAYERS * 4);
+    std::vector<std::vector<int64_t>> allKVShapes(NUM_DECODER_LAYERS * 4);
+    std::vector<int64_t> inputIds;
+    std::vector<int64_t> attentionMask;
+    std::vector<int64_t> decoderInputIds = {eosTokenId_, tgtLangId};
+    std::vector<int64_t> generatedTokens;
+    std::vector<int64_t> nextInputIds(1);
+
+    // 각 텍스트를 순차 번역 (Encoder-Decoder 특성상 병렬화 어려움)
+    for (const auto& text : texts) {
+        try {
+            // 1. 입력 텍스트 토큰화
+            inputIds.clear();
+            inputIds.push_back(srcLangId);
+            auto textTokens = tokenizer_.encode(text, false);
+            inputIds.insert(inputIds.end(), textTokens.begin(), textTokens.end());
+            inputIds.push_back(eosTokenId_);
+
+            int64_t encoderSeqLen = static_cast<int64_t>(inputIds.size());
+            attentionMask.assign(encoderSeqLen, 1);
+
+            // 2. Encoder 실행
+            auto encoderHiddenStates = inference_.runEncoder(
+                    inputIds, attentionMask, 1, encoderSeqLen
+            );
+
+            if (encoderHiddenStates.empty()) {
+                results.push_back("");
+                continue;
+            }
+
+            // 3. Decoder 시작 토큰 설정
+            generatedTokens.clear();
+
+            // 4. 첫 번째 Decoder 실행
+            auto decoderOutput = inference_.runDecoder(
+                    decoderInputIds,
+                    attentionMask,
+                    encoderHiddenStates,
+                    1,
+                    static_cast<int64_t>(decoderInputIds.size()),
+                    encoderSeqLen
+            );
+
+            if (decoderOutput.logits.empty()) {
+                results.push_back("");
+                continue;
+            }
+
+            // 5. 다음 토큰 선택
+            int64_t nextToken = selectNextToken(decoderOutput.logits, VOCAB_SIZE);
+            generatedTokens.push_back(nextToken);
+
+            // 6. KV 캐시 설정 (내부 벡터만 clear하고 외부 벡터는 재사용)
+            for (auto& kv : allKVCache) kv.clear();
+            for (auto& shape : allKVShapes) shape.clear();
+
+            if (decoderOutput.kvOutputNames.size() == decoderOutput.presentKeyValues.size()) {
+                for (size_t i = 0; i < decoderOutput.presentKeyValues.size(); ++i) {
+                    auto [layerIdx, typeOffset] = parseKvOutputName(decoderOutput.kvOutputNames[i]);
+                    if (layerIdx >= 0 && layerIdx < NUM_DECODER_LAYERS && typeOffset >= 0) {
+                        int targetIdx = layerIdx * 4 + typeOffset;
+                        allKVCache[targetIdx] = std::move(decoderOutput.presentKeyValues[i]);
+                        allKVShapes[targetIdx] = std::move(decoderOutput.presentKeyValueShapes[i]);
+                    }
+                }
+            } else {
+                for (size_t i = 0; i < decoderOutput.presentKeyValues.size(); ++i) {
+                    allKVCache[i] = std::move(decoderOutput.presentKeyValues[i]);
+                    allKVShapes[i] = std::move(decoderOutput.presentKeyValueShapes[i]);
+                }
+            }
+
+            // 7. Autoregressive generation
+            for (int step = 0; step < maxLength - 1; ++step) {
+                if (nextToken == eosTokenId_) {
+                    break;
+                }
+
+                nextInputIds[0] = nextToken;
+
+                auto nextOutput = inference_.runDecoderWithPast(
+                        nextInputIds,
+                        attentionMask,
+                        encoderHiddenStates,
+                        allKVCache,
+                        allKVShapes,
+                        1,
+                        encoderSeqLen
+                );
+
+                if (nextOutput.logits.empty()) {
+                    break;
+                }
+
+                nextToken = selectNextToken(nextOutput.logits, VOCAB_SIZE);
+                generatedTokens.push_back(nextToken);
+
+                // KV 캐시 업데이트
+                if (nextOutput.kvOutputNames.size() == nextOutput.presentKeyValues.size()) {
+                    for (size_t i = 0; i < nextOutput.presentKeyValues.size(); ++i) {
+                        auto [layerIdx, typeOffset] = parseKvOutputName(nextOutput.kvOutputNames[i]);
+                        if (layerIdx >= 0 && layerIdx < NUM_DECODER_LAYERS && typeOffset >= 0) {
+                            int targetIdx = layerIdx * 4 + typeOffset;
+                            allKVCache[targetIdx] = std::move(nextOutput.presentKeyValues[i]);
+                            allKVShapes[targetIdx] = std::move(nextOutput.presentKeyValueShapes[i]);
+                        }
+                    }
+                } else {
+                    size_t kvOutputSize = nextOutput.presentKeyValues.size();
+                    if (kvOutputSize == 48) {
+                        allKVCache = std::move(nextOutput.presentKeyValues);
+                        allKVShapes = std::move(nextOutput.presentKeyValueShapes);
+                    } else if (kvOutputSize == 24) {
+                        for (int i = 0; i < NUM_DECODER_LAYERS; ++i) {
+                            int allIdx = i * 4;
+                            int decIdx = i * 2;
+                            allKVCache[allIdx] = std::move(nextOutput.presentKeyValues[decIdx]);
+                            allKVCache[allIdx + 1] = std::move(nextOutput.presentKeyValues[decIdx + 1]);
+                            allKVShapes[allIdx] = std::move(nextOutput.presentKeyValueShapes[decIdx]);
+                            allKVShapes[allIdx + 1] = std::move(nextOutput.presentKeyValueShapes[decIdx + 1]);
+                        }
+                    }
+                }
+            }
+
+            // 8. 토큰 디코딩
+            results.push_back(tokenizer_.decode(generatedTokens));
+
+        } catch (const std::exception& e) {
+            AIDEO_LOGE(LOG_TAG_M2M100, "Batch translation failed for text: %s", e.what());
+            results.push_back("");
+        }
+    }
+
+    return results;
 }
 
 void M2M100Translator::release() {

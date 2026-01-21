@@ -14,6 +14,7 @@ class M2M100Native {
     ): Boolean
 
     external fun translate(text: String, srcLang: String, tgtLang: String, maxLength: Int): String?
+    external fun translateBatch(texts: Array<String>, srcLang: String, tgtLang: String, maxLength: Int): Array<String>?
     external fun translateWithBuffer(
         textBuffer: ByteBuffer,
         textLength: Int,
