@@ -7,7 +7,6 @@ import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -16,15 +15,13 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.inference.SpeechRecognitionManager
-import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.SpeechToTranscription
+import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.media.VideoItem
-import jinproject.aideo.core.runtime.impl.onnx.M2M100
 import jinproject.aideo.core.utils.parseUri
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -33,16 +30,13 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class TranscribeService : LifecycleService() {
     @Inject
-    lateinit var androidMediaFileManager: AndroidMediaFileManager
+    lateinit var mediaRepository: MediaRepository
 
     @Inject
-    lateinit var speechRecognitionManager: SpeechRecognitionManager
+    lateinit var speechToTranscription: SpeechToTranscription
 
     @Inject
-    lateinit var localPlayerDataSource: LocalPlayerDataSource
-    
-    @Inject
-    lateinit var t5: M2M100
+    lateinit var translationManager: TranslationManager
 
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
@@ -50,7 +44,7 @@ class TranscribeService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
 
-        speechRecognitionManager.inferenceProgress.onEach { p ->
+        speechToTranscription.inferenceProgress.onEach { p ->
             notifyTranscribe(
                 contentTitle = "자막 생성 중",
                 progress = p
@@ -82,15 +76,16 @@ class TranscribeService : LifecycleService() {
         val offFlag = intent?.getBooleanExtra("status", false)
 
         if (offFlag != null && offFlag) {
-            speechRecognitionManager.release()
+            speechToTranscription.release()
             stopSelf()
         }
 
         if (videoItem != null && job == null)
             job = lifecycleScope.launch(Dispatchers.Default) {
                 notificationManager.cancel(NOTIFICATION_RESULT_ID)
-                speechRecognitionManager.initialize()
-                if (speechRecognitionManager.isReady) {
+                speechToTranscription.initialize()
+                translationManager.initialize()
+                if (speechToTranscription.isReady) {
                     processSubtitle(videoItem)
                     notificationManager.cancel(NOTIFICATION_TRANSCRIBE_ID)
                     stopSelf()
@@ -101,12 +96,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun processSubtitle(videoItem: VideoItem) {
-        val inferenceLanguage = localPlayerDataSource.getInferenceTargetLanguage().first()
-        val subtitleLanguage = localPlayerDataSource.getSubtitleLanguage().first()
-        val isSubtitleExist = androidMediaFileManager.checkSubtitleFileExist(
-            id = videoItem.id,
-            languageCode = subtitleLanguage
-        )
+        val isSubtitleExist = mediaRepository.checkSubtitleFileExist(videoItem.id)
 
         when (isSubtitleExist) {
             1 -> {
@@ -116,10 +106,7 @@ class TranscribeService : LifecycleService() {
 
             -1 -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(
-                    videoItem = videoItem,
-                    inferenceLanguage = inferenceLanguage
-                )
+                extractAudioAndTranscribe(videoItem = videoItem)
             }
 
             else -> {
@@ -131,7 +118,7 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        t5.translateSubtitle(videoItem.id)
+        translationManager.translateSubtitle(videoItem.id)
 
         launchPlayer(videoItem.uri)
 
@@ -142,16 +129,10 @@ class TranscribeService : LifecycleService() {
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(
-        videoItem: VideoItem,
-        inferenceLanguage: String
-    ) {
+    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
         runCatching {
-            speechRecognitionManager.transcribe(videoItem = videoItem, language = inferenceLanguage)
-            Log.d("test","aaaa")
-            try { t5.translateSubtitle(videoItem.id) } catch (e: Exception) {
-                Log.d("test","e: ${e.stackTraceToString()}")
-            }
+            speechToTranscription.transcribe(videoItem)
+            translationManager.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
                 title = "자막 생성 완료",
@@ -260,7 +241,7 @@ class TranscribeService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        speechRecognitionManager.release()
+        speechToTranscription.release()
         job?.cancel()
         job = null
         super.onDestroy()

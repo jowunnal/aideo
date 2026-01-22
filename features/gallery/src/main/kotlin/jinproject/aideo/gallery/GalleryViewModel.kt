@@ -8,7 +8,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.design.component.layout.DownLoadedUiState
 import jinproject.aideo.design.component.layout.DownloadableUiState
 import kotlinx.collections.immutable.ImmutableList
@@ -22,12 +22,12 @@ import javax.inject.Inject
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
     private val androidMediaFileManager: AndroidMediaFileManager,
-    private val localPlayerDataSource: LocalPlayerDataSource,
+    private val localSettingDataSource: LocalSettingDataSource,
 ) : ViewModel() {
 
     val uiState: RestartableStateFlow<DownloadableUiState> = combine(
-        localPlayerDataSource.getVideoUris(),
-        localPlayerDataSource.getInferenceTargetLanguage()
+        localSettingDataSource.getVideoUris(),
+        localSettingDataSource.getInferenceTargetLanguage()
     ) { videoUris, language ->
         val videoItems = videoUris.mapNotNull {
             androidMediaFileManager.getVideoInfo(it)
@@ -45,19 +45,19 @@ class GalleryViewModel @Inject constructor(
 
     fun updateVideoList(videoUris: List<String>) {
         viewModelScope.launch {
-            val cachedVideoList = localPlayerDataSource.getVideoUris().first()
+            val cachedVideoList = localSettingDataSource.getVideoUris().first()
 
             val newVideoList = videoUris.filter { it !in cachedVideoList }
 
             val targetVideoList = newVideoList + cachedVideoList
 
-            localPlayerDataSource.replaceVideoUris(targetVideoList)
+            localSettingDataSource.replaceVideoUris(targetVideoList)
         }
     }
 
     fun updateLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setInferenceTargetLanguage(languageCode.code)
+            localSettingDataSource.setInferenceTargetLanguage(languageCode.code)
         }
     }
 }

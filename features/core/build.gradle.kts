@@ -65,4 +65,5 @@ dependencies {
     api(libs.bundles.media3)
     implementation(libs.executorch.android)
     api(libs.google.ads.interactive.media)
+    implementation(libs.bundles.mlKit)
 }

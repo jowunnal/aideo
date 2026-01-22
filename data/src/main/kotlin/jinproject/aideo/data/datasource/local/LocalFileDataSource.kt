@@ -2,7 +2,6 @@ package jinproject.aideo.data.datasource.local
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.toSubtitleFileIdentifier
 import java.io.File
 import java.io.FileOutputStream
@@ -57,7 +56,7 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
      *
      * @return 언어 코드 ISO 값
      */
-    suspend fun getOriginSubtitleLanguageCode(videoItemId: Long): String {
+    fun getOriginSubtitleLanguageCode(videoItemId: Long): String {
         val file = context.filesDir
 
         val matchedFiles = file.listFiles()
@@ -67,9 +66,7 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
         if (matchedFiles.isNullOrEmpty())
             throw IllegalArgumentException("File has not found")
 
-        return TranslationManager.detectLanguage(
-            matchedFiles.first().readLines().joinToString("\n")
-        )
+        return matchedFiles.first().nameWithoutExtension.split("_")[1]
     }
 
     fun isFileExist(fileIdentifier: String): Boolean {

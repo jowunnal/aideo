@@ -13,7 +13,8 @@ internal object PlayerPreferencesSerializer : Serializer<PlayerPreferences> {
         PlayerPreferences.newBuilder()
             .setInferenceLanguage("auto")
             .setSubtitleLanguage(Locale.getDefault().language)
-            .setSelectedModel("SenseVoice")
+            .setSelectedSpeechRecognitionModel("SenseVoice")
+            .setSelectedTranslationModel("MlKit")
             .build()
 
     override suspend fun readFrom(input: InputStream): PlayerPreferences {

@@ -1,4 +1,4 @@
-package jinproject.aideo.core.runtime.impl.onnx
+package jinproject.aideo.core.inference.punctuation
 
 import android.content.Context
 import android.util.Log
@@ -6,7 +6,7 @@ import com.k2fsa.sherpa.onnx.OfflinePunctuation
 import com.k2fsa.sherpa.onnx.OfflinePunctuationConfig
 import com.k2fsa.sherpa.onnx.OfflinePunctuationModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.OnnxModelConfig
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.getApplicationAssets
 import jinproject.aideo.data.BuildConfig
@@ -36,7 +36,7 @@ class Punctuation @Inject constructor(
                 debug = BuildConfig.DEBUG
             )
         )
-        
+
         punctuation = OfflinePunctuation(
             assetManager = context.getApplicationAssets(),
             config = config
@@ -70,6 +70,6 @@ class Punctuation @Inject constructor(
     fun isAvailableLanguage(language: String) = language == LanguageCode.Chinese.code || language == LanguageCode.English.code
 
     companion object {
-        const val CT_TRANSFORMER_MODEL_PATH = "$MODELS_ROOT_DIR/punctuation.int8.onnx"
+        const val CT_TRANSFORMER_MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
     }
 }

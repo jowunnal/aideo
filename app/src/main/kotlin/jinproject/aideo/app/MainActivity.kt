@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.android.billingclient.api.BillingClient
@@ -73,10 +72,6 @@ import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
 import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.SnackBarMessage
-import jinproject.aideo.core.runtime.api.SpeechToText
-import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
-import jinproject.aideo.core.runtime.impl.onnx.SileroVad
-import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
@@ -90,23 +85,11 @@ import jinproject.aideo.player.navigateToPlayerGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    @OnnxSTT
-    lateinit var speechToText: SpeechToText
-
-    @Inject
-    lateinit var vad: SileroVad
-
-    @Inject
-    lateinit var speakerDiarization: SpeakerDiarization
-
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { result ->

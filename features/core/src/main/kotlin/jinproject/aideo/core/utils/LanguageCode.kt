@@ -1,7 +1,7 @@
 package jinproject.aideo.core.utils
 
 import androidx.compose.runtime.Stable
-import jinproject.aideo.core.inference.AvailableModel
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 
 @Stable
 enum class LanguageCode(val code: String) {
@@ -25,9 +25,9 @@ enum class LanguageCode(val code: String) {
         /**
          * STT 모델에 맞는 추론 언어 코드들을 반환
          */
-        fun getLanguageCodesByAvailableModel(model: AvailableModel): Array<LanguageCode> {
+        fun getLanguageCodesByAvailableModel(model: SpeechRecognitionAvailableModel): Array<LanguageCode> {
             return when(model) {
-                AvailableModel.Whisper -> arrayOf(
+                SpeechRecognitionAvailableModel.Whisper -> arrayOf(
                     Korean,
                     English,
                     Japanese,
@@ -40,7 +40,7 @@ enum class LanguageCode(val code: String) {
                     Russian,
                     Hindi,
                 )
-                AvailableModel.SenseVoice -> arrayOf(
+                SpeechRecognitionAvailableModel.SenseVoice -> arrayOf(
                     Auto,
                     Korean,
                     English,

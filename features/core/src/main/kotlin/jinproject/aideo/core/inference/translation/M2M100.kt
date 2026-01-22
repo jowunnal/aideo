@@ -1,33 +1,38 @@
-package jinproject.aideo.core.runtime.impl.onnx
+package jinproject.aideo.core.inference.translation
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
-import jinproject.aideo.core.runtime.impl.onnx.wrapper.M2M100Native
+import jinproject.aideo.core.inference.OnnxModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.native.wrapper.M2M100Native
+import jinproject.aideo.core.inference.translation.api.Translation
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.text.Charsets.UTF_8
 
 @Singleton
 class M2M100 @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
-    private val localPlayerDataSource: LocalPlayerDataSource,
-) {
+    private val localSettingDataSource: LocalSettingDataSource,
+) : Translation() {
     private var m2M100Native: M2M100Native? = null
     private var textBuffer: ByteBuffer? = null
+    var isModelLoaded: Boolean = false
+        private set
 
-    fun initialize(): Boolean {
+    override fun initialize() {
         if (m2M100Native != null) {
-            return true
+            return
         }
 
         m2M100Native = M2M100Native()
@@ -36,7 +41,7 @@ class M2M100 @Inject constructor(
         val isInitialized = m2M100Native!!.initialize()
 
         if (!isInitialized)
-            return false
+            return
 
         val encoderInternalPath =
             copyAssetToInternalStorage(path = ENCODER_MODEL_PATH, context = context)
@@ -50,7 +55,7 @@ class M2M100 @Inject constructor(
         val tokenizerConfigInternalPath =
             copyAssetToInternalStorage(path = TOKENIZER_CONFIG_PATH, context = context)
 
-        val isModelLoaded = m2M100Native!!.loadModel(
+        isModelLoaded = m2M100Native!!.loadModel(
             encoderPath = encoderInternalPath,
             decoderPath = decoderInternalPath,
             decoderWithPastPath = decoderWithPastInternalPath,
@@ -58,82 +63,75 @@ class M2M100 @Inject constructor(
             vocabPath = vocabInternalPath,
             tokenizerConfigPath = tokenizerConfigInternalPath,
         )
-
-        return isModelLoaded
     }
 
-    suspend fun translateSubtitle(videoId: Long) = withContext(Dispatchers.Default) {
-        val sourceLanguageISOCode =
-            localFileDataSource.getOriginSubtitleLanguageCode(videoId)
-        val targetLanguageISOCode = localPlayerDataSource.getSubtitleLanguage().first()
+    override suspend fun translateSubtitle(videoId: Long) {
+        withContext(Dispatchers.Default) {
+            val sourceLanguageISOCode =
+                localFileDataSource.getOriginSubtitleLanguageCode(videoId)
 
-        val srtContent = localFileDataSource.getFileContentList(
-            getSubtitleFileIdentifier(
-                id = videoId,
-                languageCode = sourceLanguageISOCode
+            val targetLanguageISOCode = localSettingDataSource.getSubtitleLanguage().first()
+
+            val srtContent = localFileDataSource.getFileContentList(
+                getSubtitleFileIdentifier(
+                    id = videoId,
+                    languageCode = sourceLanguageISOCode
+                )
+            ) ?: throw IllegalStateException("content is null")
+
+            val srcLang = LanguageCode.findByCode(sourceLanguageISOCode)!!
+            val tgtLang = LanguageCode.findByCode(targetLanguageISOCode)!!
+
+            val subtitleTexts = srtContent.filterIndexed { idx, _ -> (idx + 1) % 4 == 3 }
+
+            val translatedTexts = translateBatch(
+                texts = subtitleTexts,
+                sourceLanguageCode = srcLang,
+                targetLanguageCode = tgtLang
             )
-        ) ?: throw IllegalStateException("content is null")
 
-        val srcLang = LanguageCode.findByCode(sourceLanguageISOCode)!!
-        val tgtLang = LanguageCode.findByCode(targetLanguageISOCode)!!
-
-        // 자막 텍스트만 추출 (인덱스 % 4 == 2인 라인들: 0-indexed에서 3번째 라인)
-        val subtitleTexts = srtContent.filterIndexed { idx, _ -> (idx + 1) % 4 == 3 }
-
-        // 배치 번역 (JNI 1회 호출)
-        val translatedTexts = translateBatch(
-            texts = subtitleTexts,
-            sourceLanguageCode = srcLang,
-            targetLanguageCode = tgtLang
-        )
-
-        // StringBuilder로 결과 조립
-        val translatedText = buildString {
-            var translatedIdx = 0
-            srtContent.forEachIndexed { idx, line ->
-                if ((idx + 1) % 4 == 3) {
-                    append(translatedTexts[translatedIdx++])
-                } else {
-                    append(line)
+            val translatedText = buildString {
+                var translatedIdx = 0
+                srtContent.forEachIndexed { idx, line ->
+                    if ((idx + 1) % 4 == 3) {
+                        append(translatedTexts[translatedIdx++])
+                    } else {
+                        append(line)
+                    }
+                    if (idx < srtContent.lastIndex) append('\n')
                 }
-                if (idx < srtContent.lastIndex) append('\n')
             }
+
+            localFileDataSource.createFileAndWriteOnOutputStream(
+                fileIdentifier = getSubtitleFileIdentifier(
+                    id = videoId,
+                    languageCode = targetLanguageISOCode
+                ),
+                writeContentOnFile = { outputStream ->
+                    runCatching {
+                        outputStream.write(translatedText.toByteArray())
+                    }.map {
+                        true
+                    }.getOrElse {
+                        false
+                    }
+                }
+            )
         }
-
-        localFileDataSource.createFileAndWriteOnOutputStream(
-            fileIdentifier = getSubtitleFileIdentifier(
-                id = videoId,
-                languageCode = targetLanguageISOCode
-            ),
-            writeContentOnFile = { outputStream ->
-                runCatching {
-                    outputStream.write(translatedText.toByteArray())
-                }.map {
-                    true
-                }.getOrElse {
-                    false
-                }
-            }
-        )
     }
 
-    /**
-     * @throws IllegalStateException : 번역 실패시
-     */
-    fun translate(
+    override suspend fun translate(
         text: String,
-        sourceLanguageCode: LanguageCode,
-        targetLanguageCode: LanguageCode,
+        srcLang: LanguageCode,
+        tgtLang: LanguageCode,
+        maxLength: Int,
     ): String {
-        if (m2M100Native == null)
-            initialize()
-
-        return m2M100Native!!.translate(
-            text = text,
-            srcLang = sourceLanguageCode.code,
-            tgtLang = targetLanguageCode.code,
-            maxLength = MAX_OUTPUT_LENGTH
-        ) ?: throw IllegalStateException("Translation failed")
+        return translateWithBuffer(
+            text = text.toByteArray(UTF_8),
+            sourceLanguageCode = srcLang,
+            targetLanguageCode = tgtLang,
+            maxLength = maxLength
+        )
     }
 
     /**
@@ -158,12 +156,14 @@ class M2M100 @Inject constructor(
 
     /**
      * ByteBuffer를 재사용하여 번역 (JNI 복사 오버헤드 감소)
+     * @param text: UTF_8 인코딩
      * @throws IllegalStateException : 번역 실패시
      */
-    private fun translateWithBuffer(
+    fun translateWithBuffer(
         text: ByteArray,
         sourceLanguageCode: LanguageCode,
         targetLanguageCode: LanguageCode,
+        maxLength: Int = MAX_OUTPUT_LENGTH,
     ): String {
         if (m2M100Native == null)
             initialize()
@@ -179,14 +179,15 @@ class M2M100 @Inject constructor(
             textLength = text.size,
             srcLang = sourceLanguageCode.code,
             tgtLang = targetLanguageCode.code,
-            maxLength = MAX_OUTPUT_LENGTH
+            maxLength = maxLength
         ) ?: throw IllegalStateException("Translation failed")
     }
 
-    fun release() {
+    override fun release() {
         m2M100Native?.release()
         m2M100Native = null
         textBuffer = null
+        isModelLoaded = false
     }
 
     companion object {

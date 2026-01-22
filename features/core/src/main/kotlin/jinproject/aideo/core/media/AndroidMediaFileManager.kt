@@ -21,9 +21,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.core.media.audio.AudioConfig
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.toSubtitleFileIdentifier
 import jinproject.aideo.data.toThumbnailFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.SendChannel
@@ -48,7 +46,6 @@ abstract class MediaFileManagerModule {
 
 interface MediaFileManager {
     suspend fun getVideoInfo(videoUriString: String): VideoItem?
-    fun checkSubtitleFileExist(id: Long, languageCode: String): Int
     suspend fun <T> extractAudioData(
         videoContentUri: Uri,
         extractedAudioChannel: SendChannel<T>,
@@ -57,7 +54,7 @@ interface MediaFileManager {
 }
 
 class AndroidMediaFileManager @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
 ) : MediaFileManager {
 
@@ -130,37 +127,6 @@ class AndroidMediaFileManager @Inject constructor(
                 }
             )
         }
-    }
-
-    /**
-     * 자막 파일이 존재하는지 확인하는 함수
-     *
-     * @return 언어코드와 일치하는 자막 파일이 있으면 1,
-     * 언어코드와 일치하는 자막 파일은 없지만 다른 언어코드의 자막 파일이 있으면 0,
-     * 어떠한 자막 파일도 없으면 -1
-     */
-    override fun checkSubtitleFileExist(id: Long, languageCode: String): Int {
-        val isSubtitleExist = localFileDataSource.isFileExist(
-            fileId = id,
-            fileExtension = "".toSubtitleFileIdentifier()
-        )
-
-        if (isSubtitleExist) {
-            val isSubtitleByLanguageExist =
-                localFileDataSource.isFileExist(
-                    fileIdentifier = getSubtitleFileIdentifier(
-                        id = id,
-                        languageCode = languageCode
-                    )
-                )
-
-            return if (isSubtitleByLanguageExist)
-                1
-            else
-                0
-        }
-
-        return -1
     }
 
     var mediaInfo: MediaInfo? = null

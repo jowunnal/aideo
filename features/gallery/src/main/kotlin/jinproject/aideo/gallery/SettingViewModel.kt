@@ -3,9 +3,11 @@ package jinproject.aideo.gallery
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.inference.AvailableModel
+import jinproject.aideo.core.TranslationManager
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
+import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -16,15 +18,19 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingViewModel @Inject constructor(
-    private val localPlayerDataSource: LocalPlayerDataSource,
+    private val localSettingDataSource: LocalSettingDataSource,
+    private val translationManager: TranslationManager,
 ) : ViewModel() {
 
     val settingUiState: StateFlow<SettingUiState> =
-        localPlayerDataSource.getTotalSettings().map { playerSetting ->
+        localSettingDataSource.getTotalSettings().map { playerSetting ->
             SettingUiState(
-                inferenceLanguage = LanguageCode.findByCode(playerSetting.inferenceLanguage) ?: LanguageCode.Auto,
-                translationLanguage = LanguageCode.findByCode(playerSetting.subtitleLanguage) ?: LanguageCode.Korean,
-                selectedModel = AvailableModel.findByName(playerSetting.selectedModel)
+                inferenceLanguage = LanguageCode.findByCode(playerSetting.inferenceLanguage)
+                    ?: LanguageCode.Auto,
+                translationLanguage = LanguageCode.findByCode(playerSetting.subtitleLanguage)
+                    ?: LanguageCode.Korean,
+                speechRecognitionModel = SpeechRecognitionAvailableModel.findByName(playerSetting.speechRecognitionModel),
+                translationModel = TranslationAvailableModel.findByName(playerSetting.translationModel)
             )
         }.stateIn(
             scope = viewModelScope,
@@ -34,19 +40,28 @@ class SettingViewModel @Inject constructor(
 
     fun updateInferenceLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setInferenceTargetLanguage(languageCode.code)
+            localSettingDataSource.setInferenceTargetLanguage(languageCode.code)
         }
     }
 
     fun updateTranslationLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setSubtitleLanguage(languageCode.code)
+            localSettingDataSource.setSubtitleLanguage(languageCode.code)
         }
     }
 
-    fun updateSelectedModel(availableModel: AvailableModel) {
+    fun updateSpeechRecognitionModel(model: SpeechRecognitionAvailableModel) {
         viewModelScope.launch {
-            localPlayerDataSource.setSelectedModel(availableModel.name)
+            localSettingDataSource.setSelectedSpeechRecognitionModel(model.name)
+        }
+    }
+
+    fun updateTranslationModel(model: TranslationAvailableModel) {
+        viewModelScope.launch {
+            localSettingDataSource.setSelectedTranslationModel(model.name)
+            if(translationManager.isInitialized) {
+                translationManager.release()
+            }
         }
     }
 }
@@ -54,13 +69,17 @@ class SettingViewModel @Inject constructor(
 data class SettingUiState(
     val inferenceLanguage: LanguageCode,
     val translationLanguage: LanguageCode,
-    val selectedModel: AvailableModel,
+    val speechRecognitionModel: SpeechRecognitionAvailableModel,
+    val translationModel: TranslationAvailableModel,
 ) {
     companion object {
         fun default(): SettingUiState = SettingUiState(
-            inferenceLanguage = LanguageCode.findByCode(Locale.getDefault().language) ?: LanguageCode.Auto,
-            translationLanguage = LanguageCode.findByCode(Locale.getDefault().language) ?: LanguageCode.Korean,
-            selectedModel = AvailableModel.SenseVoice,
+            inferenceLanguage = LanguageCode.findByCode(Locale.getDefault().language)
+                ?: LanguageCode.Auto,
+            translationLanguage = LanguageCode.findByCode(Locale.getDefault().language)
+                ?: LanguageCode.Korean,
+            speechRecognitionModel = SpeechRecognitionAvailableModel.SenseVoice,
+            translationModel = TranslationAvailableModel.MlKit
         )
     }
 }

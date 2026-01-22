@@ -1,8 +1,3 @@
-//
-// Created by PC on 2026-01-18.
-// JNI bindings for M2M100Translator
-//
-
 #include <jni.h>
 #include <string>
 #include "m2m100_translator.h"
@@ -12,7 +7,7 @@ static M2M100Translator* g_translator = nullptr;
 extern "C" {
 
 JNIEXPORT jboolean JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_initialize(
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_initialize(
         JNIEnv* env,
         jobject /* this */) {
     if (g_translator != nullptr) {
@@ -23,7 +18,7 @@ Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_initialize(
 }
 
 JNIEXPORT jboolean JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_loadModel(
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_loadModel(
         JNIEnv* env,
         jobject /* this */,
         jstring encoderPath,
@@ -57,37 +52,7 @@ Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_loadModel(
 }
 
 JNIEXPORT jstring JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translate(
-        JNIEnv* env,
-        jobject /* this */,
-        jstring text,
-        jstring srcLang,
-        jstring tgtLang,
-        jint maxLength) {
-
-    if (g_translator == nullptr) {
-        return nullptr;
-    }
-
-    const char* textStr = env->GetStringUTFChars(text, nullptr);
-    const char* srcLangStr = env->GetStringUTFChars(srcLang, nullptr);
-    const char* tgtLangStr = env->GetStringUTFChars(tgtLang, nullptr);
-
-    std::string result = g_translator->translate(textStr, srcLangStr, tgtLangStr, maxLength);
-
-    env->ReleaseStringUTFChars(text, textStr);
-    env->ReleaseStringUTFChars(srcLang, srcLangStr);
-    env->ReleaseStringUTFChars(tgtLang, tgtLangStr);
-
-    if (result.empty()) {
-        return nullptr;
-    }
-
-    return env->NewStringUTF(result.c_str());
-}
-
-JNIEXPORT jstring JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translateWithBuffer(
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_translateWithBuffer(
         JNIEnv* env,
         jobject /* this */,
         jobject textBuffer,
@@ -122,25 +87,8 @@ Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translateWithB
     return env->NewStringUTF(result.c_str());
 }
 
-JNIEXPORT jboolean JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_isLanguageSupported(
-        JNIEnv* env,
-        jobject /* this */,
-        jstring lang) {
-
-    if (g_translator == nullptr) {
-        return JNI_FALSE;
-    }
-
-    const char* langStr = env->GetStringUTFChars(lang, nullptr);
-    bool result = g_translator->isLanguageSupported(langStr);
-    env->ReleaseStringUTFChars(lang, langStr);
-
-    return result ? JNI_TRUE : JNI_FALSE;
-}
-
 JNIEXPORT jobjectArray JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translateBatch(
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_translateBatch(
         JNIEnv* env,
         jobject /* this */,
         jobjectArray texts,
@@ -197,8 +145,25 @@ Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_translateBatch
     return resultArray;
 }
 
+JNIEXPORT jboolean JNICALL
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_isLanguageSupported(
+        JNIEnv* env,
+        jobject /* this */,
+        jstring lang) {
+
+    if (g_translator == nullptr) {
+        return JNI_FALSE;
+    }
+
+    const char* langStr = env->GetStringUTFChars(lang, nullptr);
+    bool result = g_translator->isLanguageSupported(langStr);
+    env->ReleaseStringUTFChars(lang, langStr);
+
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
 JNIEXPORT void JNICALL
-Java_jinproject_aideo_core_runtime_impl_onnx_wrapper_M2M100Native_release(
+Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_release(
         JNIEnv* env,
         jobject /* this */) {
     if (g_translator != nullptr) {

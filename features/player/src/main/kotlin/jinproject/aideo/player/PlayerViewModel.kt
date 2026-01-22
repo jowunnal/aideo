@@ -7,12 +7,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.media.AndroidMediaFileManager
-import jinproject.aideo.core.runtime.impl.onnx.M2M100
+import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
+import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,11 +27,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val localPlayerDataSource: LocalPlayerDataSource,
-    private val androidMediaFileManager: AndroidMediaFileManager,
+    private val localSettingDataSource: LocalSettingDataSource,
+    private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
     private val savedStateHandle: SavedStateHandle,
-    private val m2M100: M2M100,
+    private val translationManager: TranslationManager,
 ) : ViewModel() {
 
     init {
@@ -44,16 +44,13 @@ class PlayerViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PlayerUiState> =
-        localPlayerDataSource.getSubtitleLanguage().onEach { language ->
+        localSettingDataSource.getSubtitleLanguage().onEach { language ->
             val id = currentVideoUri.toVideoItemId()
 
-            val subtitleExist = androidMediaFileManager.checkSubtitleFileExist(
-                id = id,
-                languageCode = language
-            )
+            val subtitleExist = mediaRepository.checkSubtitleFileExist(id)
 
             if (subtitleExist != 1) {
-                m2M100.translateSubtitle(id)
+                translationManager.translateSubtitle(id)
             }
 
             getExoPlayer().also {
@@ -82,7 +79,7 @@ class PlayerViewModel @Inject constructor(
 
     fun updateSubtitleLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
-            localPlayerDataSource.setSubtitleLanguage(languageCode.code)
+            localSettingDataSource.setSubtitleLanguage(languageCode.code)
         }
     }
 

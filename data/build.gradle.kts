@@ -47,7 +47,6 @@ dependencies {
 
     implementation(libs.bundles.square)
     implementation(libs.datastore)
-    implementation(libs.bundles.mlKit)
 }
 
 androidComponents {

@@ -1,4 +1,4 @@
-package jinproject.aideo.core.runtime.impl.onnx
+package jinproject.aideo.core.inference.vad
 
 import android.content.Context
 import android.util.Log
@@ -8,7 +8,7 @@ import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.audio.AudioConfig
-import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.OnnxModelConfig
 import jinproject.aideo.core.utils.getApplicationAssets
 import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
@@ -79,6 +79,6 @@ class SileroVad @Inject constructor(
     fun reset() = vad.reset()
 
     companion object {
-        const val VAD_MODEL_PATH = "$MODELS_ROOT_DIR/silero_vad.onnx"
+        const val VAD_MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/silero_vad.onnx"
     }
 }

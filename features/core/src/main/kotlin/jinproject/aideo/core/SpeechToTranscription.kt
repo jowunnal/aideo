@@ -1,25 +1,30 @@
-package jinproject.aideo.core.inference.senseVoice
+package jinproject.aideo.core
 
+import android.content.Context
+import android.content.res.AssetManager
 import android.media.AudioFormat
 import android.os.Build
-import android.util.Log
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
-import jinproject.aideo.core.inference.SpeechRecognitionManager
+import com.k2fsa.sherpa.onnx.WaveReader
+import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
+import jinproject.aideo.core.inference.diarization.SpeakerDiarization
+import jinproject.aideo.core.inference.punctuation.Punctuation
+import jinproject.aideo.core.inference.speechRecognition.SenseVoice
+import jinproject.aideo.core.inference.speechRecognition.TimeStampedSR
+import jinproject.aideo.core.inference.speechRecognition.Whisper
+import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
+import jinproject.aideo.core.inference.vad.SileroVad
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
-import jinproject.aideo.core.runtime.api.SpeechToText
-import jinproject.aideo.core.runtime.impl.onnx.OnnxModelConfig.MODELS_ROOT_DIR
-import jinproject.aideo.core.runtime.impl.onnx.OnnxSTT
-import jinproject.aideo.core.runtime.impl.onnx.OnnxSpeechToText
-import jinproject.aideo.core.runtime.impl.onnx.Punctuation
-import jinproject.aideo.core.runtime.impl.onnx.SileroVad
-import jinproject.aideo.core.runtime.impl.onnx.SpeakerDiarization
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +33,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,55 +41,49 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
-import javax.inject.Qualifier
 import kotlin.math.ceil
 import kotlin.math.floor
 
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class SenseVoice
-
-class SenseVoiceManager @Inject constructor(
-    val mediaFileManager: MediaFileManager,
-    @param:OnnxSTT private val speechToText: SpeechToText,
+class SpeechToTranscription @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val mediaFileManager: MediaFileManager,
     private val vad: SileroVad,
     private val speakerDiarization: SpeakerDiarization,
-    localFileDataSource: LocalFileDataSource,
     private val punctuation: Punctuation,
-) : SpeechRecognitionManager(localFileDataSource) {
+    private val localFileDataSource: LocalFileDataSource,
+    private val localSettingDataSource: LocalSettingDataSource,
+) {
+    private lateinit var speechRecognition: SpeechRecognition
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
     private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
 
-    override val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
+    val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
+    var isReady: Boolean = false
+        private set
 
-    override fun initialize() {
+    suspend fun initialize() {
         isReady = true
 
-        speechToText.initialize(
-            OnnxSpeechToText.OnnxRequirement(
-                modelPath = SENSE_VOICE_MODEL_PATH,
-                vocabPath = SENSE_VOICE_VOCAB_PATH,
-                availableModel = OnnxSpeechToText.AvailableModel.SenseVoice,
-                isQnn = getAvailableSoCModel().isQnnModel()
-            )
-        )
+        val model = localSettingDataSource.getSelectedSpeechRecognitionModel().first()
+        speechRecognition = when (SpeechRecognitionAvailableModel.findByName(model)) {
+            SpeechRecognitionAvailableModel.Whisper -> Whisper(context)
+            SpeechRecognitionAvailableModel.SenseVoice -> SenseVoice(context).apply {
+                setQnn(getAvailableSoCModel().isQnnModel())
+            }
+        }.apply {
+            initialize()
+        }
 
         vad.initialize()
         speakerDiarization.initialize()
     }
 
-    private fun getAvailableSoCModel(): AvailableSoCModel {
-        return if (Build.VERSION.SDK_INT >= 31)
-            AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
-        else
-            AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
+    fun release() {
+        if (::speechRecognition.isInitialized)
+            speechRecognition.release()
 
-    }
-
-    override fun release() {
-        speechToText.release()
         vad.release()
         punctuation.release()
         extractedAudioChannel.cancel()
@@ -92,11 +92,10 @@ class SenseVoiceManager @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
-    override suspend fun transcribe(
-        videoItem: VideoItem,
-        language: String,
-    ) {
+    suspend fun transcribe(videoItem: VideoItem) {
         withContext(Dispatchers.Default) {
+            val language = localSettingDataSource.getInferenceTargetLanguage().first()
+
             launch(Dispatchers.IO) {
                 extractAudioFromVideo(videoItem.uri)
             }
@@ -139,8 +138,6 @@ class SenseVoiceManager @Inject constructor(
 
             val transcribedSrtText = async {
                 var processedAudioSize = 0
-                if (punctuation.isAvailableLanguage(language))
-                    punctuation.initialize()
 
                 for (i in inferenceAudioChannel) {
                     vad.acceptWaveform(i)
@@ -180,22 +177,20 @@ class SenseVoiceManager @Inject constructor(
 
                 inferenceProgress.value = 1f
 
-                speechToText.getResult()
+                speechRecognition.getResult()
             }.await()
 
-            //Log.d("test", "Transcribed Result:\n$transcribedSrtText")
-
             val punctuatedSrtText =
-                if (punctuation.isAvailableLanguage(language))
+                if (punctuation.isAvailableLanguage(language)) {
+                    punctuation.initialize()
                     punctuation.addPunctuationOnSrt(transcribedSrtText)
-                else
+                } else
                     transcribedSrtText
 
-            //Log.d("test", "Punctuated Result:\n$punctuatedSrtText")
-
             storeSubtitleFile(
-                subtitle = punctuatedSrtText,
+                subtitleText = punctuatedSrtText,
                 videoItemId = videoItem.id,
+                languageCode = language,
             )
 
             inferenceProgress.value = 1f
@@ -219,11 +214,7 @@ class SenseVoiceManager @Inject constructor(
                     )
                 )
 
-        //Log.d("test", "sdResult: ${sdResult.joinToString("\n") { "[${it.speaker}] : ${it.start} ~ ${it.end}" }}")
-
-        with(speechToText as OnnxSpeechToText) {
-            setStandardTime(standardTime)
-        }
+        (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
 
         var lastEndIdx = 0
 
@@ -234,10 +225,8 @@ class SenseVoiceManager @Inject constructor(
                 .coerceIn(lastEndIdx, nextVadSegment.samples.size)
             lastEndIdx = endIdx
 
-            //Log.d("test", "전체샘플수: ${nextVadSegment.samples.size}, 시작인덱스: $startIdx, 끝인덱스: $endIdx")
-
-            speechToText.setTimes(sd.start, sd.end)
-            speechToText.transcribe(
+            (speechRecognition as? TimeStampedSR)?.setTimes(sd.start, sd.end)
+            speechRecognition.transcribe(
                 audioData = nextVadSegment.samples.copyOfRange(
                     startIdx,
                     endIdx
@@ -276,23 +265,48 @@ class SenseVoiceManager @Inject constructor(
                 }
             }
         )
-        /*val (samples, sampleRate) = WaveReader.readWave(
-        assetManager = context.assets,
-        filename = "ja.wav"
-    )
-    Log.d("test", "sampleRate: $sampleRate")
-
-    extractedAudioChannel.send(samples)
-    extractedAudioChannel.close()*/
     }
 
-    companion object {
-        const val SENSE_VOICE_MODEL_PATH = "$MODELS_ROOT_DIR/model.int8.onnx"
-        const val SENSE_VOICE_VOCAB_PATH = "$MODELS_ROOT_DIR/tokens.txt"
+    private fun getAvailableSoCModel(): AvailableSoCModel {
+        return if (Build.VERSION.SDK_INT >= 31)
+            AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
+        else
+            AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
+
+    }
+
+    fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
+        localFileDataSource.createFileAndWriteOnOutputStream(
+            fileIdentifier = getSubtitleFileIdentifier(
+                id = videoItemId,
+                languageCode = languageCode
+            ),
+            writeContentOnFile = { outputStream ->
+                runCatching {
+                    outputStream.bufferedWriter().use { writer ->
+                        writer.write(subtitleText)
+                    }
+                }.map {
+                    true
+                }.getOrElse {
+                    false
+                }
+            }
+        )
+    }
+
+    private suspend fun extractTestAudioFile(assetManager: AssetManager) {
+        val (samples, sampleRate) = WaveReader.readWave(
+            assetManager = assetManager,
+            filename = "ja.wav"
+        )
+
+        extractedAudioChannel.send(samples)
+        extractedAudioChannel.close()
     }
 }
 
-class FixedChunkBuffer(private val chunkSize: Int = 512) {
+private class FixedChunkBuffer(private val chunkSize: Int = 512) {
     private val deque = ArrayDeque<Float>()
     private val mutex = Mutex()
     var totalSamples = 0
@@ -330,7 +344,7 @@ class FixedChunkBuffer(private val chunkSize: Int = 512) {
     }
 }
 
-enum class AvailableSoCModel {
+internal enum class AvailableSoCModel {
     SM8450,
     SM8475,
     SM8550,

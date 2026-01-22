@@ -1,34 +1,28 @@
 package jinproject.aideo.gallery
 
-import android.R.attr.entries
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import jinproject.aideo.core.inference.AvailableModel
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
+import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.design.component.DropDownMenuCustom
-import jinproject.aideo.design.component.HorizontalSpacer
 import jinproject.aideo.design.component.VerticalSpacer
 import jinproject.aideo.design.component.bar.BackButtonTitleAppBar
 import jinproject.aideo.design.component.text.DescriptionLargeText
@@ -49,7 +43,8 @@ fun SettingScreen(
         settingUiState = settingUiState,
         updateInferenceLanguageCode = viewModel::updateInferenceLanguage,
         updateTranslationLanguageCode = viewModel::updateTranslationLanguage,
-        updateModel = viewModel::updateSelectedModel,
+        updateSpeechRecognitionModel = viewModel::updateSpeechRecognitionModel,
+        updateTranslationModel = viewModel::updateTranslationModel,
         navigatePopBackStack = navigatePopBackStack,
     )
 
@@ -60,13 +55,15 @@ internal fun SettingScreen(
     settingUiState: SettingUiState,
     updateInferenceLanguageCode: (LanguageCode) -> Unit,
     updateTranslationLanguageCode: (LanguageCode) -> Unit,
-    updateModel: (AvailableModel) -> Unit,
+    updateSpeechRecognitionModel: (SpeechRecognitionAvailableModel) -> Unit,
+    updateTranslationModel: (TranslationAvailableModel) -> Unit,
     navigatePopBackStack: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
     ) {
         BackButtonTitleAppBar(
             title = "설정 화면",
@@ -80,7 +77,8 @@ internal fun SettingScreen(
         LanguageSetting(
             title = "추론 언어",
             description = "음성 인식에 사용할 언어를 선택해 주세요.",
-            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.selectedModel).map { it.name },
+            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.speechRecognitionModel)
+                .map { it.name },
             selectedText = settingUiState.inferenceLanguage.name,
             onClickItem = { item ->
                 updateInferenceLanguageCode(LanguageCode.findByName(item))
@@ -92,7 +90,8 @@ internal fun SettingScreen(
         LanguageSetting(
             title = "번역 언어",
             description = "자막으로 번역할 언어를 선택해 주세요.",
-            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.selectedModel).map { it.name },
+            items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.speechRecognitionModel)
+                .map { it.name },
             selectedText = settingUiState.translationLanguage.name,
             onClickItem = { item ->
                 updateTranslationLanguageCode(LanguageCode.findByName(item))
@@ -104,10 +103,22 @@ internal fun SettingScreen(
         LanguageSetting(
             title = "추론 모델",
             description = "추론에 사용될 모델을 선택해 주세요.",
-            items = AvailableModel.entries.map { it.name },
-            selectedText = settingUiState.selectedModel.name,
+            items = SpeechRecognitionAvailableModel.entries.map { it.name },
+            selectedText = settingUiState.speechRecognitionModel.name,
             onClickItem = { item ->
-                updateModel(AvailableModel.findByName(item))
+                updateSpeechRecognitionModel(SpeechRecognitionAvailableModel.findByName(item))
+            }
+        )
+
+        VerticalSpacer(20.dp)
+
+        LanguageSetting(
+            title = "번역 모델",
+            description = "번역에 사용될 모델을 선택해 주세요.",
+            items = TranslationAvailableModel.entries.map { it.name },
+            selectedText = settingUiState.translationModel.name,
+            onClickItem = { item ->
+                updateTranslationModel(TranslationAvailableModel.findByName(item))
             }
         )
 
@@ -136,7 +147,8 @@ internal fun SettingScreen(
             DescriptionMediumText(
                 text = """- 추론 언어: ${settingUiState.inferenceLanguage}
                     |- 번역 언어: ${settingUiState.translationLanguage}
-                    |- 추론 모델: ${settingUiState.selectedModel}
+                    |- 추론 모델: ${settingUiState.speechRecognitionModel}
+                    |- 번역 모델: ${settingUiState.translationModel}
                 """.trimMargin(),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.tu)
@@ -190,7 +202,8 @@ private fun PreviewSettingScreen(
         settingUiState = settingUiState,
         updateInferenceLanguageCode = {},
         updateTranslationLanguageCode = {},
-        updateModel = {},
+        updateSpeechRecognitionModel = {},
+        updateTranslationModel = {},
         navigatePopBackStack = {},
     )
 }

@@ -1,4 +1,4 @@
-package jinproject.aideo.core.runtime.impl.onnx.wrapper
+package jinproject.aideo.core.inference.native.wrapper
 
 import java.nio.ByteBuffer
 
@@ -13,7 +13,6 @@ class M2M100Native {
         tokenizerConfigPath: String
     ): Boolean
 
-    external fun translate(text: String, srcLang: String, tgtLang: String, maxLength: Int): String?
     external fun translateBatch(texts: Array<String>, srcLang: String, tgtLang: String, maxLength: Int): Array<String>?
     external fun translateWithBuffer(
         textBuffer: ByteBuffer,

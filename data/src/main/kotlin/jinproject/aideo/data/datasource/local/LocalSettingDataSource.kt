@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
 
-class LocalPlayerDataSource @Inject constructor(private val playerDataStore: DataStore<PlayerPreferences>) {
+class LocalSettingDataSource @Inject constructor(private val playerDataStore: DataStore<PlayerPreferences>) {
 
     private val data: Flow<PlayerPreferences> = playerDataStore.data
         .catch { exception ->
@@ -25,7 +25,8 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
             inferenceLanguage = it.inferenceLanguage,
             subtitleLanguage = it.subtitleLanguage,
             videoUris = it.videosList,
-            selectedModel = it.selectedModel
+            speechRecognitionModel = it.selectedSpeechRecognitionModel,
+            translationModel = it.selectedTranslationModel
         )
     }
 
@@ -35,7 +36,9 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
 
     fun getSubtitleLanguage(): Flow<String> = data.map { it.subtitleLanguage }
 
-    fun getSelectedModel(): Flow<String> = data.map { it.selectedModel }
+    fun getSelectedSpeechRecognitionModel(): Flow<String> = data.map { it.selectedSpeechRecognitionModel }
+
+    fun getSelectedTranslationModel(): Flow<String> = data.map { it.selectedTranslationModel }
 
     suspend fun setInferenceTargetLanguage(language: String) {
         playerDataStore.updateData {
@@ -58,9 +61,15 @@ class LocalPlayerDataSource @Inject constructor(private val playerDataStore: Dat
         }
     }
 
-    suspend fun setSelectedModel(model: String) {
+    suspend fun setSelectedSpeechRecognitionModel(model: String) {
         playerDataStore.updateData {
-            it.toBuilder().setSelectedModel(model).build()
+            it.toBuilder().setSelectedSpeechRecognitionModel(model).build()
+        }
+    }
+
+    suspend fun setSelectedTranslationModel(model: String) {
+        playerDataStore.updateData {
+            it.toBuilder().setSelectedTranslationModel(model).build()
         }
     }
 }
@@ -69,5 +78,6 @@ data class PlayerSetting(
     val inferenceLanguage: String,
     val subtitleLanguage: String,
     val videoUris: List<String>,
-    val selectedModel: String,
+    val speechRecognitionModel: String,
+    val translationModel: String,
 )
