@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,6 +58,8 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.play.core.aipacks.AiPackStateUpdateListener
+import com.google.android.play.core.aipacks.model.AiPackStatus
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.logEvent
@@ -72,12 +75,15 @@ import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
 import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.LocalShowRewardAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
+import jinproject.aideo.core.utils.getAiPackManager
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
@@ -96,7 +102,7 @@ class MainActivity : ComponentActivity() {
         if (result.not()) {
             Toast.makeText(
                 applicationContext,
-                "권한이 필요합니다.",
+                getString(jinproject.aideo.design.R.string.permission_required),
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -130,11 +136,14 @@ class MainActivity : ComponentActivity() {
         }
 
         MobileAds.initialize(this@MainActivity) {
-            //loadRewardedAd()
+            loadRewardedAd()
         }
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
+
+        if(getPackAssetPath(ModelConfig.SPEECH_AI_PACK) == null)
+            startForegroundService(Intent(this, PlayAIService::class.java))
     }
 
     @Composable
@@ -147,6 +156,28 @@ class MainActivity : ComponentActivity() {
 
         val snackBarChannel = remember {
             Channel<SnackBarMessage>(Channel.CONFLATED)
+        }
+
+        val showSnackBar: (SnackBarMessage) -> Unit = { snackBarMessage: SnackBarMessage ->
+            snackBarChannel.trySend(snackBarMessage)
+        }
+
+        val ls = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                showSnackBar(
+                    SnackBarMessage(
+                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_started),
+                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                    )
+                )
+            } else if (result.resultCode == RESULT_CANCELED) {
+                showSnackBar(
+                    SnackBarMessage(
+                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled),
+                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled_desc)
+                    )
+                )
+            }
         }
 
         LaunchedEffect(key1 = snackBarChannel) {
@@ -174,14 +205,20 @@ class MainActivity : ComponentActivity() {
 
             (context as ComponentActivity).addOnNewIntentListener(onNewIntentConsumer)
 
-            onDispose { context.removeOnNewIntentListener(onNewIntentConsumer) }
+            val aiPackListener = AiPackStateUpdateListener { state ->
+                if (state.status() == AiPackStatus.REQUIRES_USER_CONFIRMATION || state.status() == AiPackStatus.WAITING_FOR_WIFI) {
+                    getAiPackManager().showConfirmationDialog(ls)
+                }
+            }
+            getAiPackManager().registerListener(aiPackListener)
+
+            onDispose {
+                context.removeOnNewIntentListener(onNewIntentConsumer)
+                getAiPackManager().unregisterListener(aiPackListener)
+            }
         }
 
         val isAdViewRemoved by adMobManager.isAdviewRemoved.collectAsStateWithLifecycle()
-
-        val showSnackBar: (SnackBarMessage) -> Unit = { snackBarMessage: SnackBarMessage ->
-            snackBarChannel.trySend(snackBarMessage)
-        }
 
         val billingModule = remember {
             BillingModule(
@@ -200,7 +237,7 @@ class MainActivity : ComponentActivity() {
 
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = "[${purchase.products.first()}] 상품의 구매가 완료되었어요."
+                            headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_completed, purchase.products.first())
                         )
                     )
                 }
@@ -209,14 +246,14 @@ class MainActivity : ComponentActivity() {
                 override fun onFailure(errorCode: Int) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = "구매에 실패했어요.",
+                            headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_failed),
                             contentMessage = when (errorCode) {
-                                2, 3 -> "유효하지 않은 상품이에요."
-                                5, 6 -> "올바르지 않은 상품이에요."
-                                BillingClient.BillingResponseCode.USER_CANCELED -> "구매가 취소되었어요."
-                                BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "유효하지 않은 상품이에요."
-                                BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> "이미 보유하고 있는 상품이에요."
-                                else -> "네트워크 오류가 발생했어요."
+                                2, 3 -> context.getString(jinproject.aideo.design.R.string.billing_error_invalid_product)
+                                5, 6 -> context.getString(jinproject.aideo.design.R.string.billing_error_incorrect_product)
+                                BillingClient.BillingResponseCode.USER_CANCELED -> context.getString(jinproject.aideo.design.R.string.billing_error_cancelled)
+                                BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> context.getString(jinproject.aideo.design.R.string.billing_error_unavailable)
+                                BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> context.getString(jinproject.aideo.design.R.string.billing_error_already_owned)
+                                else -> context.getString(jinproject.aideo.design.R.string.billing_error_network)
                             }
                         )
                     )
@@ -362,7 +399,7 @@ class MainActivity : ComponentActivity() {
     private var isLoadingRewardAd = false
 
     private fun loadRewardedAd() {
-        if(isLoadingRewardAd || mRewardedAd != null)
+        if (isLoadingRewardAd || mRewardedAd != null)
             return
 
         isLoadingRewardAd = true

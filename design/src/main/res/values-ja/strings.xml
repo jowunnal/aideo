@@ -49,4 +49,40 @@
     <string name="notification_subtitle_creation_failed">字幕作成に失敗</string>
     <string name="notification_subtitle_creation_failed_desc">字幕の作成に失敗しました。(%s)</string>
     <string name="notification_action_stop">停止</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">追加ダウンロードが必要です。</string>
+    <string name="dialog_download_required_content">ダウンロードには追加のストレージ容量（約1.2GB）が必要です。</string>
+    <string name="dialog_download_positive">はい、ダウンロードします。</string>
+    <string name="dialog_download_negative">いいえ、しません。</string>
+
+    <!-- Permission -->
+    <string name="permission_required">権限が必要です。</string>
+
+    <!-- Download -->
+    <string name="download_started">ダウンロードを開始します。</string>
+    <string name="download_please_wait">少々お待ちください。</string>
+    <string name="download_cancelled">ダウンロードがキャンセルされました。</string>
+    <string name="download_cancelled_desc">ダウンロードしないと、機能を正常にご利用いただけません。</string>
+    <string name="download_ai_model_in_progress">AIモデルをダウンロード中です。</string>
+    <string name="download_ai_model_please_wait">しばらくしてから再度お試しください。</string>
+    <string name="download_ai_pack_in_progress">[%s]関連のAIモデルをダウンロード中です。</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo通知チャンネル</string>
+    <string name="notification_channel_aideo_desc">Aideoの通知チャンネルです。</string>
+    <string name="notification_channel_transcribe_name">字幕作成通知チャンネル</string>
+    <string name="notification_channel_transcribe_desc">Aideoアプリの字幕作成のためのチャンネルです。</string>
+    <string name="notification_channel_ai_model_name">AIモデル管理通知チャンネル</string>
+    <string name="notification_channel_ai_model_desc">AideoアプリのAIモデル読み込みのためのチャンネルです。</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">[%s]の購入が完了しました。</string>
+    <string name="billing_purchase_failed">購入に失敗しました。</string>
+    <string name="billing_error_invalid_product">無効な商品です。</string>
+    <string name="billing_error_incorrect_product">正しくない商品です。</string>
+    <string name="billing_error_cancelled">購入がキャンセルされました。</string>
+    <string name="billing_error_unavailable">商品が利用できません。</string>
+    <string name="billing_error_already_owned">すでに所有している商品です。</string>
+    <string name="billing_error_network">ネットワークエラーが発生しました。</string>
 </resources>

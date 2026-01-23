@@ -6,9 +6,9 @@ import com.k2fsa.sherpa.onnx.OfflinePunctuation
 import com.k2fsa.sherpa.onnx.OfflinePunctuationConfig
 import com.k2fsa.sherpa.onnx.OfflinePunctuationModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.OnnxModelConfig
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.core.utils.getApplicationAssets
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
 import javax.inject.Inject
@@ -30,7 +30,7 @@ class Punctuation @Inject constructor(
 
         val config = OfflinePunctuationConfig(
             model = OfflinePunctuationModelConfig(
-                ctTransformer = CT_TRANSFORMER_MODEL_PATH,
+                ctTransformer = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$CT_TRANSFORMER_MODEL_PATH",
                 numThreads = 1,
                 provider = "cpu",
                 debug = BuildConfig.DEBUG
@@ -38,7 +38,7 @@ class Punctuation @Inject constructor(
         )
 
         punctuation = OfflinePunctuation(
-            assetManager = context.getApplicationAssets(),
+            assetManager = null,
             config = config
         )
 
@@ -46,7 +46,7 @@ class Punctuation @Inject constructor(
     }
 
     fun release() {
-        if(isInitialized) {
+        if (isInitialized) {
             punctuation.release()
             isInitialized = false
         }
@@ -67,9 +67,10 @@ class Punctuation @Inject constructor(
         )
     }
 
-    fun isAvailableLanguage(language: String) = language == LanguageCode.Chinese.code || language == LanguageCode.English.code
+    fun isAvailableLanguage(language: String) =
+        language == LanguageCode.Chinese.code || language == LanguageCode.English.code
 
     companion object {
-        const val CT_TRANSFORMER_MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
+        const val CT_TRANSFORMER_MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
     }
 }

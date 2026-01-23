@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.AaptOptions
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 
 plugins {
@@ -49,15 +48,11 @@ android {
         buildConfig = true
     }
 
-    androidResources {
-        noCompress += listOf<String>()
-    }
-
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
-    assetPacks += listOf(":ai_pack")
+    assetPacks += listOf(":ai_speech", ":ai_translation")
 
     bundle {
         deviceTargetingConfig = file("device_targeting_config.xml")
@@ -104,4 +99,5 @@ dependencies {
     implementation(libs.bundles.firebase)
     implementation(libs.lifecycle.process)
     coreLibraryDesugaring(libs.android.tools.desugar.jdk.libs)
+    implementation(libs.play.ai.delivery)
 }

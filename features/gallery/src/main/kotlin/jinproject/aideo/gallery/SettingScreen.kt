@@ -1,5 +1,7 @@
 package jinproject.aideo.gallery
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,18 +15,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.core.utils.LocalShowSnackBar
+import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.design.component.DropDownMenuCustom
+import jinproject.aideo.design.component.TextDialog
 import jinproject.aideo.design.component.VerticalSpacer
 import jinproject.aideo.design.component.bar.BackButtonTitleAppBar
+import jinproject.aideo.design.component.getShownDialogState
+import jinproject.aideo.design.component.rememberDialogState
 import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoColor
@@ -52,12 +62,20 @@ fun SettingScreen(
 @Composable
 internal fun SettingScreen(
     settingUiState: SettingUiState,
+    context: Context = LocalContext.current,
     updateInferenceLanguageCode: (LanguageCode) -> Unit,
     updateTranslationLanguageCode: (LanguageCode) -> Unit,
     updateSpeechRecognitionModel: (SpeechRecognitionAvailableModel) -> Unit,
     updateTranslationModel: (TranslationAvailableModel) -> Unit,
     navigatePopBackStack: () -> Unit,
 ) {
+    val dialogState by rememberDialogState()
+    val showSnackBar = LocalShowSnackBar.current
+
+    TextDialog(dialogState = dialogState) {
+        dialogState.changeVisibility(false)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,6 +136,37 @@ internal fun SettingScreen(
             models = settingUiState.translationSettings,
             onClickModel = { item ->
                 updateTranslationModel(TranslationAvailableModel.findByName(item))
+
+                if (item == TranslationAvailableModel.M2M100.name)
+                    dialogState.copy(
+                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
+                        content = context.getString(jinproject.aideo.design.R.string.dialog_download_required_content),
+                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
+                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
+                    ).getShownDialogState(
+                        onPositiveCallback = {
+                            val aiPackManager = context.getAiPackManager()
+
+                            if (aiPackManager.getPackStates(listOf(ModelConfig.SPEECH_AI_PACK)).isComplete) {
+                                aiPackManager.fetch(listOf(ModelConfig.Translation_AI_PACK))
+                                context.startForegroundService(
+                                    Intent(
+                                        context,
+                                        Class.forName("jinproject.aideo.app.PlayAIService")
+                                    )
+                                )
+                            } else
+                                showSnackBar.invoke(
+                                    SnackBarMessage(
+                                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
+                                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_please_wait)
+                                    )
+                                )
+                        },
+                        onNegativeCallback = {
+                            updateTranslationModel(TranslationAvailableModel.MlKit)
+                        }
+                    )
             }
         )
 

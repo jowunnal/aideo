@@ -49,4 +49,40 @@
     <string name="notification_subtitle_creation_failed">Subtitle creation failed</string>
     <string name="notification_subtitle_creation_failed_desc">Failed to create subtitles. (%s)</string>
     <string name="notification_action_stop">Stop</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">Additional download required.</string>
+    <string name="dialog_download_required_content">Additional storage space (approximately 1.2GB) is required for download.</string>
+    <string name="dialog_download_positive">Yes, download it.</string>
+    <string name="dialog_download_negative">No, I don\'t want to.</string>
+
+    <!-- Permission -->
+    <string name="permission_required">Permission is required.</string>
+
+    <!-- Download -->
+    <string name="download_started">Download will begin.</string>
+    <string name="download_please_wait">Please wait a moment.</string>
+    <string name="download_cancelled">Download was cancelled.</string>
+    <string name="download_cancelled_desc">You cannot use the feature properly without downloading.</string>
+    <string name="download_ai_model_in_progress">AI model is being downloaded.</string>
+    <string name="download_ai_model_please_wait">Please try again shortly.</string>
+    <string name="download_ai_pack_in_progress">Downloading AI model for [%s].</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo Notification Channel</string>
+    <string name="notification_channel_aideo_desc">Notification channel for Aideo.</string>
+    <string name="notification_channel_transcribe_name">Subtitle Creation Channel</string>
+    <string name="notification_channel_transcribe_desc">Notification channel for subtitle creation in Aideo.</string>
+    <string name="notification_channel_ai_model_name">AI Model Management Channel</string>
+    <string name="notification_channel_ai_model_desc">Notification channel for AI model loading in Aideo.</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">Purchase of [%s] has been completed.</string>
+    <string name="billing_purchase_failed">Purchase failed.</string>
+    <string name="billing_error_invalid_product">Invalid product.</string>
+    <string name="billing_error_incorrect_product">Incorrect product.</string>
+    <string name="billing_error_cancelled">Purchase was cancelled.</string>
+    <string name="billing_error_unavailable">Product is unavailable.</string>
+    <string name="billing_error_already_owned">You already own this product.</string>
+    <string name="billing_error_network">A network error occurred.</string>
 </resources>

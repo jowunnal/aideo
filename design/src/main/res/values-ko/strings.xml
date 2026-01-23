@@ -49,4 +49,40 @@
     <string name="notification_subtitle_creation_failed">자막 생성 실패</string>
     <string name="notification_subtitle_creation_failed_desc">자막 생성에 실패했어요. (%s)</string>
     <string name="notification_action_stop">끄기</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">추가 다운로드가 필요해요.</string>
+    <string name="dialog_download_required_content">다운로드를 위해 추가 저장 공간(약 1.2GB)이 필요해요.</string>
+    <string name="dialog_download_positive">네, 다운로드 할게요.</string>
+    <string name="dialog_download_negative">아니요, 하고싶지 않아요.</string>
+
+    <!-- Permission -->
+    <string name="permission_required">권한이 필요합니다.</string>
+
+    <!-- Download -->
+    <string name="download_started">다운로드를 시작할게요.</string>
+    <string name="download_please_wait">조금만 기다려 주세요.</string>
+    <string name="download_cancelled">다운로드를 취소했어요.</string>
+    <string name="download_cancelled_desc">다운로드를 하지 않으면, 기능을 정상적으로 이용하실 수 없어요.</string>
+    <string name="download_ai_model_in_progress">AI 모델을 다운로드 중 이에요.</string>
+    <string name="download_ai_model_please_wait">잠시 후 다시 시도해 주세요.</string>
+    <string name="download_ai_pack_in_progress">[%s] 관련 AI 모델을 다운로드 중 이에요.</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo 알림 채널</string>
+    <string name="notification_channel_aideo_desc">Aideo 알림 채널 입니다.</string>
+    <string name="notification_channel_transcribe_name">자막 생성 알림 채널</string>
+    <string name="notification_channel_transcribe_desc">Aideo 앱의 자막 생성을 위한 채널 입니다.</string>
+    <string name="notification_channel_ai_model_name">AI 모델 관리 알림 채널</string>
+    <string name="notification_channel_ai_model_desc">Aideo 앱의 AI 모델 로딩을 위한 채널 입니다.</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">[%s] 상품의 구매가 완료되었어요.</string>
+    <string name="billing_purchase_failed">구매에 실패했어요.</string>
+    <string name="billing_error_invalid_product">유효하지 않은 상품이에요.</string>
+    <string name="billing_error_incorrect_product">올바르지 않은 상품이에요.</string>
+    <string name="billing_error_cancelled">구매가 취소되었어요.</string>
+    <string name="billing_error_unavailable">유효하지 않은 상품이에요.</string>
+    <string name="billing_error_already_owned">이미 보유하고 있는 상품이에요.</string>
+    <string name="billing_error_network">네트워크 오류가 발생했어요.</string>
 </resources>

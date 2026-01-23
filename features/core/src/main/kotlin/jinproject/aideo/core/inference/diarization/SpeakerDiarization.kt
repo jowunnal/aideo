@@ -10,8 +10,8 @@ import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationModelConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationPyannoteModelConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.OnnxModelConfig
-import jinproject.aideo.core.utils.getApplicationAssets
+import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,11 +33,13 @@ class SpeakerDiarization @Inject constructor(
 
         val config = OfflineSpeakerDiarizationConfig(
             segmentation = OfflineSpeakerSegmentationModelConfig(
-                pyannote = OfflineSpeakerSegmentationPyannoteModelConfig(SEGMENTATION_MODEL_PATH),
+                pyannote = OfflineSpeakerSegmentationPyannoteModelConfig(
+                    "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$SEGMENTATION_MODEL_PATH"
+                ),
                 debug = BuildConfig.DEBUG
             ),
             embedding = SpeakerEmbeddingExtractorConfig(
-                model = EMBEDDING_MODEL_PATH,
+                model = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$EMBEDDING_MODEL_PATH",
                 numThreads = 1,
                 debug = BuildConfig.DEBUG
             ),
@@ -47,7 +49,7 @@ class SpeakerDiarization @Inject constructor(
         )
 
         diarization = OfflineSpeakerDiarization(
-            assetManager = context.getApplicationAssets(),
+            assetManager = null,
             config = config
         )
         isInitialized = true
@@ -65,7 +67,7 @@ class SpeakerDiarization @Inject constructor(
     }
 
     companion object {
-        const val SEGMENTATION_MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/segmentation.onnx"
-        const val EMBEDDING_MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/embedding.onnx"
+        const val SEGMENTATION_MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/segmentation.onnx"
+        const val EMBEDDING_MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/embedding.onnx"
     }
 }

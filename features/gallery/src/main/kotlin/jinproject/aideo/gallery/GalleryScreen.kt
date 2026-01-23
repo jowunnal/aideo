@@ -69,7 +69,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.utils.LocalShowSnackBar
+import jinproject.aideo.core.utils.getAiPackManager
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.RowScopedTitleAppBar
 import jinproject.aideo.design.component.button.DefaultIconButton
@@ -126,6 +131,7 @@ private fun GalleryScreen(
                 }
             )
     }
+    val localShowSnackBar = LocalShowSnackBar.current
 
     DownloadableLayout(
         topBar = {
@@ -183,13 +189,24 @@ private fun GalleryScreen(
                         VideoGridItem(
                             videoItem = video,
                             onClick = {
-                                context.startForegroundService(
-                                    Intent(
-                                        context, TranscribeService::class.java
-                                    ).apply {
-                                        putExtra("videoItem", video)
-                                    }
+                                if (context
+                                        .getAiPackManager()
+                                        .getPackStates(listOf(ModelConfig.SPEECH_AI_PACK)).isComplete
                                 )
+                                    context.startForegroundService(
+                                        Intent(
+                                            context, TranscribeService::class.java
+                                        ).apply {
+                                            putExtra("videoItem", video)
+                                        }
+                                    )
+                                else
+                                    localShowSnackBar(
+                                        SnackBarMessage(
+                                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
+                                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                                        )
+                                    )
                             }
                         )
                     }

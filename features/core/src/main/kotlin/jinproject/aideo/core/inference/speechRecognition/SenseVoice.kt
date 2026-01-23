@@ -2,7 +2,7 @@ package jinproject.aideo.core.inference.speechRecognition
 
 import android.content.Context
 import android.util.Log
-import com.google.android.datatransport.runtime.scheduling.SchedulingConfigModule_ConfigFactory.config
+import com.google.android.play.core.aipacks.AiPackManagerFactory
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
@@ -10,10 +10,11 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.OnnxModelConfig
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
 import javax.inject.Qualifier
@@ -34,6 +35,8 @@ class SenseVoice @Inject constructor(
         if (isInitialized) {
             return
         }
+
+        val aiPackManager = AiPackManagerFactory.getInstance(context)
 
         config = OfflineRecognizerConfig(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
@@ -73,17 +76,17 @@ class SenseVoice @Inject constructor(
             } else
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
-                        model = MODEL_PATH,
+                        model = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$MODEL_PATH",
                         language = "auto",
                         useInverseTextNormalization = true,
                     ),
-                    tokens = TOKEN_PATH,
+                    tokens = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$TOKEN_PATH",
                     debug = BuildConfig.DEBUG,
                 )
         }
 
         recognizer = OfflineRecognizer(
-            assetManager = if (isQnn) null else context.assets,
+            assetManager = null,
             config = config,
         )
 
@@ -137,9 +140,9 @@ class SenseVoice @Inject constructor(
     }
 
     companion object {
-        const val MODEL_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/model.int8.onnx"
-        const val MODEL_QUANT_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/libmodel.so"
-        const val BINARY_QUANT_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/model.bin"
-        const val TOKEN_PATH = "${OnnxModelConfig.MODELS_ROOT_DIR}/tokens.txt"
+        const val MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/sense_voice_model.int8.onnx"
+        const val MODEL_QUANT_PATH = "${ModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_libmodel.so"
+        const val BINARY_QUANT_PATH = "${ModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_model.bin"
+        const val TOKEN_PATH = "${ModelConfig.MODELS_ROOT_DIR}/sense_voice_tokens.txt"
     }
 }

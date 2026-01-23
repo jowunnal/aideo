@@ -49,4 +49,40 @@
     <string name="notification_subtitle_creation_failed">字幕生成失败</string>
     <string name="notification_subtitle_creation_failed_desc">字幕生成失败。(%s)</string>
     <string name="notification_action_stop">停止</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">需要额外下载。</string>
+    <string name="dialog_download_required_content">下载需要额外的存储空间（约1.2GB）。</string>
+    <string name="dialog_download_positive">是的，下载它。</string>
+    <string name="dialog_download_negative">不，我不想要。</string>
+
+    <!-- Permission -->
+    <string name="permission_required">需要权限。</string>
+
+    <!-- Download -->
+    <string name="download_started">即将开始下载。</string>
+    <string name="download_please_wait">请稍候。</string>
+    <string name="download_cancelled">下载已取消。</string>
+    <string name="download_cancelled_desc">如果不下载，将无法正常使用该功能。</string>
+    <string name="download_ai_model_in_progress">正在下载AI模型。</string>
+    <string name="download_ai_model_please_wait">请稍后再试。</string>
+    <string name="download_ai_pack_in_progress">正在下载[%s]相关的AI模型。</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo通知频道</string>
+    <string name="notification_channel_aideo_desc">Aideo通知频道。</string>
+    <string name="notification_channel_transcribe_name">字幕生成通知频道</string>
+    <string name="notification_channel_transcribe_desc">Aideo应用的字幕生成通知频道。</string>
+    <string name="notification_channel_ai_model_name">AI模型管理通知频道</string>
+    <string name="notification_channel_ai_model_desc">Aideo应用的AI模型加载通知频道。</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">[%s]购买已完成。</string>
+    <string name="billing_purchase_failed">购买失败。</string>
+    <string name="billing_error_invalid_product">无效的产品。</string>
+    <string name="billing_error_incorrect_product">产品不正确。</string>
+    <string name="billing_error_cancelled">购买已取消。</string>
+    <string name="billing_error_unavailable">产品不可用。</string>
+    <string name="billing_error_already_owned">您已拥有此产品。</string>
+    <string name="billing_error_network">发生网络错误。</string>
 </resources>

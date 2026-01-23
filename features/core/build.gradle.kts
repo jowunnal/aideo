@@ -66,4 +66,5 @@ dependencies {
     implementation(libs.executorch.android)
     api(libs.google.ads.interactive.media)
     implementation(libs.bundles.mlKit)
+    api(libs.play.ai.delivery)
 }

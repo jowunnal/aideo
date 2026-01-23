@@ -1,6 +1,10 @@
 package jinproject.aideo.core.utils
 
 import android.content.Context
-import android.content.res.AssetManager
+import com.google.android.play.core.aipacks.AiPackManagerFactory
 
-fun Context.getApplicationAssets(): AssetManager = createPackageContext("jinproject.aideo.app", 0).assets
+fun Context.getPackAssetPath(packName: String): String? {
+    return getAiPackManager().getPackLocation(packName)?.assetsPath()
+}
+
+fun Context.getAiPackManager() = AiPackManagerFactory.getInstance(this)

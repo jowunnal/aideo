@@ -1,13 +1,17 @@
 package jinproject.aideo.gallery
 
+import android.content.Context
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.TranslationManager
+import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.design.R
 import jinproject.aideo.design.theme.AideoColor
@@ -23,6 +27,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val localSettingDataSource: LocalSettingDataSource,
     private val translationManager: TranslationManager,
 ) : ViewModel() {

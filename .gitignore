@@ -183,7 +183,7 @@ fabric.properties
 
 features/core/src/main/assets/
 features/core/src/htp*
-ai_pack/src/main/assets/
+ai_*/src/main/assets/
 bundletool.jar
 debug-install.apks
 buildAndInstallApksWithBundletool.sh
