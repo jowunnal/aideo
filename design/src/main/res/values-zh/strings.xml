@@ -1,0 +1,52 @@
+<resources>
+    <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">相册</string>
+    <string name="gallery_empty">空</string>
+    <string name="content_desc_play_video">播放视频</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">设置</string>
+    <string name="settings_inference_language">推理语言</string>
+    <string name="settings_inference_language_desc">请选择用于语音识别的语言。</string>
+    <string name="settings_translation_language">翻译语言</string>
+    <string name="settings_translation_language_desc">请选择用于字幕翻译的语言。</string>
+    <string name="settings_inference_model">推理模型</string>
+    <string name="settings_inference_model_desc">请选择用于推理的模型。</string>
+    <string name="settings_translation_model">翻译模型</string>
+    <string name="settings_translation_model_desc">请选择用于翻译的模型。</string>
+    <string name="settings_current_settings">当前设置:</string>
+    <string name="settings_current_inference_language">- 推理语言: %s</string>
+    <string name="settings_current_translation_language">- 翻译语言: %s</string>
+    <string name="settings_current_inference_model">- 推理模型: %s</string>
+    <string name="settings_current_translation_model">- 翻译模型: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">相对较快的转换速度，但准确度可能较低。</string>
+    <string name="model_sensevoice_tag">快速</string>
+    <string name="model_whisper_desc">转换速度相对较慢，但准确度可能更高。</string>
+    <string name="model_whisper_tag">较慢</string>
+    <string name="model_mlkit_desc">模型体积小，翻译速度快，但准确度相对较低。</string>
+    <string name="model_mlkit_tag">轻量</string>
+    <string name="model_m2m100_desc">提供更准确的翻译，但模型体积较大，耗时可能更长。</string>
+    <string name="model_m2m100_tag">高质量</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">暂停</string>
+    <string name="content_desc_play">播放</string>
+    <string name="content_desc_seek_back">后退%d秒</string>
+    <string name="content_desc_seek_forward">前进%d秒</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">正在生成字幕</string>
+    <string name="notification_starting_subtitle_creation">开始生成字幕</string>
+    <string name="notification_starting_subtitle_translation">开始翻译字幕</string>
+    <string name="notification_subtitle_translation_completed">字幕翻译完成</string>
+    <string name="notification_subtitle_translation_completed_desc">字幕已翻译为您选择的语言。</string>
+    <string name="notification_subtitle_creation_completed">字幕生成完成</string>
+    <string name="notification_subtitle_creation_completed_desc">字幕已成功生成。</string>
+    <string name="notification_subtitle_creation_failed">字幕生成失败</string>
+    <string name="notification_subtitle_creation_failed_desc">字幕生成失败。(%s)</string>
+    <string name="notification_action_stop">停止</string>
+</resources>

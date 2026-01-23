@@ -46,7 +46,7 @@ class TranscribeService : LifecycleService() {
 
         speechToTranscription.inferenceProgress.onEach { p ->
             notifyTranscribe(
-                contentTitle = "자막 생성 중",
+                contentTitle = getString(jinproject.aideo.design.R.string.notification_creating_subtitles),
                 progress = p
             )
         }.launchIn(lifecycleScope)
@@ -56,7 +56,7 @@ class TranscribeService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         if (intent != null) {
-            notifyTranscribe(contentTitle = "자막 생성 시작", progress = null).also {
+            notifyTranscribe(contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_creation), progress = null).also {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                     startForeground(
                         NOTIFICATION_TRANSCRIBE_ID,
@@ -111,7 +111,7 @@ class TranscribeService : LifecycleService() {
 
             else -> {
                 // 자막 파일은 있으나 번역이 필요한 경우
-                notifyTranscribe(contentTitle = "자막 번역 시작", progress = null)
+                notifyTranscribe(contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation), progress = null)
                 translateAndNotifySuccess(videoItem)
             }
         }
@@ -123,8 +123,8 @@ class TranscribeService : LifecycleService() {
         launchPlayer(videoItem.uri)
 
         notifyTranscriptionResult(
-            title = "자막 번역 완료",
-            description = "설정 언어로 자막 번역이 완료되었어요.",
+            title = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed),
+            description = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed_desc),
             videoUri = videoItem.uri,
         )
     }
@@ -135,15 +135,15 @@ class TranscribeService : LifecycleService() {
             translationManager.translateSubtitle(videoItem.id)
         }.onSuccess {
             notifyTranscriptionResult(
-                title = "자막 생성 완료",
-                description = "자막 생성이 성공적으로 완료되었어요.",
+                title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_completed),
+                description = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_completed_desc),
                 videoUri = videoItem.uri
             )
             launchPlayer(videoItem.uri)
         }.onFailure { exception ->
             notifyTranscriptionResult(
-                title = "자막 생성 실패",
-                description = "자막 생성에 실패했어요. (${exception.message})",
+                title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
+                description = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc, exception.message ?: ""),
                 videoUri = null,
             )
         }
@@ -195,7 +195,7 @@ class TranscribeService : LifecycleService() {
             .setContentTitle(contentTitle)
             .addAction(
                 jinproject.aideo.design.R.drawable.ic_x,
-                "끄기",
+                getString(jinproject.aideo.design.R.string.notification_action_stop),
                 exitPendingIntent
             )
 

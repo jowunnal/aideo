@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -128,7 +129,7 @@ internal fun PlayPauseButton(
                 jinproject.aideo.design.R.drawable.ic_playback_pause
             )
             else ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
-            contentDescription = if (!state.showPlay) "일시정지" else "재생",
+            contentDescription = if (!state.showPlay) stringResource(jinproject.aideo.design.R.string.content_desc_pause) else stringResource(jinproject.aideo.design.R.string.content_desc_play),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )
@@ -150,7 +151,7 @@ internal fun SeekBackButton(
             imageVector = ImageVector.vectorResource(
                 jinproject.aideo.design.R.drawable.ic_playback_back
             ),
-            contentDescription = "뒤로 ${state.seekBackAmountMs / 1000}초 이동",
+            contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_seek_back, (state.seekBackAmountMs / 1000).toInt()),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )
@@ -172,7 +173,7 @@ internal fun SeekForwardButton(
             imageVector = ImageVector.vectorResource(
                 jinproject.aideo.design.R.drawable.ic_playback_next
             ),
-            contentDescription = "앞으로 ${state.seekForwardAmountMs / 1000}초 이동",
+            contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_seek_forward, (state.seekForwardAmountMs / 1000).toInt()),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )

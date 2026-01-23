@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -130,7 +131,7 @@ private fun GalleryScreen(
         topBar = {
             val backgroundColor = MaterialTheme.colorScheme.primary
             RowScopedTitleAppBar(
-                title = "갤러리",
+                title = stringResource(jinproject.aideo.design.R.string.gallery_title),
                 backgroundColor = backgroundColor,
                 contentColor = contentColorFor(backgroundColor),
             ) {
@@ -162,7 +163,7 @@ private fun GalleryScreen(
         when {
             galleryUiState.data.isEmpty() -> {
                 DescriptionLargeText(
-                    text = "비어 있음",
+                    text = stringResource(jinproject.aideo.design.R.string.gallery_empty),
                     modifier = Modifier
                         .fillMaxSize()
                         .wrapContentSize()
@@ -223,7 +224,7 @@ private fun VideoGridItem(
             )
             Image(
                 imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
-                contentDescription = "Play Video",
+                contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_play_video),
                 modifier = Modifier
                     .shadow(1.dp, RoundedCornerShape(20.dp))
                     .background(Color.White, RoundedCornerShape(20.dp))

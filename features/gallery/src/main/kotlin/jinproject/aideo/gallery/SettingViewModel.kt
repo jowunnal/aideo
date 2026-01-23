@@ -1,5 +1,6 @@
 package jinproject.aideo.gallery
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -8,6 +9,10 @@ import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
+import jinproject.aideo.design.R
+import jinproject.aideo.design.theme.AideoColor
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -29,8 +34,8 @@ class SettingViewModel @Inject constructor(
                     ?: LanguageCode.Auto,
                 translationLanguage = LanguageCode.findByCode(playerSetting.subtitleLanguage)
                     ?: LanguageCode.Korean,
-                speechRecognitionModel = SpeechRecognitionAvailableModel.findByName(playerSetting.speechRecognitionModel),
-                translationModel = TranslationAvailableModel.findByName(playerSetting.translationModel)
+                speechRecognitionSelectedModel = SpeechRecognitionAvailableModel.findByName(playerSetting.speechRecognitionModel),
+                translationSelectedModel = TranslationAvailableModel.findByName(playerSetting.translationModel)
             )
         }.stateIn(
             scope = viewModelScope,
@@ -59,7 +64,7 @@ class SettingViewModel @Inject constructor(
     fun updateTranslationModel(model: TranslationAvailableModel) {
         viewModelScope.launch {
             localSettingDataSource.setSelectedTranslationModel(model.name)
-            if(translationManager.isInitialized) {
+            if (translationManager.isInitialized) {
                 translationManager.release()
             }
         }
@@ -69,17 +74,54 @@ class SettingViewModel @Inject constructor(
 data class SettingUiState(
     val inferenceLanguage: LanguageCode,
     val translationLanguage: LanguageCode,
-    val speechRecognitionModel: SpeechRecognitionAvailableModel,
-    val translationModel: TranslationAvailableModel,
+    val speechRecognitionSelectedModel: SpeechRecognitionAvailableModel,
+    val translationSelectedModel: TranslationAvailableModel,
 ) {
+    val speechRecognitionSettings: ImmutableSet<ModelSettingState> = persistentSetOf(
+        ModelSettingState(
+            name = SpeechRecognitionAvailableModel.SenseVoice.name,
+            descRes = R.string.model_sensevoice_desc,
+            tagRes = R.string.model_sensevoice_tag,
+            tagColor = AideoColor.amber,
+        ),
+        ModelSettingState(
+            name = SpeechRecognitionAvailableModel.Whisper.name,
+            descRes = R.string.model_whisper_desc,
+            tagRes = R.string.model_whisper_tag,
+            tagColor = AideoColor.blue,
+        ),
+    )
+
+    val translationSettings: ImmutableSet<ModelSettingState> = persistentSetOf(
+        ModelSettingState(
+            name = TranslationAvailableModel.MlKit.name,
+            descRes = R.string.model_mlkit_desc,
+            tagRes = R.string.model_mlkit_tag,
+            tagColor = AideoColor.indigo,
+        ),
+        ModelSettingState(
+            name = TranslationAvailableModel.M2M100.name,
+            descRes = R.string.model_m2m100_desc,
+            tagRes = R.string.model_m2m100_tag,
+            tagColor = AideoColor.emerald,
+        ),
+    )
+
     companion object {
         fun default(): SettingUiState = SettingUiState(
             inferenceLanguage = LanguageCode.findByCode(Locale.getDefault().language)
                 ?: LanguageCode.Auto,
             translationLanguage = LanguageCode.findByCode(Locale.getDefault().language)
                 ?: LanguageCode.Korean,
-            speechRecognitionModel = SpeechRecognitionAvailableModel.SenseVoice,
-            translationModel = TranslationAvailableModel.MlKit
+            speechRecognitionSelectedModel = SpeechRecognitionAvailableModel.SenseVoice,
+            translationSelectedModel = TranslationAvailableModel.MlKit
         )
     }
 }
+
+data class ModelSettingState(
+    val name: String,
+    @StringRes val descRes: Int,
+    @StringRes val tagRes: Int,
+    val tagColor: AideoColor,
+)

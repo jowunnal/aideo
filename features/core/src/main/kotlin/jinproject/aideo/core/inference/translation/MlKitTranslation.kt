@@ -59,9 +59,7 @@ class MlKitTranslation @Inject constructor(
 
             translator.downloadModelIfNeeded(conditions)
                 .addOnSuccessListener {
-                    translator.translate(
-                        text
-                    ).addOnSuccessListener { result ->
+                    translator.translate(text).addOnSuccessListener { result ->
                         translator.close()
                         cont.resume(result)
                     }.addOnFailureListener { e ->

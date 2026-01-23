@@ -62,12 +62,11 @@ value class AideoColor private constructor(val color: Color) {
         val dark_outline = grey_300
         val dark_outlineVariant = grey_400
 
-        val itemSpaceColor = AideoColor(Color(0xFFDFEDF2))
-        val itemListContentColor = AideoColor(Color(0xFFBFCFD9))
-        val itemDetailContentColor = AideoColor(Color(0xFF3E4C59))
-        val itemButtonColor = AideoColor(Color(0xFF2393D9))
-        val itemNameColor = AideoColor(Color(0xFF35AAF2))
-        val itemDescriptionColor = AideoColor(Color(0xFFC5CED9))
-        val itemTextColor = AideoColor(Color(0xFF70818C))
+        val amber = AideoColor(Color(0xFFB45309))
+        val indigo = AideoColor(Color(0xFF4338CA))
+        val emerald = AideoColor(Color(0xFF047857))
+
+
+
     }
 }

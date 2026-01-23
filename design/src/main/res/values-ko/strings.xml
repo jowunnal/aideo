@@ -1,0 +1,52 @@
+<resources>
+    <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">갤러리</string>
+    <string name="gallery_empty">비어 있음</string>
+    <string name="content_desc_play_video">비디오 재생</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">설정 화면</string>
+    <string name="settings_inference_language">추론 언어</string>
+    <string name="settings_inference_language_desc">음성 인식에 사용할 언어를 선택해 주세요.</string>
+    <string name="settings_translation_language">번역 언어</string>
+    <string name="settings_translation_language_desc">자막으로 번역할 언어를 선택해 주세요.</string>
+    <string name="settings_inference_model">추론 모델</string>
+    <string name="settings_inference_model_desc">추론에 사용될 모델을 선택해 주세요.</string>
+    <string name="settings_translation_model">번역 모델</string>
+    <string name="settings_translation_model_desc">번역에 사용될 모델을 선택해 주세요.</string>
+    <string name="settings_current_settings">현재 설정:</string>
+    <string name="settings_current_inference_language">- 추론 언어: %s</string>
+    <string name="settings_current_translation_language">- 번역 언어: %s</string>
+    <string name="settings_current_inference_model">- 추론 모델: %s</string>
+    <string name="settings_current_translation_model">- 번역 모델: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">상대적으로 빠른 변환이 가능하지만, 정확도가 떨어질 수 있습니다.</string>
+    <string name="model_sensevoice_tag">빠름</string>
+    <string name="model_whisper_desc">상대적으로 변환이 느리지만, 더 정확도가 높을 수 있습니다.</string>
+    <string name="model_whisper_tag">느림</string>
+    <string name="model_mlkit_desc">모델의 크기가 작고 빠른 변환이 가능하지만, 상대적으로 정확도가 떨어질 수 있습니다.</string>
+    <string name="model_mlkit_tag">경량</string>
+    <string name="model_m2m100_desc">상대적으로 더 정확한 번역을 제공하지만, 모델의 크기가 크고 오래걸릴 수 있습니다.</string>
+    <string name="model_m2m100_tag">고품질</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">일시정지</string>
+    <string name="content_desc_play">재생</string>
+    <string name="content_desc_seek_back">뒤로 %d초 이동</string>
+    <string name="content_desc_seek_forward">앞으로 %d초 이동</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">자막 생성 중</string>
+    <string name="notification_starting_subtitle_creation">자막 생성 시작</string>
+    <string name="notification_starting_subtitle_translation">자막 번역 시작</string>
+    <string name="notification_subtitle_translation_completed">자막 번역 완료</string>
+    <string name="notification_subtitle_translation_completed_desc">설정 언어로 자막 번역이 완료되었어요.</string>
+    <string name="notification_subtitle_creation_completed">자막 생성 완료</string>
+    <string name="notification_subtitle_creation_completed_desc">자막 생성이 성공적으로 완료되었어요.</string>
+    <string name="notification_subtitle_creation_failed">자막 생성 실패</string>
+    <string name="notification_subtitle_creation_failed_desc">자막 생성에 실패했어요. (%s)</string>
+    <string name="notification_action_stop">끄기</string>
+</resources>

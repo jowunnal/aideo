@@ -1,3 +1,52 @@
 <resources>
     <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_empty">Empty</string>
+    <string name="content_desc_play_video">Play Video</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_inference_language">Inference Language</string>
+    <string name="settings_inference_language_desc">Select the language for speech recognition.</string>
+    <string name="settings_translation_language">Translation Language</string>
+    <string name="settings_translation_language_desc">Select the language for subtitle translation.</string>
+    <string name="settings_inference_model">Inference Model</string>
+    <string name="settings_inference_model_desc">Select the model for inference.</string>
+    <string name="settings_translation_model">Translation Model</string>
+    <string name="settings_translation_model_desc">Select the model for translation.</string>
+    <string name="settings_current_settings">Current Settings:</string>
+    <string name="settings_current_inference_language">- Inference Language: %s</string>
+    <string name="settings_current_translation_language">- Translation Language: %s</string>
+    <string name="settings_current_inference_model">- Inference Model: %s</string>
+    <string name="settings_current_translation_model">- Translation Model: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">Relatively fast transcription, but may have lower accuracy.</string>
+    <string name="model_sensevoice_tag">Fast</string>
+    <string name="model_whisper_desc">Relatively slow transcription, but may have higher accuracy.</string>
+    <string name="model_whisper_tag">Slow</string>
+    <string name="model_mlkit_desc">Small model size with fast translation, but relatively lower accuracy.</string>
+    <string name="model_mlkit_tag">Lightweight</string>
+    <string name="model_m2m100_desc">Provides more accurate translation, but larger model size and may take longer.</string>
+    <string name="model_m2m100_tag">High Quality</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">Pause</string>
+    <string name="content_desc_play">Play</string>
+    <string name="content_desc_seek_back">Seek back %d seconds</string>
+    <string name="content_desc_seek_forward">Seek forward %d seconds</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">Creating subtitles</string>
+    <string name="notification_starting_subtitle_creation">Starting subtitle creation</string>
+    <string name="notification_starting_subtitle_translation">Starting subtitle translation</string>
+    <string name="notification_subtitle_translation_completed">Subtitle translation completed</string>
+    <string name="notification_subtitle_translation_completed_desc">Subtitles have been translated to your selected language.</string>
+    <string name="notification_subtitle_creation_completed">Subtitle creation completed</string>
+    <string name="notification_subtitle_creation_completed_desc">Subtitles have been successfully created.</string>
+    <string name="notification_subtitle_creation_failed">Subtitle creation failed</string>
+    <string name="notification_subtitle_creation_failed_desc">Failed to create subtitles. (%s)</string>
+    <string name="notification_action_stop">Stop</string>
 </resources>
