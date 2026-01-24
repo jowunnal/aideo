@@ -8,10 +8,10 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
-import jinproject.aideo.core.inference.ModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import java.util.Locale
@@ -39,11 +39,11 @@ class Whisper @Inject constructor(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
             modelConfig = OfflineModelConfig(
                 whisper = OfflineWhisperModelConfig(
-                    encoder = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$WHISPER_ENCODER_PATH",
-                    decoder = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$WHISPER_DECODER_PATH",
+                    encoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_ENCODER_PATH",
+                    decoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_DECODER_PATH",
                     language = Locale.getDefault().language,
                 ),
-                tokens = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$WHISPER_TOKEN_PATH",
+                tokens = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_TOKEN_PATH",
                 debug = BuildConfig.DEBUG,
             )
         )

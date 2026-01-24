@@ -2,7 +2,7 @@ package jinproject.aideo.core.inference.translation
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.ModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.inference.native.wrapper.M2M100Native
 import jinproject.aideo.core.inference.translation.api.Translation
 import jinproject.aideo.core.utils.LanguageCode

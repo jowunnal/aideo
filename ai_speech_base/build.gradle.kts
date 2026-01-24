@@ -3,7 +3,7 @@ plugins {
 }
 
 aiPack {
-    packName = "ai_speech"
+    packName = "ai_speech_base"
 
     dynamicDelivery {
         deliveryType = "fast-follow"

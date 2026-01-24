@@ -7,11 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.TranslationManager
-import jinproject.aideo.core.inference.ModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.design.R
 import jinproject.aideo.design.theme.AideoColor

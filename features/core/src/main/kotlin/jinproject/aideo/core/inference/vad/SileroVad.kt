@@ -2,14 +2,13 @@ package jinproject.aideo.core.inference.vad
 
 import android.content.Context
 import android.util.Log
-import com.google.android.play.core.aipacks.AiPackManagerFactory
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.SpeechSegment
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.audio.AudioConfig
-import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import javax.inject.Inject
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SileroVad @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private lateinit var vad: Vad
     var isInitialized: Boolean = false
@@ -33,7 +32,7 @@ class SileroVad @Inject constructor(
             assetManager = null,
             config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
-                    model = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$VAD_MODEL_PATH",
+                    model = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$VAD_MODEL_PATH",
                     threshold = 0.01f,
                     minSilenceDuration = 0.1f,
                     minSpeechDuration = 0.1f,
@@ -80,6 +79,6 @@ class SileroVad @Inject constructor(
     fun reset() = vad.reset()
 
     companion object {
-        const val VAD_MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/silero_vad.onnx"
+        const val VAD_MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/silero_vad.onnx"
     }
 }

@@ -6,7 +6,7 @@ import com.k2fsa.sherpa.onnx.OfflinePunctuation
 import com.k2fsa.sherpa.onnx.OfflinePunctuationConfig
 import com.k2fsa.sherpa.onnx.OfflinePunctuationModelConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
@@ -30,7 +30,7 @@ class Punctuation @Inject constructor(
 
         val config = OfflinePunctuationConfig(
             model = OfflinePunctuationModelConfig(
-                ctTransformer = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$CT_TRANSFORMER_MODEL_PATH",
+                ctTransformer = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$CT_TRANSFORMER_MODEL_PATH",
                 numThreads = 1,
                 provider = "cpu",
                 debug = BuildConfig.DEBUG
@@ -71,6 +71,6 @@ class Punctuation @Inject constructor(
         language == LanguageCode.Chinese.code || language == LanguageCode.English.code
 
     companion object {
-        const val CT_TRANSFORMER_MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
+        const val CT_TRANSFORMER_MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
     }
 }

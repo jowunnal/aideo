@@ -52,7 +52,7 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
-    assetPacks += listOf(":ai_speech", ":ai_translation")
+    assetPacks += listOf(":ai_speech_base", ":ai_translation", ":ai_speech_whisper")
 
     bundle {
         deviceTargetingConfig = file("device_targeting_config.xml")

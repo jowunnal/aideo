@@ -12,8 +12,6 @@ import com.google.android.play.core.aipacks.AiPackStateUpdateListener
 import com.google.android.play.core.aipacks.model.AiPackStatus
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.core.utils.getAiPackManager
-import jinproject.aideo.gallery.TranscribeService
-import jinproject.aideo.gallery.TranscribeService.Companion.NOTIFICATION_TRANSCRIBE_ID
 
 @AndroidEntryPoint
 class PlayAIService : Service() {
@@ -28,7 +26,7 @@ class PlayAIService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        val exitIntent = Intent(this, TranscribeService::class.java).apply {
+        val exitIntent = Intent(this, PlayAIService::class.java).apply {
             putExtra("status", true)
         }
 
@@ -49,15 +47,25 @@ class PlayAIService : Service() {
             )
 
         aiPackListener = AiPackStateUpdateListener { state ->
-            if (state.status() == AiPackStatus.DOWNLOADING) {
-                val progress =
-                    (state.bytesDownloaded() / state.totalBytesToDownload()).toInt() * 100
-                notification
-                    .setContentTitle(getString(jinproject.aideo.design.R.string.download_ai_pack_in_progress, state.name()))
-                    .setProgress(100, progress, false)
-                notificationManager.notify(DOWNLOAD_AI_PACK_NOTIFICATION, notification.build())
-            } else if (state.status() == AiPackStatus.COMPLETED) {
-                stopSelf()
+            when (state.status()) {
+                AiPackStatus.DOWNLOADING -> {
+                    val progress =
+                        (state.bytesDownloaded() / state.totalBytesToDownload() * 100).toInt()
+                    notification
+                        .setContentTitle(
+                            getString(
+                                jinproject.aideo.design.R.string.download_ai_pack_in_progress,
+                                state.name()
+                            )
+                        )
+                        .setProgress(100, progress, false)
+                    notificationManager.notify(DOWNLOAD_AI_PACK_NOTIFICATION, notification.build())
+                }
+
+                else -> {
+                    notificationManager.cancel(DOWNLOAD_AI_PACK_NOTIFICATION)
+                    stopSelf()
+                }
             }
         }
         getAiPackManager().registerListener(aiPackListener)
@@ -67,12 +75,12 @@ class PlayAIService : Service() {
         if (intent != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                 startForeground(
-                    NOTIFICATION_TRANSCRIBE_ID,
+                    DOWNLOAD_AI_PACK_NOTIFICATION,
                     notification.build(),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
                 )
             else
-                startForeground(NOTIFICATION_TRANSCRIBE_ID, notification.build())
+                startForeground(DOWNLOAD_AI_PACK_NOTIFICATION, notification.build())
         }
 
         val offFlag = intent?.getBooleanExtra("status", false)

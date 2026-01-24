@@ -47,6 +47,7 @@ dependencies {
 
     implementation(libs.bundles.square)
     implementation(libs.datastore)
+    api(libs.timber)
 }
 
 androidComponents {

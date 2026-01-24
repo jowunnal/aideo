@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -75,7 +76,7 @@ import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
 import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.SnackBarMessage
-import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
@@ -83,7 +84,8 @@ import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.LocalShowRewardAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
-import jinproject.aideo.core.utils.getPackAssetPath
+import jinproject.aideo.core.utils.getAiPackStates
+import jinproject.aideo.core.utils.getPackStatus
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
@@ -91,6 +93,8 @@ import jinproject.aideo.player.navigateToPlayerGraph
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -141,9 +145,7 @@ class MainActivity : ComponentActivity() {
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-
-        if(getPackAssetPath(ModelConfig.SPEECH_AI_PACK) == null)
-            startForegroundService(Intent(this, PlayAIService::class.java))
+        setUpBaseAiPack()
     }
 
     @Composable
@@ -162,34 +164,36 @@ class MainActivity : ComponentActivity() {
             snackBarChannel.trySend(snackBarMessage)
         }
 
-        val ls = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                showSnackBar(
-                    SnackBarMessage(
-                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_started),
-                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+        val ls =
+            rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    showSnackBar(
+                        SnackBarMessage(
+                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_started),
+                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                        )
                     )
-                )
-            } else if (result.resultCode == RESULT_CANCELED) {
-                showSnackBar(
-                    SnackBarMessage(
-                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled),
-                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled_desc)
+                } else if (result.resultCode == RESULT_CANCELED) {
+                    showSnackBar(
+                        SnackBarMessage(
+                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled),
+                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled_desc)
+                        )
                     )
-                )
+                }
             }
-        }
 
         LaunchedEffect(key1 = snackBarChannel) {
-            snackBarChannel.receiveAsFlow().collect { snackBarMessage ->
-                snackBarHostState.currentSnackbarData?.let {
+            snackBarChannel.receiveAsFlow()
+                .distinctUntilChanged { old, new -> old.headerMessage == new.headerMessage && old.contentMessage == new.contentMessage }
+                .collectLatest { snackBarMessage ->
+                    snackBarHostState.currentSnackbarData?.dismiss()
                     snackBarHostState.showSnackbar(
                         message = snackBarMessage.headerMessage,
                         actionLabel = snackBarMessage.contentMessage,
                         duration = SnackbarDuration.Indefinite,
                     )
                 }
-            }
         }
 
         DisposableEffect(Unit) {
@@ -206,8 +210,19 @@ class MainActivity : ComponentActivity() {
             (context as ComponentActivity).addOnNewIntentListener(onNewIntentConsumer)
 
             val aiPackListener = AiPackStateUpdateListener { state ->
-                if (state.status() == AiPackStatus.REQUIRES_USER_CONFIRMATION || state.status() == AiPackStatus.WAITING_FOR_WIFI) {
-                    getAiPackManager().showConfirmationDialog(ls)
+                when (state.status()) {
+                    AiPackStatus.REQUIRES_USER_CONFIRMATION, AiPackStatus.WAITING_FOR_WIFI -> {
+                        getAiPackManager().showConfirmationDialog(ls)
+                    }
+
+                    AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
+                        showSnackBar(
+                            SnackBarMessage(
+                                headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
+                                contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                            )
+                        )
+                    }
                 }
             }
             getAiPackManager().registerListener(aiPackListener)
@@ -229,30 +244,42 @@ class MainActivity : ComponentActivity() {
 
         DisposableEffect(key1 = billingModule) {
             val success = object : BillingModule.OnSuccessListener {
-                override fun onSuccess(purchase: Purchase) {
-                    purchase.toProduct()?.let {
-                        if (it == BillingModule.Product.AD_REMOVE)
+                override fun call(c: Purchase) {
+                    c.toProduct()?.let {
+                        if (it == BillingModule.Product.REMOVE_AD)
                             adMobManager.updateIsAdViewRemoved(true)
                     }
 
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_completed, purchase.products.first())
+                            headerMessage = context.getString(
+                                jinproject.aideo.design.R.string.billing_purchase_completed,
+                                c.products.first()
+                            )
                         )
                     )
                 }
             }
             val fail = object : BillingModule.OnFailListener {
-                override fun onFailure(errorCode: Int) {
+                override fun call(c: Int) {
                     showSnackBar(
                         SnackBarMessage(
                             headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_failed),
-                            contentMessage = when (errorCode) {
+                            contentMessage = when (c) {
                                 2, 3 -> context.getString(jinproject.aideo.design.R.string.billing_error_invalid_product)
                                 5, 6 -> context.getString(jinproject.aideo.design.R.string.billing_error_incorrect_product)
-                                BillingClient.BillingResponseCode.USER_CANCELED -> context.getString(jinproject.aideo.design.R.string.billing_error_cancelled)
-                                BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> context.getString(jinproject.aideo.design.R.string.billing_error_unavailable)
-                                BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> context.getString(jinproject.aideo.design.R.string.billing_error_already_owned)
+                                BillingClient.BillingResponseCode.USER_CANCELED -> context.getString(
+                                    jinproject.aideo.design.R.string.billing_error_cancelled
+                                )
+
+                                BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> context.getString(
+                                    jinproject.aideo.design.R.string.billing_error_unavailable
+                                )
+
+                                BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> context.getString(
+                                    jinproject.aideo.design.R.string.billing_error_already_owned
+                                )
+
                                 else -> context.getString(jinproject.aideo.design.R.string.billing_error_network)
                             }
                         )
@@ -260,16 +287,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
             val ready = object : BillingModule.OnReadyListener {
-                override fun onReady(billingModule: BillingModule) {
+                override fun call(c: BillingModule) {
                     coroutineScope.launch(Dispatchers.Main.immediate) {
-                        billingModule.queryPurchaseAsync().also { purchasedList ->
-                            billingModule.approvePurchased(purchasedList)
+                        c.queryPurchaseAsync(BillingClient.ProductType.SUBS).also { purchasedList ->
+                            c.approvePurchased(purchasedList)
 
-                            if (!billingModule.isProductPurchased(
-                                    product = BillingModule.Product.AD_REMOVE,
-                                    purchaseList = purchasedList,
-                                )
-                            )
+                            if (!c.isProductPurchased(product = BillingModule.Product.REMOVE_AD))
                                 adMobManager.initAdView()
                         }
                     }
@@ -444,6 +467,28 @@ class MainActivity : ComponentActivity() {
                 onResult()
             } ?: onResult()
         }
+    }
+
+    private fun setUpBaseAiPack() {
+        getAiPackStates(AiModelConfig.SPEECH_BASE_PACK)
+            .addOnCompleteListener { t ->
+                runCatching {
+                    when (t.getPackStatus(AiModelConfig.SPEECH_BASE_PACK)) {
+                        AiPackStatus.DOWNLOADING -> {
+                            startForegroundService(Intent(this, PlayAIService::class.java))
+                        }
+
+                        AiPackStatus.CANCELED, AiPackStatus.FAILED, AiPackStatus.PENDING -> {
+                            getAiPackManager().fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
+                            startForegroundService(Intent(this, PlayAIService::class.java))
+                        }
+
+                        else -> {}
+                    }
+                }.onFailure { t ->
+                    Log.e("test", "error while get AI Pack Manager: ${t.message}")
+                }
+            }
     }
 
     override fun onResume() {

@@ -67,6 +67,8 @@
     <string name="download_ai_model_in_progress">AI model is being downloaded.</string>
     <string name="download_ai_model_please_wait">Please try again shortly.</string>
     <string name="download_ai_pack_in_progress">Downloading AI model for [%s].</string>
+    <string name="download_failed_or_pending">Download failed or is pending.</string>
+    <string name="download_retry_request">Retrying download.</string>
 
     <!-- Notification Channels -->
     <string name="notification_channel_aideo_name">Aideo Notification Channel</string>

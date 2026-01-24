@@ -10,7 +10,7 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.inference.ModelConfig
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
@@ -76,11 +76,11 @@ class SenseVoice @Inject constructor(
             } else
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
-                        model = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$MODEL_PATH",
+                        model = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$MODEL_PATH",
                         language = "auto",
                         useInverseTextNormalization = true,
                     ),
-                    tokens = "${context.getPackAssetPath(ModelConfig.SPEECH_AI_PACK)}$TOKEN_PATH",
+                    tokens = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$TOKEN_PATH",
                     debug = BuildConfig.DEBUG,
                 )
         }
@@ -140,9 +140,9 @@ class SenseVoice @Inject constructor(
     }
 
     companion object {
-        const val MODEL_PATH = "${ModelConfig.MODELS_ROOT_DIR}/sense_voice_model.int8.onnx"
-        const val MODEL_QUANT_PATH = "${ModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_libmodel.so"
-        const val BINARY_QUANT_PATH = "${ModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_model.bin"
-        const val TOKEN_PATH = "${ModelConfig.MODELS_ROOT_DIR}/sense_voice_tokens.txt"
+        const val MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/sense_voice_model.int8.onnx"
+        const val MODEL_QUANT_PATH = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_libmodel.so"
+        const val BINARY_QUANT_PATH = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_model.bin"
+        const val TOKEN_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/sense_voice_tokens.txt"
     }
 }

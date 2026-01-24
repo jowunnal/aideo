@@ -2,6 +2,7 @@ package jinproject.aideo.design.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -156,27 +156,24 @@ private fun DefaultDialogContent(
     onNegativeCallback: (DialogState) -> Unit,
 ) {
     Column(modifier = modifier) {
-        Column(modifier = Modifier.padding(horizontal = 35.dp, vertical = 19.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                DescriptionLargeText(text = dialogState.header)
-            }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 35.dp, vertical = 19.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            DescriptionLargeText(text = dialogState.header)
             VerticalSpacer(height = 12.dp)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                content()
-            }
+            content()
         }
         HorizontalDivider()
         Row(
-            modifier = Modifier.height(44.dp),
+            modifier = Modifier.height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.Center
         ) {
-            Column(
+            DescriptionLargeText(
+                text = dialogState.negativeMessage,
+                color = AideoColor.blue.color,
                 modifier = Modifier
                     .padding(
                         horizontal = 21.dp,
@@ -184,32 +181,20 @@ private fun DefaultDialogContent(
                     )
                     .weight(1f)
                     .clickableAvoidingDuplication { onNegativeCallback(dialogState) }
-            ) {
-                Text(
-                    text = dialogState.negativeMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AideoColor.blue.color,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
+            )
             if (dialogState.positiveMessage.isNotBlank()) {
                 VerticalDivider()
-                Column(
+                DescriptionLargeText(
+                    text = dialogState.positiveMessage,
+                    color = AideoColor.red.color,
                     modifier = Modifier
                         .padding(
                             horizontal = 21.dp,
                             vertical = 9.dp
                         )
                         .weight(1f)
-                        .clickableAvoidingDuplication { onPositiveCallback(dialogState) }
-                ) {
-                    Text(
-                        text = dialogState.positiveMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = AideoColor.red.color,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                }
+                        .clickableAvoidingDuplication { onPositiveCallback(dialogState) },
+                )
             }
         }
     }
@@ -223,10 +208,12 @@ private fun PreviewDialogCustomWithPositiveMessage() {
             dialogState = DialogState(
                 header = "헤더메세지는 이렇게 나옵니다.",
                 content = "컨텐트메세지는 이렇게 나옵니다.",
-                positiveMessage = "네",
-                negativeMessage = "아뇨",
+                positiveMessage = "네, 이렁러이러이러어리어리어",
+                negativeMessage = "아뇨, 이렁러이러이러어리어리어",
                 onNegativeCallback = {}
-            ),
+            ).apply {
+                changeVisibility(true)
+            },
             onDismissRequest = {}
         )
     }
@@ -241,9 +228,11 @@ private fun PreviewDialogCustomConfirm() {
                 header = "헤더메세지는 이렇게 나옵니다.",
                 content = "컨텐트메세지는 이렇게 나옵니다.",
                 positiveMessage = "",
-                negativeMessage = "확인",
+                negativeMessage = "확인, 이렁러이러이러어리어리어, 이렁러이러이러어리어리어",
                 onNegativeCallback = {}
-            ),
+            ).apply {
+                changeVisibility(true)
+            },
             onDismissRequest = {}
         )
     }

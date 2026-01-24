@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
@@ -22,13 +23,15 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import jinproject.aideo.core.SnackBarMessage
-import jinproject.aideo.core.inference.ModelConfig
+import com.google.android.play.core.aipacks.model.AiPackStatus
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
+import jinproject.aideo.core.utils.getAiPackStates
+import jinproject.aideo.core.utils.getPackStatus
 import jinproject.aideo.design.component.DropDownMenuCustom
 import jinproject.aideo.design.component.TextDialog
 import jinproject.aideo.design.component.VerticalSpacer
@@ -69,7 +72,7 @@ internal fun SettingScreen(
     updateTranslationModel: (TranslationAvailableModel) -> Unit,
     navigatePopBackStack: () -> Unit,
 ) {
-    val dialogState by rememberDialogState()
+    var dialogState by rememberDialogState()
     val showSnackBar = LocalShowSnackBar.current
 
     TextDialog(dialogState = dialogState) {
@@ -123,7 +126,49 @@ internal fun SettingScreen(
             currentClickedModel = settingUiState.speechRecognitionSelectedModel.name,
             models = settingUiState.speechRecognitionSettings,
             onClickModel = { item ->
-                updateSpeechRecognitionModel(SpeechRecognitionAvailableModel.findByName(item))
+                if (SpeechRecognitionAvailableModel.Whisper.name.equals(
+                        other = item,
+                        ignoreCase = true
+                    ) && context.getAiPackManager()
+                        .getPackLocation(AiModelConfig.SPEECH_WHISPER_PACK) == null
+                ) {
+                    context
+                        .getAiPackStates(AiModelConfig.SPEECH_WHISPER_PACK)
+                        .addOnCompleteListener { task ->
+                            when (task.getPackStatus(AiModelConfig.SPEECH_WHISPER_PACK)) {
+                                AiPackStatus.NOT_INSTALLED, AiPackStatus.FAILED, AiPackStatus.CANCELED, AiPackStatus.PENDING -> {
+                                    dialogState = dialogState.copy(
+                                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
+                                        content = "다운로드를 위해 추가 저장 공간(약 300MB)이 필요해요.",
+                                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
+                                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
+                                    ).getShownDialogState(
+                                        onPositiveCallback = {
+                                            context.getAiPackManager()
+                                                .fetch(listOf(AiModelConfig.SPEECH_WHISPER_PACK))
+                                                .addOnCompleteListener {
+                                                    if (it.isSuccessful)
+                                                        updateSpeechRecognitionModel(
+                                                            SpeechRecognitionAvailableModel.findByName(
+                                                                item
+                                                            )
+                                                        )
+                                                }
+
+                                            context.startForegroundService(
+                                                Intent(
+                                                    context,
+                                                    Class.forName("jinproject.aideo.app.PlayAIService")
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+
+                                else -> {}
+                            }
+                        }
+                }
             }
         )
 
@@ -135,38 +180,48 @@ internal fun SettingScreen(
             currentClickedModel = settingUiState.translationSelectedModel.name,
             models = settingUiState.translationSettings,
             onClickModel = { item ->
-                updateTranslationModel(TranslationAvailableModel.findByName(item))
+                if (TranslationAvailableModel.M2M100.name.equals(
+                        item,
+                        ignoreCase = true
+                    ) && context.getAiPackManager()
+                        .getPackLocation(AiModelConfig.TRANSLATION_BASE_PACK) == null
+                ) {
+                    context.getAiPackStates(AiModelConfig.TRANSLATION_BASE_PACK)
+                        .addOnCompleteListener { task ->
+                            when (task.getPackStatus(AiModelConfig.TRANSLATION_BASE_PACK)) {
+                                AiPackStatus.NOT_INSTALLED, AiPackStatus.FAILED, AiPackStatus.CANCELED, AiPackStatus.PENDING -> {
+                                    dialogState = dialogState.copy(
+                                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
+                                        content = context.getString(jinproject.aideo.design.R.string.dialog_download_required_content),
+                                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
+                                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
+                                    ).getShownDialogState(
+                                        onPositiveCallback = {
+                                            context.getAiPackManager()
+                                                .fetch(listOf(AiModelConfig.TRANSLATION_BASE_PACK))
+                                                .addOnCompleteListener {
+                                                    if (it.isSuccessful)
+                                                        updateTranslationModel(
+                                                            TranslationAvailableModel.findByName(
+                                                                item
+                                                            )
+                                                        )
+                                                }
 
-                if (item == TranslationAvailableModel.M2M100.name)
-                    dialogState.copy(
-                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
-                        content = context.getString(jinproject.aideo.design.R.string.dialog_download_required_content),
-                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
-                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
-                    ).getShownDialogState(
-                        onPositiveCallback = {
-                            val aiPackManager = context.getAiPackManager()
+                                            context.startForegroundService(
+                                                Intent(
+                                                    context,
+                                                    Class.forName("jinproject.aideo.app.PlayAIService")
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
 
-                            if (aiPackManager.getPackStates(listOf(ModelConfig.SPEECH_AI_PACK)).isComplete) {
-                                aiPackManager.fetch(listOf(ModelConfig.Translation_AI_PACK))
-                                context.startForegroundService(
-                                    Intent(
-                                        context,
-                                        Class.forName("jinproject.aideo.app.PlayAIService")
-                                    )
-                                )
-                            } else
-                                showSnackBar.invoke(
-                                    SnackBarMessage(
-                                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
-                                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_please_wait)
-                                    )
-                                )
-                        },
-                        onNegativeCallback = {
-                            updateTranslationModel(TranslationAvailableModel.MlKit)
+                                else -> {}
+                            }
                         }
-                    )
+                }
             }
         )
 
