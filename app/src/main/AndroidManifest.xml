@@ -58,10 +58,6 @@
 
         <service android:name=".update.InAppUpdateService" />
         <service
-            android:name="jinproject.aideo.gallery.TranscribeService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-        <service
             android:name=".PlayAIService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
