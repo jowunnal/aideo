@@ -18,7 +18,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(localProperties.getProperty("signing.storeFile", ""))
+            storeFile = rootProject.file(localProperties.getProperty("signing.storeFile", ""))
             storePassword = localProperties.getProperty("signing.storePassword", "")
             keyAlias = localProperties.getProperty("signing.keyAlias", "")
             keyPassword = localProperties.getProperty("signing.keyPassword", "")
