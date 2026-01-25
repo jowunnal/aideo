@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.gradle.protobuf)
     implementation(libs.gradle.kotlin.serialization)
     implementation(libs.gradle.room)
+    implementation(libs.gradle.play.publisher)
 }
 
 gradlePlugin {

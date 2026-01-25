@@ -1,17 +1,35 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     id("jinProject.android.application")
 }
 
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(FileInputStream(localPropertiesFile))
+    }
+}
+
 android {
     namespace = "jinproject.aideo.app"
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProperties.getProperty("signing.storeFile", ""))
+            storePassword = localProperties.getProperty("signing.storePassword", "")
+            keyAlias = localProperties.getProperty("signing.keyAlias", "")
+            keyPassword = localProperties.getProperty("signing.keyPassword", "")
+        }
+    }
 
     defaultConfig {
         applicationId = "jinproject.aideo.app"
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.0.1"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -38,6 +56,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.real.appId")
             buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.real.rewardId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.real.unitId"))
@@ -100,4 +119,12 @@ dependencies {
     implementation(libs.lifecycle.process)
     coreLibraryDesugaring(libs.android.tools.desugar.jdk.libs)
     implementation(libs.play.ai.delivery)
+}
+
+play {
+    serviceAccountCredentials.set(
+        file(localProperties.getProperty("play.serviceAccountJsonPath", "key/play-service-account.json"))
+    )
+    track.set("internal")  // internal, alpha, beta, production
+    defaultToAppBundles.set(true)
 }
