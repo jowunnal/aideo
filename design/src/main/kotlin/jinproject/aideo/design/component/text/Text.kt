@@ -48,7 +48,43 @@ fun BottomBarText(
 }
 
 @Composable
-fun HeadlineText(
+fun HeadlineLargeText(
+    text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 1,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    DefaultText(
+        modifier = modifier,
+        text = text,
+        style = MaterialTheme.typography.headlineLarge,
+        color = color,
+        maxLines = maxLines,
+        textAlign = textAlign,
+    )
+}
+
+@Composable
+fun HeadlineMediumText(
+    text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 1,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    DefaultText(
+        modifier = modifier,
+        text = text,
+        style = MaterialTheme.typography.headlineMedium,
+        color = color,
+        maxLines = maxLines,
+        textAlign = textAlign,
+    )
+}
+
+@Composable
+fun HeadlineSmallText(
     text: String,
     modifier: Modifier = Modifier,
     maxLines: Int = 1,
@@ -305,8 +341,8 @@ private fun PreviewAppBarText() = AideoTheme {
 
 @Composable
 @Preview(showBackground = true, backgroundColor = 0xFFFFFF)
-private fun PreviewHeadlineText() = AideoTheme {
-    HeadlineText(
+private fun PreviewHeadlineSmallText() = AideoTheme {
+    HeadlineSmallText(
         text = "이렇게 보입니다. 길면 잘리게 됩니다. 이렇게 잘리게 됩니다.",
         modifier = Modifier.width(220.dp)
     )

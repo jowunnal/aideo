@@ -87,4 +87,43 @@
     <string name="billing_error_unavailable">Product is unavailable.</string>
     <string name="billing_error_already_owned">You already own this product.</string>
     <string name="billing_error_network">A network error occurred.</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">Subscription Management</string>
+    <string name="subscription_management_google_play">Manage on Google Play</string>
+    <string name="subscription_management_help_title">Need help?</string>
+    <string name="subscription_management_help_desc">For subscription-related inquiries, please contact Google Play Customer Support.</string>
+    <string name="subscription_management_no_subscription">No active subscription</string>
+    <string name="subscription_management_no_subscription_desc">Get an ad-free experience with a premium subscription</string>
+    <string name="subscription_management_view_plans">View subscription plans</string>
+    <string name="subscription_management_premium_member">Premium Member</string>
+    <string name="subscription_management_active_status">Active</string>
+    <string name="subscription_management_next_billing">Next billing date</string>
+    <string name="subscription_management_info_title">Subscription Info</string>
+    <string name="subscription_management_start_date">Subscription start date</string>
+    <string name="subscription_management_payment_method">Payment method</string>
+    <string name="subscription_management_google_play_payment">Google Play Payment</string>
+    <string name="subscription_management_auto_renewal">Auto renewal</string>
+    <string name="subscription_management_auto_renewal_desc">Automatically renews every month.</string>
+    <string name="subscription_management_one_time_payment">One-time payment</string>
+    <string name="subscription_management_one_time_payment_desc">Will not automatically renew next month.</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">Premium Subscription</string>
+    <string name="subscription_header_title">Enjoy ad-free</string>
+    <string name="subscription_header_desc">Upgrade to premium and enjoy an ad-free experience</string>
+    <string name="subscription_benefits_title">Premium Benefits</string>
+    <string name="subscription_benefit_ad_removal">Ad removal</string>
+    <string name="subscription_benefit_ad_removal_desc">All ads removed for uninterrupted usage</string>
+    <string name="subscription_monthly_plan">Monthly subscription</string>
+    <string name="subscription_monthly_plan_desc">Auto-renews monthly</string>
+    <string name="subscription_price_unit">/ month</string>
+    <string name="subscription_price_unavailable">Price unavailable</string>
+    <string name="subscription_auto_renewal_notice">Auto-renewal: Subscription automatically renews every month and can be cancelled at any time.</string>
+    <string name="subscription_subscribe_now">Subscribe now</string>
+    <string name="subscription_already_purchased_header">You already purchased this item.</string>
+    <string name="subscription_already_purchased_content">Duplicate purchases are not allowed.</string>
+    <string name="subscription_footer_managed_by">• Subscription is managed through Google Play.</string>
+    <string name="subscription_footer_auto_renewal">• Subscription automatically renews unless cancelled at least 24 hours before the end of the subscription period.</string>
+    <string name="subscription_footer_refund_policy">• Refund policy follows Google Play policy.</string>
 </resources>

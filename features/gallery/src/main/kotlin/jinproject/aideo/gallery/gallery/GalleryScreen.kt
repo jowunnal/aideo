@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.gallery
 
 import android.app.Activity
 import android.content.Context
@@ -56,6 +56,7 @@ import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
+import jinproject.aideo.design.R
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.RowScopedTitleAppBar
 import jinproject.aideo.design.component.button.DefaultIconButton
@@ -66,6 +67,7 @@ import jinproject.aideo.design.component.layout.DownloadableUiState
 import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.utils.PreviewAideoTheme
+import jinproject.aideo.gallery.TranscribeService
 
 @Composable
 fun GalleryScreen(
@@ -118,12 +120,12 @@ private fun GalleryScreen(
         topBar = {
             val backgroundColor = MaterialTheme.colorScheme.primary
             RowScopedTitleAppBar(
-                title = stringResource(jinproject.aideo.design.R.string.gallery_title),
+                title = stringResource(R.string.gallery_title),
                 backgroundColor = backgroundColor,
                 contentColor = contentColorFor(backgroundColor),
             ) {
                 DefaultIconButton(
-                    icon = jinproject.aideo.design.R.drawable.ic_add_image_outlined,
+                    icon = R.drawable.ic_add_image_outlined,
                     onClick = {
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(
@@ -135,7 +137,7 @@ private fun GalleryScreen(
                     iconTint = contentColorFor(backgroundColor),
                 )
                 DefaultIconButton(
-                    icon = jinproject.aideo.design.R.drawable.ic_settings_outlined,
+                    icon = R.drawable.ic_settings_outlined,
                     onClick = navigateToSetting,
                     backgroundTint = backgroundColor,
                     iconTint = contentColorFor(backgroundColor),
@@ -150,7 +152,7 @@ private fun GalleryScreen(
         when {
             galleryUiState.data.isEmpty() -> {
                 DescriptionLargeText(
-                    text = stringResource(jinproject.aideo.design.R.string.gallery_empty),
+                    text = stringResource(R.string.gallery_empty),
                     modifier = Modifier
                         .fillMaxSize()
                         .wrapContentSize()
@@ -187,8 +189,8 @@ private fun GalleryScreen(
                                                 context.getAiPackManager().fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
                                                 localShowSnackBar.invoke(
                                                     SnackBarMessage(
-                                                        headerMessage = context.getString(jinproject.aideo.design.R.string.download_failed_or_pending),
-                                                        contentMessage = context.getString(jinproject.aideo.design.R.string.download_retry_request)
+                                                        headerMessage = context.getString(R.string.download_failed_or_pending),
+                                                        contentMessage = context.getString(R.string.download_retry_request)
                                                     )
                                                 )
                                             }
@@ -221,7 +223,7 @@ private fun VideoGridItem(
     ) {
         Box(Modifier.weight(1f)) {
             SubcomposeAsyncImageWithPreview(
-                placeHolderPreview = jinproject.aideo.design.R.drawable.test,
+                placeHolderPreview = R.drawable.test,
                 model = videoItem.thumbnailPath,
                 contentDescription = videoItem.title,
                 modifier = Modifier
@@ -230,8 +232,8 @@ private fun VideoGridItem(
                 contentScale = ContentScale.FillHeight,
             )
             Image(
-                imageVector = ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
-                contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_play_video),
+                imageVector = ImageVector.vectorResource(R.drawable.ic_playback_play),
+                contentDescription = stringResource(R.string.content_desc_play_video),
                 modifier = Modifier
                     .shadow(1.dp, RoundedCornerShape(20.dp))
                     .background(Color.White, RoundedCornerShape(20.dp))

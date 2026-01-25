@@ -124,13 +124,14 @@ fun DefaultAppBar(
 @Composable
 fun DefaultRowScopeAppBar(
     modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .shadow(4.dp, RectangleShape, clip = false)
-            .background(MaterialTheme.colorScheme.surface),
+            .background(backgroundColor),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         content()
@@ -140,15 +141,20 @@ fun DefaultRowScopeAppBar(
 @Composable
 fun BackButtonRowScopeAppBar(
     modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
     onBackClick: () -> Unit,
     content: @Composable RowScope.() -> Unit = {},
 ) {
-    DefaultRowScopeAppBar(modifier = modifier) {
+    DefaultRowScopeAppBar(
+        modifier = modifier,
+        backgroundColor = backgroundColor,
+    ) {
         DefaultIconButton(
             modifier = Modifier,
             icon = R.drawable.ic_arrow_left,
             onClick = onBackClick,
-            iconTint = MaterialTheme.colorScheme.onSurface,
+            iconTint = contentColorFor(backgroundColor),
+            backgroundTint = backgroundColor,
             interactionSource = remember { MutableInteractionSource() }
         )
         content()

@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.gallery
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import jinproject.aideo.core.media.VideoItem

@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.setting
 
 import android.content.Context
 import androidx.annotation.StringRes

@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.gallery
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

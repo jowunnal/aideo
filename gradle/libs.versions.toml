@@ -14,6 +14,7 @@ composeBom = "2025.06.00"
 composeFoundation = "1.7.0"
 dagger = "2.53.1"
 datastore = "1.1.0"
+datetime = "0.6.1"
 desugar_jdk_libs = "2.1.5"
 espresso = "3.5.1"
 executorchAndroid = "1.0.1"
@@ -51,6 +52,7 @@ firebaseCrashlyticsPlugin = "2.9.9"
 kotlin = "2.1.20"
 kotlinKsp = "2.1.20-1.0.31"
 protobufPlugin = "0.9.4"
+playPublisher = "3.10.1"
 material = "1.10.0"
 
 [libraries]
@@ -66,6 +68,7 @@ gradle-kotlin-compose = { module = "org.jetbrains.kotlin:compose-compiler-gradle
 gradle-kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 gradle-protobuf = { group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobufPlugin" }
 gradle-room = { module = "androidx.room:room-gradle-plugin", version.ref = "room" }
+gradle-play-publisher = { module = "com.github.triplet.gradle:play-publisher", version.ref = "playPublisher" }
 
 # AndroidTool
 android-tools-desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
@@ -129,6 +132,7 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinx-immutable" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialzation-json" }
+kotlinx-datetime = {module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime"}
 
 # Lifecycle
 lifecycle-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
@@ -213,3 +217,6 @@ mlKit = ["mlKit-language", "mlKit-translate"]
 square = ["square-retrofit2", "square-retrofit2-converter-gson", "square-retrofit2-converter-scalars", "square-okhttp3-intercepter"]
 testing = ["jUnit", "junit-jupiter-api", "io-mockk"]
 playInAppUpdate = ["play-app-update", "play-app-update-ktx"]
+
+[plugins]
+play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }

@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.setting
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 

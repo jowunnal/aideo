@@ -6,13 +6,16 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import jinproject.aideo.core.TopLevelRoute
-import jinproject.aideo.core.utils.parseUri
+import jinproject.aideo.gallery.gallery.GalleryScreen
+import jinproject.aideo.gallery.setting.SettingScreen
+import jinproject.aideo.gallery.submanagement.SubscriptionManagementScreen
+import jinproject.aideo.gallery.subs.SubscriptionScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class GalleryRoute {
     @Serializable
-    data object GalleryGraph: GalleryRoute()
+    data object GalleryGraph : GalleryRoute()
 
     @Serializable
     data object Gallery : GalleryRoute(), TopLevelRoute {
@@ -22,11 +25,19 @@ sealed class GalleryRoute {
 
     @Serializable
     data object Setting : GalleryRoute()
+
+    @Serializable
+    data object Subscription : GalleryRoute()
+
+    @Serializable
+    data object SubscriptionManagement : GalleryRoute()
 }
 
 fun NavGraphBuilder.galleryNavGraph(
     navigateToSetting: () -> Unit,
     navigatePopBackStack: () -> Unit,
+    navigateToSubscription: () -> Unit,
+    navigateToSubscriptionManagement: () -> Unit,
 ) {
     navigation<GalleryRoute.GalleryGraph>(
         startDestination = GalleryRoute.Gallery
@@ -41,6 +52,18 @@ fun NavGraphBuilder.galleryNavGraph(
                 navigatePopBackStack = navigatePopBackStack
             )
         }
+        composable<GalleryRoute.Subscription> {
+            SubscriptionScreen(
+                navigatePopBackStack = navigatePopBackStack,
+                navigateToSubscriptionManagement = navigateToSubscriptionManagement
+            )
+        }
+        composable<GalleryRoute.SubscriptionManagement> {
+            SubscriptionManagementScreen(
+                navigatePopBackStack = navigatePopBackStack,
+                navigateToSubscription = navigateToSubscription,
+            )
+        }
     }
 }
 
@@ -49,3 +72,7 @@ fun NavController.navigateToGalleryGraph(navOptions: NavOptions?) {
 }
 
 fun NavController.navigateToSetting() = navigate(GalleryRoute.Setting)
+
+fun NavController.navigateToSubscription() = navigate(GalleryRoute.Subscription)
+
+fun NavController.navigateToSubscriptionManagement() = navigate(GalleryRoute.SubscriptionManagement)

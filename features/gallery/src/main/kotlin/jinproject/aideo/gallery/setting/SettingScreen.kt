@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery
+package jinproject.aideo.gallery.setting
 
 import android.content.Context
 import android.content.Intent
@@ -32,6 +32,7 @@ import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackStatus
+import jinproject.aideo.design.R
 import jinproject.aideo.design.component.DropDownMenuCustom
 import jinproject.aideo.design.component.TextDialog
 import jinproject.aideo.design.component.VerticalSpacer
@@ -42,7 +43,7 @@ import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoColor
 import jinproject.aideo.design.theme.AideoTheme
-import jinproject.aideo.gallery.component.ModelSetting
+import jinproject.aideo.gallery.setting.component.ModelSetting
 
 @Composable
 fun SettingScreen(
@@ -86,7 +87,7 @@ internal fun SettingScreen(
             .verticalScroll(rememberScrollState())
     ) {
         BackButtonTitleAppBar(
-            title = stringResource(jinproject.aideo.design.R.string.settings_title),
+            title = stringResource(R.string.settings_title),
             onBackClick = navigatePopBackStack,
             backgroundColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -95,8 +96,8 @@ internal fun SettingScreen(
         VerticalSpacer(20.dp)
 
         LanguageSetting(
-            title = stringResource(jinproject.aideo.design.R.string.settings_inference_language),
-            description = stringResource(jinproject.aideo.design.R.string.settings_inference_language_desc),
+            title = stringResource(R.string.settings_inference_language),
+            description = stringResource(R.string.settings_inference_language_desc),
             items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.speechRecognitionSelectedModel)
                 .map { it.name },
             selectedText = settingUiState.inferenceLanguage.name,
@@ -108,8 +109,8 @@ internal fun SettingScreen(
         VerticalSpacer(20.dp)
 
         LanguageSetting(
-            title = stringResource(jinproject.aideo.design.R.string.settings_translation_language),
-            description = stringResource(jinproject.aideo.design.R.string.settings_translation_language_desc),
+            title = stringResource(R.string.settings_translation_language),
+            description = stringResource(R.string.settings_translation_language_desc),
             items = LanguageCode.getLanguageCodesByAvailableModel(settingUiState.speechRecognitionSelectedModel)
                 .map { it.name },
             selectedText = settingUiState.translationLanguage.name,
@@ -121,8 +122,8 @@ internal fun SettingScreen(
         VerticalSpacer(20.dp)
 
         ModelSetting(
-            header = stringResource(jinproject.aideo.design.R.string.settings_inference_model),
-            description = stringResource(jinproject.aideo.design.R.string.settings_inference_model_desc),
+            header = stringResource(R.string.settings_inference_model),
+            description = stringResource(R.string.settings_inference_model_desc),
             currentClickedModel = settingUiState.speechRecognitionSelectedModel.name,
             models = settingUiState.speechRecognitionSettings,
             onClickModel = { item ->
@@ -138,10 +139,10 @@ internal fun SettingScreen(
                             when (task.getPackStatus(AiModelConfig.SPEECH_WHISPER_PACK)) {
                                 AiPackStatus.NOT_INSTALLED, AiPackStatus.FAILED, AiPackStatus.CANCELED, AiPackStatus.PENDING -> {
                                     dialogState = dialogState.copy(
-                                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
+                                        header = context.getString(R.string.dialog_download_required_header),
                                         content = "다운로드를 위해 추가 저장 공간(약 300MB)이 필요해요.",
-                                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
-                                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
+                                        positiveMessage = context.getString(R.string.dialog_download_positive),
+                                        negativeMessage = context.getString(R.string.dialog_download_negative),
                                     ).getShownDialogState(
                                         onPositiveCallback = {
                                             context.getAiPackManager()
@@ -175,8 +176,8 @@ internal fun SettingScreen(
         VerticalSpacer(20.dp)
 
         ModelSetting(
-            header = stringResource(jinproject.aideo.design.R.string.settings_translation_model),
-            description = stringResource(jinproject.aideo.design.R.string.settings_translation_model_desc),
+            header = stringResource(R.string.settings_translation_model),
+            description = stringResource(R.string.settings_translation_model_desc),
             currentClickedModel = settingUiState.translationSelectedModel.name,
             models = settingUiState.translationSettings,
             onClickModel = { item ->
@@ -191,10 +192,10 @@ internal fun SettingScreen(
                             when (task.getPackStatus(AiModelConfig.TRANSLATION_BASE_PACK)) {
                                 AiPackStatus.NOT_INSTALLED, AiPackStatus.FAILED, AiPackStatus.CANCELED, AiPackStatus.PENDING -> {
                                     dialogState = dialogState.copy(
-                                        header = context.getString(jinproject.aideo.design.R.string.dialog_download_required_header),
-                                        content = context.getString(jinproject.aideo.design.R.string.dialog_download_required_content),
-                                        positiveMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_positive),
-                                        negativeMessage = context.getString(jinproject.aideo.design.R.string.dialog_download_negative),
+                                        header = context.getString(R.string.dialog_download_required_header),
+                                        content = context.getString(R.string.dialog_download_required_content),
+                                        positiveMessage = context.getString(R.string.dialog_download_positive),
+                                        negativeMessage = context.getString(R.string.dialog_download_negative),
                                     ).getShownDialogState(
                                         onPositiveCallback = {
                                             context.getAiPackManager()
@@ -254,7 +255,7 @@ private fun LanguageSetting(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AideoColor.grey_300.color.copy(0.3f)),
-            iconTail = jinproject.aideo.design.R.drawable.ic_arrow_down_outlined,
+            iconTail = R.drawable.ic_arrow_down_outlined,
         )
         VerticalSpacer(8.dp)
         DescriptionSmallText(

@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 value class AideoColor private constructor(val color: Color) {
     companion object {
 
-        private val primary = AideoColor(Color(0xFF7FD182))
+        val primary = AideoColor(Color(0xFF7FD182))
         val deep_primary = AideoColor(Color(0xFF315532))
         val lightBlack = AideoColor(Color(0xFF1F1F1F))
         val mediumBlack = AideoColor(Color(0xFF1A1A1A))
@@ -30,6 +30,7 @@ value class AideoColor private constructor(val color: Color) {
 
         val light_primary = primary
         val light_onPrimary = white
+        val light_inversePrimary = deep_primary
         val light_secondary = AideoColor(Color(0xFF91E4E1))
         val light_onSecondary = grey_600
         val light_error = red
@@ -47,6 +48,7 @@ value class AideoColor private constructor(val color: Color) {
 
         val dark_primary = deep_primary
         val dark_onPrimary = grey_300
+        val dark_inversePrimary = primary
         val dark_secondary = AideoColor(Color(0xFFD599E3))
         val dark_onSecondary = grey_300
         val dark_error = AideoColor(Color(0xFFFFB4A9))
@@ -63,9 +65,9 @@ value class AideoColor private constructor(val color: Color) {
         val dark_outlineVariant = grey_400
 
         val amber = AideoColor(Color(0xFFB45309))
+        val amber_300 = AideoColor(Color(0xFFF5B042))
         val indigo = AideoColor(Color(0xFF4338CA))
         val emerald = AideoColor(Color(0xFF047857))
-
 
 
     }

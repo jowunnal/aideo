@@ -87,4 +87,43 @@
     <string name="billing_error_unavailable">유효하지 않은 상품이에요.</string>
     <string name="billing_error_already_owned">이미 보유하고 있는 상품이에요.</string>
     <string name="billing_error_network">네트워크 오류가 발생했어요.</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">구독 관리</string>
+    <string name="subscription_management_google_play">Google Play 에서 관리</string>
+    <string name="subscription_management_help_title">도움이 필요하신가요?</string>
+    <string name="subscription_management_help_desc">구독 관련 문의는 Google Play 고객센터를 통해 해결하실 수 있습니다.</string>
+    <string name="subscription_management_no_subscription">활성 구독이 없습니다</string>
+    <string name="subscription_management_no_subscription_desc">프리미엄 구독으로 광고 없는 경험을 누리세요</string>
+    <string name="subscription_management_view_plans">구독 플랜 보기</string>
+    <string name="subscription_management_premium_member">프리미엄 회원</string>
+    <string name="subscription_management_active_status">활성 상태</string>
+    <string name="subscription_management_next_billing">다음 결제일</string>
+    <string name="subscription_management_info_title">구독 정보</string>
+    <string name="subscription_management_start_date">구독 시작일</string>
+    <string name="subscription_management_payment_method">결제 수단</string>
+    <string name="subscription_management_google_play_payment">Google Play 결제</string>
+    <string name="subscription_management_auto_renewal">자동 갱신</string>
+    <string name="subscription_management_auto_renewal_desc">매달 자동으로 갱신됩니다.</string>
+    <string name="subscription_management_one_time_payment">일회성 결제</string>
+    <string name="subscription_management_one_time_payment_desc">다음 달에 자동으로 갱신되지 않습니다.</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">프리미엄 구독</string>
+    <string name="subscription_header_title">광고 없이 즐기세요</string>
+    <string name="subscription_header_desc">프리미엄으로 업그레이드하고 광고 없는 경험을 누리세요</string>
+    <string name="subscription_benefits_title">프리미엄 혜택</string>
+    <string name="subscription_benefit_ad_removal">광고 제거</string>
+    <string name="subscription_benefit_ad_removal_desc">모든 광고가 제거되어 끊김 없는 사용 가능</string>
+    <string name="subscription_monthly_plan">월간 구독</string>
+    <string name="subscription_monthly_plan_desc">매달 자동 갱신</string>
+    <string name="subscription_price_unit">/ 월</string>
+    <string name="subscription_price_unavailable">가격 확인 불가</string>
+    <string name="subscription_auto_renewal_notice">자동 갱신: 구독은 매달 자동으로 갱신되며, 언제든지 취소할 수 있습니다.</string>
+    <string name="subscription_subscribe_now">지금 구독하기</string>
+    <string name="subscription_already_purchased_header">이미 구매하신 상품이에요.</string>
+    <string name="subscription_already_purchased_content">중복 구매 하실 수 없어요.</string>
+    <string name="subscription_footer_managed_by">• 구독은 Google Play를 통해 관리됩니다.</string>
+    <string name="subscription_footer_auto_renewal">• 구독 기간이 끝나기 최소 24시간 전에 취소하지 않으면 자동으로 갱신됩니다.</string>
+    <string name="subscription_footer_refund_policy">• 환불 정책은 Google Play 정책을 따릅니다.</string>
 </resources>

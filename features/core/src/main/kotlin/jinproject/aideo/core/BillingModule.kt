@@ -191,6 +191,42 @@ class BillingModule(
         }
     }
 
+    suspend fun queryProductDetails(
+        product: Product,
+    ): ProductDetails? {
+        val product = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(product.id)
+            .setProductType(product.type)
+            .build()
+
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(listOf(product))
+            .build()
+
+        val productDetailsResult = withContext(Dispatchers.IO) {
+            billingClient.queryProductDetails(params)
+        }
+
+        if (productDetailsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            return productDetailsResult.productDetailsList?.find { productDetails ->
+                if (productDetails.productType == BillingClient.ProductType.SUBS) {
+                    val isSupportSub =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS).responseCode == BillingClient.BillingResponseCode.OK
+                    val isSupportSubUpdate =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE).responseCode == BillingClient.BillingResponseCode.OK
+
+                    if (!isSupportSub || !isSupportSubUpdate)
+                        return null // Device's play-service 가 SUBS 를 지원하지 않음
+                }
+
+                return productDetails
+            }
+        } else {
+            failListener.call(productDetailsResult.billingResult.responseCode)
+            return null
+        }
+    }
+
     /**
      * 결제 플로우 실행
      *
@@ -278,7 +314,7 @@ class BillingModule(
 
     /**
      * 구매 목록 가져오기
-     *
+     * @param type : 상품 타입(InApp, Sub)
      * @return 구매 목록 반환
      */
     suspend fun queryPurchaseAsync(type: String): List<Purchase> {

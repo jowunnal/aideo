@@ -87,4 +87,43 @@
     <string name="billing_error_unavailable">商品が利用できません。</string>
     <string name="billing_error_already_owned">すでに所有している商品です。</string>
     <string name="billing_error_network">ネットワークエラーが発生しました。</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">サブスクリプション管理</string>
+    <string name="subscription_management_google_play">Google Playで管理</string>
+    <string name="subscription_management_help_title">お困りですか？</string>
+    <string name="subscription_management_help_desc">サブスクリプションに関するお問い合わせは、Google Playカスタマーサポートまでご連絡ください。</string>
+    <string name="subscription_management_no_subscription">有効なサブスクリプションがありません</string>
+    <string name="subscription_management_no_subscription_desc">プレミアムサブスクリプションで広告なしの体験をお楽しみください</string>
+    <string name="subscription_management_view_plans">サブスクリプションプランを見る</string>
+    <string name="subscription_management_premium_member">プレミアム会員</string>
+    <string name="subscription_management_active_status">有効</string>
+    <string name="subscription_management_next_billing">次回請求日</string>
+    <string name="subscription_management_info_title">サブスクリプション情報</string>
+    <string name="subscription_management_start_date">サブスクリプション開始日</string>
+    <string name="subscription_management_payment_method">支払い方法</string>
+    <string name="subscription_management_google_play_payment">Google Play決済</string>
+    <string name="subscription_management_auto_renewal">自動更新</string>
+    <string name="subscription_management_auto_renewal_desc">毎月自動的に更新されます。</string>
+    <string name="subscription_management_one_time_payment">一回限りの支払い</string>
+    <string name="subscription_management_one_time_payment_desc">翌月に自動更新されません。</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">プレミアムサブスクリプション</string>
+    <string name="subscription_header_title">広告なしでお楽しみください</string>
+    <string name="subscription_header_desc">プレミアムにアップグレードして、広告なしの体験をお楽しみください</string>
+    <string name="subscription_benefits_title">プレミアム特典</string>
+    <string name="subscription_benefit_ad_removal">広告削除</string>
+    <string name="subscription_benefit_ad_removal_desc">すべての広告が削除され、中断なしでご利用いただけます</string>
+    <string name="subscription_monthly_plan">月額サブスクリプション</string>
+    <string name="subscription_monthly_plan_desc">毎月自動更新</string>
+    <string name="subscription_price_unit">/ 月</string>
+    <string name="subscription_price_unavailable">価格を確認できません</string>
+    <string name="subscription_auto_renewal_notice">自動更新：サブスクリプションは毎月自動的に更新され、いつでもキャンセルできます。</string>
+    <string name="subscription_subscribe_now">今すぐ登録</string>
+    <string name="subscription_already_purchased_header">すでに購入済みの商品です。</string>
+    <string name="subscription_already_purchased_content">重複購入はできません。</string>
+    <string name="subscription_footer_managed_by">• サブスクリプションはGoogle Playを通じて管理されます。</string>
+    <string name="subscription_footer_auto_renewal">• サブスクリプション期間終了の24時間前までにキャンセルしないと、自動的に更新されます。</string>
+    <string name="subscription_footer_refund_policy">• 返金ポリシーはGoogle Playポリシーに従います。</string>
 </resources>

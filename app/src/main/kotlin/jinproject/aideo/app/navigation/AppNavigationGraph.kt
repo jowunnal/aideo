@@ -1,10 +1,6 @@
 package jinproject.aideo.app.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors
@@ -16,12 +12,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
-import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.galleryNavGraph
 import jinproject.aideo.gallery.navigateToSetting
-import jinproject.aideo.player.navigateToPlayerGraph
+import jinproject.aideo.gallery.navigateToSubscription
+import jinproject.aideo.gallery.navigateToSubscriptionManagement
 import jinproject.aideo.player.playerNavGraph
 
 @Composable
@@ -45,6 +41,8 @@ internal fun NavigationGraph(
         galleryNavGraph(
             navigateToSetting = navController::navigateToSetting,
             navigatePopBackStack = navController::popBackStackIfCan,
+            navigateToSubscription = navController::navigateToSubscription,
+            navigateToSubscriptionManagement = navController::navigateToSubscriptionManagement,
         )
 
         playerNavGraph(
