@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
@@ -36,7 +37,7 @@ fun DefaultIconButton(
     @DrawableRes icon: Int,
     onClick: () -> Unit,
     enabled: Boolean = true,
-    iconTint: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = contentColorFor(MaterialTheme.colorScheme.surface),
     iconSize: Dp = 48.dp,
     backgroundTint: Color = MaterialTheme.colorScheme.surface,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },

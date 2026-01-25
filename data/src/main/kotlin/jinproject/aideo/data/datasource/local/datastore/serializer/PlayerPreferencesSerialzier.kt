@@ -10,8 +10,11 @@ import java.util.Locale
 
 internal object PlayerPreferencesSerializer : Serializer<PlayerPreferences> {
     override val defaultValue: PlayerPreferences =
-        PlayerPreferences.getDefaultInstance().toBuilder()
-            .setLanguage(Locale.getDefault().language)
+        PlayerPreferences.newBuilder()
+            .setInferenceLanguage("auto")
+            .setSubtitleLanguage(Locale.getDefault().language)
+            .setSelectedSpeechRecognitionModel("SenseVoice")
+            .setSelectedTranslationModel("MlKit")
             .build()
 
     override suspend fun readFrom(input: InputStream): PlayerPreferences {

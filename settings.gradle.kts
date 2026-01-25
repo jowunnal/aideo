@@ -1,5 +1,4 @@
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -10,7 +9,9 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven { url = uri("https://plugins.gradle.org/m2/") }
     }
+    includeBuild("build-logic")
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -28,4 +29,6 @@ include(":data")
 include(":features:gallery")
 include(":features:core")
 include(":features:player")
-include(":whisper_lib")
+include(":ai_speech_base")
+include(":ai_speech_whisper")
+include(":ai_translation")

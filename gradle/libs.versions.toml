@@ -1,9 +1,10 @@
 [versions]
 
 activity = "1.8.2"
+ads-interactive-media = "3.38.0"
 android-test-ext = "1.1.5"
 appCompat = "1.6.1"
-billing = "7.1.1"
+billing = "8.3.0"
 coreKtx = "1.12.0"
 coil = "2.5.0"
 composeAdaptive = "1.0.0"
@@ -13,11 +14,15 @@ composeBom = "2025.06.00"
 composeFoundation = "1.7.0"
 dagger = "2.53.1"
 datastore = "1.1.0"
+datetime = "0.6.1"
+desugar_jdk_libs = "2.1.5"
 espresso = "3.5.1"
-media3 = "1.8.0"
+executorchAndroid = "1.0.1"
+media3 = "1.9.0"
 firebaseBom = "33.8.0"
-gms-service-ads = "23.2.0"
+gms-service-ads = "24.9.0"
 hilt = "1.2.0"
+javapoet = "1.13.0"
 junit = "4.13.2"
 junit-jupiter = "5.9.3"
 kotest = "5.6.0"
@@ -26,26 +31,29 @@ kotlinx-immutable = "0.3.6"
 kotlinx-serialzation-json = "1.7.2"
 lifecycle = "2.6.1"
 lifecycle-common = "2.6.1"
-liteRT = "1.1.1"
 lottie = "6.3.0"
 mockk = "1.13.5"
-mlKit = "17.0.3"
+mlKit-translate = "17.0.3"
+mlKit-languageId = "17.0.6"
 navigation = "2.8.7"
 oboe = "1.9.3"
 okhttp = "4.12.0"
+playAiDelivery = "0.1.1-alpha01"
 playInApp = "2.1.0"
-play-service-tflite = "16.4.0"
 protobuf = "3.25.0"
 retrofit = "3.0.0"
 room = "2.7.1"
+timber = "5.0.1"
 
 # plugin
-agp = "8.6.0"
+agp = "8.10.0"
 gmsGoogleServicePlugin = "4.4.2"
 firebaseCrashlyticsPlugin = "2.9.9"
 kotlin = "2.1.20"
 kotlinKsp = "2.1.20-1.0.31"
 protobufPlugin = "0.9.4"
+playPublisher = "3.10.1"
+material = "1.10.0"
 
 [libraries]
 
@@ -60,6 +68,10 @@ gradle-kotlin-compose = { module = "org.jetbrains.kotlin:compose-compiler-gradle
 gradle-kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 gradle-protobuf = { group = "com.google.protobuf", name = "protobuf-gradle-plugin", version.ref = "protobufPlugin" }
 gradle-room = { module = "androidx.room:room-gradle-plugin", version.ref = "room" }
+gradle-play-publisher = { module = "com.github.triplet.gradle:play-publisher", version.ref = "playPublisher" }
+
+# AndroidTool
+android-tools-desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
 # Androidx
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
@@ -89,15 +101,20 @@ coil = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 # Coroutine
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutine" }
+coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlin-coroutine" }
 
 # Dagger
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
 dagger-hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger" }
 dagger-hilt-android-test = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "dagger" }
+javapoet = { module = "com.squareup:javapoet", version.ref = "javapoet" }
 
 # Datastore
 datastore = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
+
+# Executorch
+executorch-android = { module = "org.pytorch:executorch-android", version.ref = "executorchAndroid" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
@@ -106,6 +123,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 
 # Gms
 google-gms-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "gms-service-ads" }
+google-ads-interactive-media = {module = "com.google.ads.interactivemedia.v3:interactivemedia", version.ref = "ads-interactive-media"}
 
 # Hilt
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt" }
@@ -114,37 +132,34 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinx-immutable" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialzation-json" }
+kotlinx-datetime = {module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime"}
 
 # Lifecycle
 lifecycle-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycle-common" }
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
-
-# LiteRT
-ai-edge-litert = { module = "com.google.ai.edge.litert:litert", version.ref = "liteRT" }
-ai-edge-litert-support = { module = "com.google.ai.edge.litert:litert-support", version.ref = "liteRT" }
-ai-edge-litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "liteRT" }
-play-services-tflite-gpu = { module = "com.google.android.gms:play-services-tflite-gpu", version.ref = "play-service-tflite" }
-play-services-tflite-java = { module = "com.google.android.gms:play-services-tflite-java", version.ref = "play-service-tflite" }
-play-services-tflite-support = { module = "com.google.android.gms:play-services-tflite-support", version.ref = "play-service-tflite" }
 
 # Lottie
 airbnb-android-lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 
 # Media3
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-exoplayer-ima = { module = "androidx.media3:media3-exoplayer-ima", version.ref = "media3" }
 media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
 media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3" }
 media3-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "media3" }
 media3-extractor = { module = "androidx.media3:media3-extractor", version.ref = "media3" }
+media3-inspector = { module = "androidx.media3:media3-inspector", version.ref = "media3" }
 media3-transformer = { group = "androidx.media3", name = "media3-transformer", version.ref = "media3" }
+media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
 
 # MLKit
-mlKit-translate = { module = "com.google.mlkit:translate", version.ref = "mlKit" }
-mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit" }
+mlKit-translate = { module = "com.google.mlkit:translate", version.ref = "mlKit-translate" }
+mlKit-language = { module = "com.google.mlkit:language-id", version.ref = "mlKit-languageId" }
 
 # Navigation
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
@@ -155,6 +170,7 @@ google-oboe = { module = "com.google.oboe:oboe", version.ref = "oboe" }
 # Play In App
 play-app-update = { module = "com.google.android.play:app-update", version.ref = "playInApp" }
 play-app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "playInApp" }
+play-ai-delivery = {module = "com.google.android.play:ai-delivery", version.ref = "playAiDelivery"}
 
 # Protobuf
 protobuf = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf" }
@@ -182,6 +198,10 @@ junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", v
 junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "junit-jupiter" }
 test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "android-test-ext" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+
+# Timber
+timber = {module = "com.jakewharton.timber:timber", version.ref = "timber"}
 
 [bundles]
 
@@ -189,12 +209,14 @@ billing = ["billing-client", "billing-ktx"]
 compose = ["compose-material3", "compose-foundation", "compose-ui", "compose-ui-preview", "compose-animation"]
 composeAdaptive = ["compose-material3-adaptive", "compose-material3-adaptive-layout", "compose-material3-adaptive-navigation", "compose-material3-adaptive-navigation-suite"]
 coroutines = ["coroutines-core"]
-media3 = ["media3-exoplayer", "media3-common", "media3-common-ktx", "media3-effect", "media3-transformer", "media3-ui-compose", "media3-extractor"]
+media3 = ["media3-exoplayer", "media3-exoplayer-ima", "media3-common", "media3-common-ktx", "media3-effect", "media3-transformer", "media3-ui", "media3-ui-compose", "media3-extractor", "media3-inspector"]
 firebase = ["firebase-analytics", "firebase-crashlytics"]
 kotest = ["io-kotest-junit", "io-kotest-assertions"]
 lifecycle = ["lifecycle-compose", "lifecycle-viewmodel-ktx", "lifecycle-runtime-ktx", "lifecycle-runtime-compose", "lifecycle-service"]
 mlKit = ["mlKit-language", "mlKit-translate"]
 square = ["square-retrofit2", "square-retrofit2-converter-gson", "square-retrofit2-converter-scalars", "square-okhttp3-intercepter"]
 testing = ["jUnit", "junit-jupiter-api", "io-mockk"]
-liteRT = ["ai-edge-litert", "ai-edge-litert-support", "ai-edge-litert-gpu"]
 playInAppUpdate = ["play-app-update", "play-app-update-ktx"]
+
+[plugins]
+play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }

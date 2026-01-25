@@ -4,7 +4,9 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.graphics.Color
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
+import jinproject.aideo.design.R
 import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
 
@@ -17,16 +19,25 @@ class AideoApplication : Application(), ForegroundObserver {
 
         createNotificationChannel(
             channelId = "Aideo Channel",
-            channelName = "Aideo 알림 채널",
-            descriptionText = "Aideo 알림 채널 입니다."
+            channelName = getString(R.string.notification_channel_aideo_name),
+            descriptionText = getString(R.string.notification_channel_aideo_desc)
         )
 
         createNotificationChannel(
             channelId = TranscribeService.NOTIFICATION_CHANNEL_ID,
-            channelName = "자막 생성 알림 채널",
-            descriptionText = "Aideo 앱의 자막 생성을 위한 채널 입니다.",
+            channelName = getString(R.string.notification_channel_transcribe_name),
+            descriptionText = getString(R.string.notification_channel_transcribe_desc),
             importance = NotificationManager.IMPORTANCE_HIGH,
         )
+
+        createNotificationChannel(
+            channelId = PlayAIService.NOTIFICATION_CHANNEL_ID,
+            channelName = getString(R.string.notification_channel_ai_model_name),
+            descriptionText = getString(R.string.notification_channel_ai_model_desc),
+            importance = NotificationManager.IMPORTANCE_HIGH,
+        )
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
     private fun createNotificationChannel(

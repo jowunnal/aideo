@@ -1,0 +1,129 @@
+<resources>
+    <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">ギャラリー</string>
+    <string name="gallery_empty">空です</string>
+    <string name="content_desc_play_video">動画を再生</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">設定</string>
+    <string name="settings_inference_language">推論言語</string>
+    <string name="settings_inference_language_desc">音声認識に使用する言語を選択してください。</string>
+    <string name="settings_translation_language">翻訳言語</string>
+    <string name="settings_translation_language_desc">字幕に翻訳する言語を選択してください。</string>
+    <string name="settings_inference_model">推論モデル</string>
+    <string name="settings_inference_model_desc">推論に使用するモデルを選択してください。</string>
+    <string name="settings_translation_model">翻訳モデル</string>
+    <string name="settings_translation_model_desc">翻訳に使用するモデルを選択してください。</string>
+    <string name="settings_current_settings">現在の設定:</string>
+    <string name="settings_current_inference_language">- 推論言語: %s</string>
+    <string name="settings_current_translation_language">- 翻訳言語: %s</string>
+    <string name="settings_current_inference_model">- 推論モデル: %s</string>
+    <string name="settings_current_translation_model">- 翻訳モデル: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">比較的高速な変換が可能ですが、精度が低くなる場合があります。</string>
+    <string name="model_sensevoice_tag">高速</string>
+    <string name="model_whisper_desc">比較的変換に時間がかかりますが、精度が高くなる場合があります。</string>
+    <string name="model_whisper_tag">低速</string>
+    <string name="model_mlkit_desc">モデルサイズが小さく高速な翻訳が可能ですが、比較的精度が低くなる場合があります。</string>
+    <string name="model_mlkit_tag">軽量</string>
+    <string name="model_m2m100_desc">比較的正確な翻訳を提供しますが、モデルサイズが大きく時間がかかる場合があります。</string>
+    <string name="model_m2m100_tag">高品質</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">一時停止</string>
+    <string name="content_desc_play">再生</string>
+    <string name="content_desc_seek_back">%d秒戻る</string>
+    <string name="content_desc_seek_forward">%d秒進む</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">字幕を作成中</string>
+    <string name="notification_starting_subtitle_creation">字幕作成を開始</string>
+    <string name="notification_starting_subtitle_translation">字幕翻訳を開始</string>
+    <string name="notification_subtitle_translation_completed">字幕翻訳が完了</string>
+    <string name="notification_subtitle_translation_completed_desc">設定した言語への字幕翻訳が完了しました。</string>
+    <string name="notification_subtitle_creation_completed">字幕作成が完了</string>
+    <string name="notification_subtitle_creation_completed_desc">字幕の作成が正常に完了しました。</string>
+    <string name="notification_subtitle_creation_failed">字幕作成に失敗</string>
+    <string name="notification_subtitle_creation_failed_desc">字幕の作成に失敗しました。(%s)</string>
+    <string name="notification_action_stop">停止</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">追加ダウンロードが必要です。</string>
+    <string name="dialog_download_required_content">ダウンロードには追加のストレージ容量（約1.2GB）が必要です。</string>
+    <string name="dialog_download_positive">はい、ダウンロードします。</string>
+    <string name="dialog_download_negative">いいえ、しません。</string>
+
+    <!-- Permission -->
+    <string name="permission_required">権限が必要です。</string>
+
+    <!-- Download -->
+    <string name="download_started">ダウンロードを開始します。</string>
+    <string name="download_please_wait">少々お待ちください。</string>
+    <string name="download_cancelled">ダウンロードがキャンセルされました。</string>
+    <string name="download_cancelled_desc">ダウンロードしないと、機能を正常にご利用いただけません。</string>
+    <string name="download_ai_model_in_progress">AIモデルをダウンロード中です。</string>
+    <string name="download_ai_model_please_wait">しばらくしてから再度お試しください。</string>
+    <string name="download_ai_pack_in_progress">[%s]関連のAIモデルをダウンロード中です。</string>
+    <string name="download_failed_or_pending">ダウンロードに失敗したか、保留中です。</string>
+    <string name="download_retry_request">ダウンロードを再リクエストします。</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo通知チャンネル</string>
+    <string name="notification_channel_aideo_desc">Aideoの通知チャンネルです。</string>
+    <string name="notification_channel_transcribe_name">字幕作成通知チャンネル</string>
+    <string name="notification_channel_transcribe_desc">Aideoアプリの字幕作成のためのチャンネルです。</string>
+    <string name="notification_channel_ai_model_name">AIモデル管理通知チャンネル</string>
+    <string name="notification_channel_ai_model_desc">AideoアプリのAIモデル読み込みのためのチャンネルです。</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">[%s]の購入が完了しました。</string>
+    <string name="billing_purchase_failed">購入に失敗しました。</string>
+    <string name="billing_error_invalid_product">無効な商品です。</string>
+    <string name="billing_error_incorrect_product">正しくない商品です。</string>
+    <string name="billing_error_cancelled">購入がキャンセルされました。</string>
+    <string name="billing_error_unavailable">商品が利用できません。</string>
+    <string name="billing_error_already_owned">すでに所有している商品です。</string>
+    <string name="billing_error_network">ネットワークエラーが発生しました。</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">サブスクリプション管理</string>
+    <string name="subscription_management_google_play">Google Playで管理</string>
+    <string name="subscription_management_help_title">お困りですか？</string>
+    <string name="subscription_management_help_desc">サブスクリプションに関するお問い合わせは、Google Playカスタマーサポートまでご連絡ください。</string>
+    <string name="subscription_management_no_subscription">有効なサブスクリプションがありません</string>
+    <string name="subscription_management_no_subscription_desc">プレミアムサブスクリプションで広告なしの体験をお楽しみください</string>
+    <string name="subscription_management_view_plans">サブスクリプションプランを見る</string>
+    <string name="subscription_management_premium_member">プレミアム会員</string>
+    <string name="subscription_management_active_status">有効</string>
+    <string name="subscription_management_next_billing">次回請求日</string>
+    <string name="subscription_management_info_title">サブスクリプション情報</string>
+    <string name="subscription_management_start_date">サブスクリプション開始日</string>
+    <string name="subscription_management_payment_method">支払い方法</string>
+    <string name="subscription_management_google_play_payment">Google Play決済</string>
+    <string name="subscription_management_auto_renewal">自動更新</string>
+    <string name="subscription_management_auto_renewal_desc">毎月自動的に更新されます。</string>
+    <string name="subscription_management_one_time_payment">一回限りの支払い</string>
+    <string name="subscription_management_one_time_payment_desc">翌月に自動更新されません。</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">プレミアムサブスクリプション</string>
+    <string name="subscription_header_title">広告なしでお楽しみください</string>
+    <string name="subscription_header_desc">プレミアムにアップグレードして、広告なしの体験をお楽しみください</string>
+    <string name="subscription_benefits_title">プレミアム特典</string>
+    <string name="subscription_benefit_ad_removal">広告削除</string>
+    <string name="subscription_benefit_ad_removal_desc">すべての広告が削除され、中断なしでご利用いただけます</string>
+    <string name="subscription_monthly_plan">月額サブスクリプション</string>
+    <string name="subscription_monthly_plan_desc">毎月自動更新</string>
+    <string name="subscription_price_unit">/ 月</string>
+    <string name="subscription_price_unavailable">価格を確認できません</string>
+    <string name="subscription_auto_renewal_notice">自動更新：サブスクリプションは毎月自動的に更新され、いつでもキャンセルできます。</string>
+    <string name="subscription_subscribe_now">今すぐ登録</string>
+    <string name="subscription_already_purchased_header">すでに購入済みの商品です。</string>
+    <string name="subscription_already_purchased_content">重複購入はできません。</string>
+    <string name="subscription_footer_managed_by">• サブスクリプションはGoogle Playを通じて管理されます。</string>
+    <string name="subscription_footer_auto_renewal">• サブスクリプション期間終了の24時間前までにキャンセルしないと、自動的に更新されます。</string>
+    <string name="subscription_footer_refund_policy">• 返金ポリシーはGoogle Playポリシーに従います。</string>
+</resources>

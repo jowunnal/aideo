@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,8 +36,9 @@ import androidx.media3.ui.compose.state.PlayPauseButtonState
 import androidx.media3.ui.compose.state.SeekBackButtonState
 import androidx.media3.ui.compose.state.SeekForwardButtonState
 import jinproject.aideo.design.utils.PreviewAideoTheme
+import jinproject.aideo.player.PlayerState
 import jinproject.aideo.player.PlayerUiStatePreviewParameter.Companion.getPreviewPlayerControllerState
-import jinproject.aideo.player.PlayingState
+import kotlinx.coroutines.launch
 
 internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor(
     val playPauseButtonState: PlayPauseButtonState,
@@ -45,20 +48,28 @@ internal data class PlayerControllerState @OptIn(UnstableApi::class) constructor
 
 @OptIn(UnstableApi::class)
 @Composable
-internal fun rememberPlayerControllerState(player: Player): PlayerControllerState {
-    val playerControllerState = remember(player) {
-        PlayerControllerState(
-            playPauseButtonState = PlayPauseButtonState(player),
-            seekBackButtonState = SeekBackButtonState(player),
-            seekForwardButtonState = SeekForwardButtonState(player),
-        )
+internal fun rememberPlayerControllerState(player: Player?): PlayerControllerState? {
+    val playerControllerState: PlayerControllerState? = remember(player) {
+        player?.let {
+            PlayerControllerState(
+                playPauseButtonState = PlayPauseButtonState(player),
+                seekBackButtonState = SeekBackButtonState(player),
+                seekForwardButtonState = SeekForwardButtonState(player),
+            )
+        }
     }
 
     LaunchedEffect(player) {
-        with(playerControllerState) {
-            playPauseButtonState.observe()
-            seekBackButtonState.observe()
-            seekForwardButtonState.observe()
+        playerControllerState?.let { state ->
+            launch {
+                state.playPauseButtonState.observe()
+            }
+            launch {
+                state.seekBackButtonState.observe()
+            }
+            launch {
+                state.seekForwardButtonState.observe()
+            }
         }
     }
 
@@ -70,31 +81,33 @@ internal fun rememberPlayerControllerState(player: Player): PlayerControllerStat
 @Composable
 internal fun PlayerController(
     modifier: Modifier = Modifier,
-    playerControllerState: PlayerControllerState,
+    playerControllerState: PlayerControllerState?,
     transitionState: Transition<Boolean>,
 ) {
     transitionState.AnimatedVisibility(
-        visible = { it },
+        visible = { it && playerControllerState != null },
         modifier = modifier,
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                SeekBackButton(
-                    state = playerControllerState.seekBackButtonState,
-                    modifier = Modifier.weight(1f)
-                )
-                PlayPauseButton(
-                    state = playerControllerState.playPauseButtonState,
-                    modifier = Modifier.weight(1f)
-                )
-                SeekForwardButton(
-                    state = playerControllerState.seekForwardButtonState,
-                    modifier = Modifier.weight(1f)
-                )
+        playerControllerState?.let { state ->
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SeekBackButton(
+                        state = state.seekBackButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PlayPauseButton(
+                        state = state.playPauseButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SeekForwardButton(
+                        state = state.seekForwardButtonState,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -116,7 +129,7 @@ internal fun PlayPauseButton(
                 jinproject.aideo.design.R.drawable.ic_playback_pause
             )
             else ImageVector.vectorResource(jinproject.aideo.design.R.drawable.ic_playback_play),
-            contentDescription = if (!state.showPlay) "일시정지" else "재생",
+            contentDescription = if (!state.showPlay) stringResource(jinproject.aideo.design.R.string.content_desc_pause) else stringResource(jinproject.aideo.design.R.string.content_desc_play),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )
@@ -138,7 +151,7 @@ internal fun SeekBackButton(
             imageVector = ImageVector.vectorResource(
                 jinproject.aideo.design.R.drawable.ic_playback_back
             ),
-            contentDescription = "뒤로 ${state.seekBackAmountMs / 1000}초 이동",
+            contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_seek_back, (state.seekBackAmountMs / 1000).toInt()),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )
@@ -160,25 +173,27 @@ internal fun SeekForwardButton(
             imageVector = ImageVector.vectorResource(
                 jinproject.aideo.design.R.drawable.ic_playback_next
             ),
-            contentDescription = "앞으로 ${state.seekForwardAmountMs / 1000}초 이동",
+            contentDescription = stringResource(jinproject.aideo.design.R.string.content_desc_seek_forward, (state.seekForwardAmountMs / 1000).toInt()),
             modifier = Modifier.size(32.dp),
             tint = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
 
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayProgressBar(
     modifier: Modifier = Modifier,
-    playingState: PlayingState,
+    playerState: PlayerState.Ready,
     seekTo: (Long) -> Unit,
 ) {
     Slider(
-        value = playingState.currentPosition.toFloat(),
+        value = (playerState.currentPosition).toFloat(),
         onValueChange = { position ->
+            playerState.updateCurrentPos(position.toLong())
             seekTo(position.toLong())
         },
-        valueRange = 0f..playingState.duration.toFloat(),
+        valueRange = 0f..(playerState.duration).toFloat(),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),

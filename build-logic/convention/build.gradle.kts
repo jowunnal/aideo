@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.gradle.protobuf)
     implementation(libs.gradle.kotlin.serialization)
     implementation(libs.gradle.room)
+    implementation(libs.gradle.play.publisher)
 }
 
 gradlePlugin {
@@ -49,6 +50,10 @@ gradlePlugin {
         register("kotlinLibrary") {
             id = "jinProject.kotlin.library"
             implementationClass = "jinproject.aideo.convention.kotlin.KotlinLibraryPlugin"
+        }
+        register("AiPack") {
+            id = "jinProject.android.aipack"
+            implementationClass = "jinproject.aideo.convention.android.AndroidAiPackPlugin"
         }
     }
 }

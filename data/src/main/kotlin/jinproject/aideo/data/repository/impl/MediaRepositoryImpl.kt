@@ -1,103 +1,50 @@
 package jinproject.aideo.data.repository.impl
 
-import com.google.mlkit.common.model.DownloadConditions
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.TranslatorOptions
-import jinproject.aideo.data.TranslationManager.extractSubtitleContent
-import jinproject.aideo.data.TranslationManager.restoreMlKitTranslationToSrtFormat
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.datasource.local.LocalPlayerDataSource
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.data.repository.MediaRepository
+import jinproject.aideo.data.toSubtitleFileIdentifier
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class MediaRepositoryImpl @Inject constructor(
+    private val localSettingDataSource: LocalSettingDataSource,
     private val localFileDataSource: LocalFileDataSource,
-    private val localPlayerDataSource: LocalPlayerDataSource,
 ) : MediaRepository {
     @OptIn(ExperimentalCoroutinesApi::class)
-    override suspend fun translateSubtitle(id: Long) {
-        val sourceLanguageCode =
-            localFileDataSource.getOriginSubtitleLanguageCode(id)
 
-        val targetLanguageCode = localPlayerDataSource.getLanguageSetting().first()
+    /**
+     * 자막 파일이 존재하는지 확인하는 함수
+     *
+     * @return 언어코드와 일치하는 자막 파일이 있으면 1,
+     * 언어코드와 일치하는 자막 파일은 없지만 다른 언어코드의 자막 파일이 있으면 0,
+     * 어떠한 자막 파일도 없으면 -1
+     */
+    override suspend fun checkSubtitleFileExist(id: Long): Int {
+        val subtitleLanguage = localSettingDataSource.getSubtitleLanguage().first()
 
-        val srtContent = localFileDataSource.getFileContent(
-            getSubtitleFileIdentifier(
-                id = id,
-                languageCode = sourceLanguageCode
-            )
-        )?.joinToString("\n")
-            ?: throw MediaRepository.TranscriptionException.TranscriptionFailed(
-                message = "content is null",
-                cause = null
-            )
+        val isSubtitleExist = localFileDataSource.isFileExist(
+            fileId = id,
+            fileExtension = "".toSubtitleFileIdentifier()
+        )
 
-        val translatedContent = suspendCancellableCoroutine { cont ->
-            val options = TranslatorOptions.Builder()
-                .setSourceLanguage(
-                    TranslateLanguage.fromLanguageTag(sourceLanguageCode)
-                        ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
-                            message = "source language code is null"
-                        )
+        if (isSubtitleExist) {
+            val isSubtitleByLanguageExist =
+                localFileDataSource.isFileExist(
+                    fileIdentifier = getSubtitleFileIdentifier(
+                        id = id,
+                        languageCode = subtitleLanguage
+                    )
                 )
-                .setTargetLanguage(
-                    TranslateLanguage.fromLanguageTag(targetLanguageCode)
-                        ?: throw MediaRepository.TranscriptionException.WrongTranslationLanguage(
-                            message = "target language code is null"
-                        )
-                )
-                .build()
 
-            val translator = Translation.getClient(options)
-
-            val conditions = DownloadConditions.Builder()
-                .build()
-
-            translator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener {
-                    translator.translate(
-                        extractSubtitleContent(srtContent)
-                    ).addOnSuccessListener { result ->
-                        cont.resume(result)
-                    }.addOnFailureListener { e ->
-                        cont.resumeWithException(e)
-                    }.addOnCompleteListener {
-                        translator.close()
-                    }
-                }.addOnFailureListener { e ->
-                    cont.resumeWithException(e)
-                }
-
-            cont.invokeOnCancellation {
-                translator.close()
-            }
+            return if (isSubtitleByLanguageExist)
+                1
+            else
+                0
         }
 
-        val convertedSrtContent = restoreMlKitTranslationToSrtFormat(
-            originalSrtContent = srtContent,
-            translatedContent = translatedContent
-        )
-
-        localFileDataSource.createFileAndWriteOnOutputStream(
-            fileIdentifier = getSubtitleFileIdentifier(id = id, languageCode = targetLanguageCode),
-            writeContentOnFile = { outputStream ->
-                runCatching {
-                    outputStream.write(convertedSrtContent.toByteArray())
-                }.map {
-                    true
-                }.getOrElse {
-                    false
-                }
-            }
-        )
+        return -1
     }
 }
-
-fun getSubtitleFileIdentifier(id: Long, languageCode: String): String =
-    "${id}_$languageCode.srt"

@@ -12,9 +12,8 @@ import jinproject.aideo.app.PlayerPreferences
 import jinproject.aideo.data.datasource.local.datastore.serializer.PlayerPreferencesSerializer
 import javax.inject.Singleton
 
-
 internal val Context.playerPreferencesStore: DataStore<PlayerPreferences> by dataStore(
-    fileName = "simulator_prefs.pb",
+    fileName = "data.pb",
     serializer = PlayerPreferencesSerializer,
 )
 

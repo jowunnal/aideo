@@ -50,7 +50,6 @@ internal class Router(val navController: NavHostController) {
 
         when (topLevelRoute) {
             is GalleryRoute.Gallery -> navController.navigateToGalleryGraph(navOptions)
-            is PlayerRoute.Player -> navController.navigateToPlayerGraph("", navOptions)
         }
     }
 

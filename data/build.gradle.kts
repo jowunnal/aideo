@@ -1,4 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.google.protobuf.gradle.GenerateProtoTask
 
 plugins {
@@ -44,10 +43,11 @@ dependencies {
     androidTestImplementation(libs.test.espresso)
 
     implementation(libs.coroutines.core)
+    implementation(libs.coroutines.play.services)
 
     implementation(libs.bundles.square)
     implementation(libs.datastore)
-    implementation(libs.bundles.mlKit)
+    api(libs.timber)
 }
 
 androidComponents {

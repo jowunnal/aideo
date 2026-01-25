@@ -1,9 +1,12 @@
 package jinproject.aideo.player
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -16,67 +19,113 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.utils.toVideoItemId
-import jinproject.aideo.data.repository.impl.getSubtitleFileIdentifier
+import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@Module
-@InstallIn(ViewModelComponent::class)
-object ExoPlayerManagerModule {
-    @Provides
-    fun provideExoPlayerManager(@ApplicationContext context: Context): ExoPlayerManager =
-        ExoPlayerManager(context)
-}
 
+@Singleton
 @Stable
 class ExoPlayerManager @Inject constructor(@ApplicationContext private val context: Context) {
 
-    private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context).build().apply {
-        setupPlayerListener()
+    private var exoPlayer: ExoPlayer? = null
+
+    val playerState: StateFlow<PlayerState> field: MutableStateFlow<PlayerState> = MutableStateFlow(
+        PlayerState.Idle
+    )
+
+    private var playerPositionObserver: Job? = null
+    private val resumeSignal = Channel<Unit>(capacity = 1)
+
+    @OptIn(UnstableApi::class)
+    fun initialize() {
+        if (exoPlayer == null) {
+            exoPlayer =
+                ExoPlayer.Builder(context)
+                    .build().apply {
+                        setSeekBackIncrementMs(5000)
+                        setupPlayerListener()
+                    }
+        }
     }
 
-    val playingState: StateFlow<PlayingState> field = MutableStateFlow(
-        PlayingState(
-            isReady = false,
-            currentPosition = 0L,
-            duration = 0L,
-            isPlaying = false,
-            subTitle = "",
-        )
-    )
+    fun release() {
+        cancelObservingPlayerPosition()
+        exoPlayer?.stop()
+        exoPlayer?.release()
+        exoPlayer = null
+    }
+
+    suspend fun observePlayerPosition() {
+        if (playerPositionObserver == null)
+            playerPositionObserver = coroutineScope {
+                launch {
+                    for (i in resumeSignal) {
+                        while ((playerState.value as? PlayerState.Ready)?.isPlaying ?: false) {
+                            getExoPlayer()?.let { player ->
+                                updateCurrentPosition(player.currentPosition)
+                            }
+
+                            delay(100)
+                        }
+                    }
+                }
+            }
+    }
+
+    private fun cancelObservingPlayerPosition() {
+        resumeSignal.cancel()
+        playerPositionObserver?.cancel()
+        playerPositionObserver = null
+    }
 
     private fun ExoPlayer.setupPlayerListener() {
         addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                (playerState.value as? PlayerState.Ready)?.updateIsPlaying(isPlaying)
+
                 if (isPlaying) {
-                    playingState.value = playingState.value.copy(isPlaying = true)
+                    resumeSignal.trySend(Unit)
                 }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
-                    STATE_READY -> {
-                        playingState.value = playingState.value.copy(
-                            duration = exoPlayer.duration,
-                            isReady = true
-                        )
+                exoPlayer?.let { player ->
+                    when (playbackState) {
+                        STATE_READY -> {
+                            when (playerState.value) {
+                                PlayerState.Idle -> {
+                                    playerState.value = PlayerState.Ready.getDefault().apply {
+                                        updateDuration(player.duration)
+                                    }
+                                }
+
+                                is PlayerState.Ready -> {
+                                    (playerState.value as PlayerState.Ready).apply {
+                                        updateDuration(player.duration)
+                                    }
+                                }
+                            }
+                        }
+
+                        STATE_BUFFERING -> {}
+
+                        STATE_ENDED -> {}
+
+                        STATE_IDLE -> {
+                            playerState.value = PlayerState.Idle
+                        }
                     }
-
-                    STATE_BUFFERING -> {
-                        playingState.value = playingState.value.copy(isReady = false)
-                    }
-
-                    STATE_ENDED -> {}
-
-                    STATE_IDLE -> {}
                 }
             }
 
@@ -84,13 +133,12 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             override fun onCues(cueGroup: CueGroup) {
                 val subtitle = cueGroup.cues.joinToString(separator = "\n") { it.text.toString() }
 
-                Log.d("test", "subtitle : $subtitle")
-                playingState.value = playingState.value.copy(subTitle = subtitle)
+                (playerState.value as? PlayerState.Ready)?.updateSubtitle(subtitle)
             }
         })
     }
 
-    fun getExoPlayer(): ExoPlayer = exoPlayer
+    fun getExoPlayer(): ExoPlayer? = exoPlayer
 
     fun prepare(videoUri: String, languageCode: String) {
         val subTitleConfiguration = MediaItem.SubtitleConfiguration.Builder(
@@ -112,33 +160,97 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
             .setSubtitleConfigurations(listOf(subTitleConfiguration))
             .build()
 
-        with(exoPlayer) {
-            setMediaItem(mediaItem)
-            prepare()
+        exoPlayer?.let { player ->
+            player.apply {
+                setMediaItem(mediaItem)
+                prepare()
+            }
         }
-
-        if (playingState.value.currentPosition > 0L)
-            seekTo(playingState.value.currentPosition)
     }
 
-    fun seekTo(position: Long) {
-        exoPlayer.seekTo(position)
-        updateCurrentPosition(position)
+    fun replaceSubtitle(videoUri: String, languageCode: String) {
+        val subTitleConfiguration = MediaItem.SubtitleConfiguration.Builder(
+            File(
+                context.filesDir,
+                getSubtitleFileIdentifier(
+                    id = videoUri.toVideoItemId(),
+                    languageCode = languageCode,
+                )
+            ).toUri()
+        )
+            .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+            .setLanguage(languageCode)
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+            .build()
+
+        exoPlayer?.let { player ->
+            val mediaItem = MediaItem.Builder()
+                .setUri(videoUri.toUri())
+                .setSubtitleConfigurations(listOf(subTitleConfiguration))
+                .build()
+
+            player.apply {
+                val currentIdx = currentMediaItemIndex
+                val pos = currentPosition
+
+                stop()
+                removeMediaItem(currentIdx)
+                setMediaItem(mediaItem)
+                prepare()
+                seekTo(pos)
+                playWhenReady = true
+            }
+        }
     }
 
-    fun updateCurrentPosition(position: Long) {
-        playingState.value = playingState.value.copy(currentPosition = position)
+    fun seekTo(pos: Long) {
+        exoPlayer?.seekTo(pos)
     }
 
-    fun release() {
-        exoPlayer.release()
+    private fun updateCurrentPosition(pos: Long) {
+        (playerState.value as? PlayerState.Ready)?.updateCurrentPos(pos)
     }
 }
 
-data class PlayingState(
-    val isReady: Boolean = false,
-    val currentPosition: Long = 0L,
-    val duration: Long = 0L,
-    val isPlaying: Boolean = false,
-    val subTitle: String = "",
-) 
+@Stable
+sealed class PlayerState {
+    object Idle : PlayerState()
+
+    class Ready : PlayerState() {
+        var isPlaying: Boolean = false
+            private set
+
+        var currentPosition: Long by mutableLongStateOf(0L)
+            private set
+
+        var subTitle: String by mutableStateOf("")
+            private set
+
+        var duration: Long by mutableLongStateOf(0L)
+            private set
+
+        var isSubTitleAdded: Boolean = false
+            private set
+
+        fun updateIsPlaying(bool: Boolean) {
+            isPlaying = bool
+        }
+
+        fun updateCurrentPos(pos: Long) {
+            currentPosition = pos
+        }
+
+        fun updateSubtitle(subtitle: String) {
+            subTitle = subtitle
+            isSubTitleAdded = true
+        }
+
+        fun updateDuration(duration: Long) {
+            this.duration = duration.coerceAtLeast(0L)
+        }
+
+        companion object {
+            fun getDefault(): Ready = Ready()
+        }
+    }
+}

@@ -2,10 +2,8 @@ package jinproject.aideo.convention.android
 
 import jinproject.aideo.convention.configure.configureKotlinAndroid
 import jinproject.aideo.convention.extension.androidExtension
-import jinproject.aideo.convention.extension.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.dependencies
 
 internal class AndroidApplicationPlugin : Plugin<Project> {
 
@@ -17,6 +15,7 @@ internal class AndroidApplicationPlugin : Plugin<Project> {
             apply("jinProject.android.compose")
             apply("com.google.gms.google-services")
             apply("com.google.firebase.crashlytics")
+            apply("com.github.triplet.play")
         }
 
         androidExtension.apply {

@@ -20,7 +20,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import jinproject.aideo.design.component.VerticalSpacer
 import jinproject.aideo.design.component.text.DescriptionSmallText
-import jinproject.aideo.design.component.text.HeadlineText
+import jinproject.aideo.design.component.text.HeadlineSmallText
 import jinproject.aideo.design.theme.AideoTheme
 
 @Composable
@@ -49,7 +49,7 @@ fun ExceptionScreen(
             modifier = Modifier.height(300.dp)
         )
         VerticalSpacer(height = 30.dp)
-        HeadlineText(
+        HeadlineSmallText(
             text = headlineMessage,
         )
         VerticalSpacer(height = 20.dp)

@@ -1,0 +1,129 @@
+<resources>
+    <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">相册</string>
+    <string name="gallery_empty">空</string>
+    <string name="content_desc_play_video">播放视频</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">设置</string>
+    <string name="settings_inference_language">推理语言</string>
+    <string name="settings_inference_language_desc">请选择用于语音识别的语言。</string>
+    <string name="settings_translation_language">翻译语言</string>
+    <string name="settings_translation_language_desc">请选择用于字幕翻译的语言。</string>
+    <string name="settings_inference_model">推理模型</string>
+    <string name="settings_inference_model_desc">请选择用于推理的模型。</string>
+    <string name="settings_translation_model">翻译模型</string>
+    <string name="settings_translation_model_desc">请选择用于翻译的模型。</string>
+    <string name="settings_current_settings">当前设置:</string>
+    <string name="settings_current_inference_language">- 推理语言: %s</string>
+    <string name="settings_current_translation_language">- 翻译语言: %s</string>
+    <string name="settings_current_inference_model">- 推理模型: %s</string>
+    <string name="settings_current_translation_model">- 翻译模型: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">相对较快的转换速度，但准确度可能较低。</string>
+    <string name="model_sensevoice_tag">快速</string>
+    <string name="model_whisper_desc">转换速度相对较慢，但准确度可能更高。</string>
+    <string name="model_whisper_tag">较慢</string>
+    <string name="model_mlkit_desc">模型体积小，翻译速度快，但准确度相对较低。</string>
+    <string name="model_mlkit_tag">轻量</string>
+    <string name="model_m2m100_desc">提供更准确的翻译，但模型体积较大，耗时可能更长。</string>
+    <string name="model_m2m100_tag">高质量</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">暂停</string>
+    <string name="content_desc_play">播放</string>
+    <string name="content_desc_seek_back">后退%d秒</string>
+    <string name="content_desc_seek_forward">前进%d秒</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">正在生成字幕</string>
+    <string name="notification_starting_subtitle_creation">开始生成字幕</string>
+    <string name="notification_starting_subtitle_translation">开始翻译字幕</string>
+    <string name="notification_subtitle_translation_completed">字幕翻译完成</string>
+    <string name="notification_subtitle_translation_completed_desc">字幕已翻译为您选择的语言。</string>
+    <string name="notification_subtitle_creation_completed">字幕生成完成</string>
+    <string name="notification_subtitle_creation_completed_desc">字幕已成功生成。</string>
+    <string name="notification_subtitle_creation_failed">字幕生成失败</string>
+    <string name="notification_subtitle_creation_failed_desc">字幕生成失败。(%s)</string>
+    <string name="notification_action_stop">停止</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">需要额外下载。</string>
+    <string name="dialog_download_required_content">下载需要额外的存储空间（约1.2GB）。</string>
+    <string name="dialog_download_positive">是的，下载它。</string>
+    <string name="dialog_download_negative">不，我不想要。</string>
+
+    <!-- Permission -->
+    <string name="permission_required">需要权限。</string>
+
+    <!-- Download -->
+    <string name="download_started">即将开始下载。</string>
+    <string name="download_please_wait">请稍候。</string>
+    <string name="download_cancelled">下载已取消。</string>
+    <string name="download_cancelled_desc">如果不下载，将无法正常使用该功能。</string>
+    <string name="download_ai_model_in_progress">正在下载AI模型。</string>
+    <string name="download_ai_model_please_wait">请稍后再试。</string>
+    <string name="download_ai_pack_in_progress">正在下载[%s]相关的AI模型。</string>
+    <string name="download_failed_or_pending">下载失败或正在等待中。</string>
+    <string name="download_retry_request">正在重新请求下载。</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo通知频道</string>
+    <string name="notification_channel_aideo_desc">Aideo通知频道。</string>
+    <string name="notification_channel_transcribe_name">字幕生成通知频道</string>
+    <string name="notification_channel_transcribe_desc">Aideo应用的字幕生成通知频道。</string>
+    <string name="notification_channel_ai_model_name">AI模型管理通知频道</string>
+    <string name="notification_channel_ai_model_desc">Aideo应用的AI模型加载通知频道。</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_completed">[%s]购买已完成。</string>
+    <string name="billing_purchase_failed">购买失败。</string>
+    <string name="billing_error_invalid_product">无效的产品。</string>
+    <string name="billing_error_incorrect_product">产品不正确。</string>
+    <string name="billing_error_cancelled">购买已取消。</string>
+    <string name="billing_error_unavailable">产品不可用。</string>
+    <string name="billing_error_already_owned">您已拥有此产品。</string>
+    <string name="billing_error_network">发生网络错误。</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">订阅管理</string>
+    <string name="subscription_management_google_play">在Google Play管理</string>
+    <string name="subscription_management_help_title">需要帮助吗？</string>
+    <string name="subscription_management_help_desc">订阅相关问题请联系Google Play客服。</string>
+    <string name="subscription_management_no_subscription">没有有效订阅</string>
+    <string name="subscription_management_no_subscription_desc">订阅高级版享受无广告体验</string>
+    <string name="subscription_management_view_plans">查看订阅计划</string>
+    <string name="subscription_management_premium_member">高级会员</string>
+    <string name="subscription_management_active_status">有效</string>
+    <string name="subscription_management_next_billing">下次付款日期</string>
+    <string name="subscription_management_info_title">订阅信息</string>
+    <string name="subscription_management_start_date">订阅开始日期</string>
+    <string name="subscription_management_payment_method">支付方式</string>
+    <string name="subscription_management_google_play_payment">Google Play支付</string>
+    <string name="subscription_management_auto_renewal">自动续订</string>
+    <string name="subscription_management_auto_renewal_desc">每月自动续订。</string>
+    <string name="subscription_management_one_time_payment">一次性付款</string>
+    <string name="subscription_management_one_time_payment_desc">下个月不会自动续订。</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">高级订阅</string>
+    <string name="subscription_header_title">享受无广告体验</string>
+    <string name="subscription_header_desc">升级到高级版，享受无广告体验</string>
+    <string name="subscription_benefits_title">高级特权</string>
+    <string name="subscription_benefit_ad_removal">去除广告</string>
+    <string name="subscription_benefit_ad_removal_desc">移除所有广告，畅享无中断体验</string>
+    <string name="subscription_monthly_plan">月度订阅</string>
+    <string name="subscription_monthly_plan_desc">每月自动续订</string>
+    <string name="subscription_price_unit">/ 月</string>
+    <string name="subscription_price_unavailable">无法获取价格</string>
+    <string name="subscription_auto_renewal_notice">自动续订：订阅每月自动续订，可随时取消。</string>
+    <string name="subscription_subscribe_now">立即订阅</string>
+    <string name="subscription_already_purchased_header">您已购买此商品。</string>
+    <string name="subscription_already_purchased_content">不能重复购买。</string>
+    <string name="subscription_footer_managed_by">• 订阅通过Google Play管理。</string>
+    <string name="subscription_footer_auto_renewal">• 如果在订阅期结束前24小时内未取消，订阅将自动续订。</string>
+    <string name="subscription_footer_refund_policy">• 退款政策遵循Google Play政策。</string>
+</resources>
