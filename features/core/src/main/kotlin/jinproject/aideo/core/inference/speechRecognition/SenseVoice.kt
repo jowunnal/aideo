@@ -41,12 +41,13 @@ class SenseVoice @Inject constructor(
             modelConfig = if (isQnn) {
                 OfflineRecognizer.prependAdspLibraryPath(context.applicationInfo.nativeLibraryDir)
 
+                val qnnSubDir = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/${socModel.assetSubDir}"
                 val copiedModelPath = copyAssetToInternalStorage(
-                    path = MODEL_QUANT_PATH,
+                    path = "$qnnSubDir/$MODEL_QUANT_FILE",
                     context = context,
                 )
                 val copiedBinaryPath = copyAssetToInternalStorage(
-                    path = BINARY_QUANT_PATH,
+                    path = "$qnnSubDir/$BINARY_QUANT_FILE",
                     context = context,
                 )
                 val copiedTokensPath = copyAssetToInternalStorage(
@@ -138,8 +139,8 @@ class SenseVoice @Inject constructor(
 
     companion object {
         const val MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/sense_voice_model.int8.onnx"
-        const val MODEL_QUANT_PATH = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_libmodel.so"
-        const val BINARY_QUANT_PATH = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/sense_voice_model.bin"
+        const val MODEL_QUANT_FILE = "sense_voice_libmodel.so"
+        const val BINARY_QUANT_FILE = "sense_voice_model.bin"
         const val TOKEN_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/sense_voice_tokens.txt"
     }
 }

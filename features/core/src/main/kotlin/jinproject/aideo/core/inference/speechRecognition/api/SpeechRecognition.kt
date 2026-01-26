@@ -1,12 +1,17 @@
 package jinproject.aideo.core.inference.speechRecognition.api
 
+import jinproject.aideo.core.AvailableSoCModel
+
 /**
  * 오디오(Speech) 를 문자(Text) 로 추론(변환)의 수행을 담당
  */
 abstract class SpeechRecognition {
     protected abstract val transcribedResult: StringBuilder
-    var isQnn: Boolean = false
+    var socModel: AvailableSoCModel = AvailableSoCModel.Default
         private set
+
+    val isQnn: Boolean
+        get() = socModel.isQnnModel()
 
     protected var isInitialized = false
 
@@ -27,7 +32,7 @@ abstract class SpeechRecognition {
         return transcribedResult.toString().trim()
     }
 
-    fun setQnn(boolean: Boolean) {
-        isQnn = boolean
+    fun setSoCModel(model: AvailableSoCModel) {
+        socModel = model
     }
 }

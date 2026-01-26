@@ -71,7 +71,7 @@ class SpeechToTranscription @Inject constructor(
         speechRecognition = when (SpeechRecognitionAvailableModel.findByName(model)) {
             SpeechRecognitionAvailableModel.Whisper -> Whisper(context)
             SpeechRecognitionAvailableModel.SenseVoice -> SenseVoice(context).apply {
-                setQnn(getAvailableSoCModel().isQnnModel())
+                setSoCModel(getAvailableSoCModel())
             }
         }.apply {
             initialize()
@@ -337,15 +337,15 @@ private class FixedChunkBuffer(private val chunkSize: Int = 512) {
     }
 }
 
-enum class AvailableSoCModel {
-    SM8450,
-    SM8475,
-    SM8550,
-    SM8650,
-    SM8750,
-    SM8850,
-    QCS9100,
-    Default;
+enum class AvailableSoCModel(val assetSubDir: String) {
+    SM8450("sm8450"),
+    SM8475("sm8475"),
+    SM8550("sm8550"),
+    SM8650("sm8650"),
+    SM8750("sm8750"),
+    SM8850("sm8850"),
+    QCS9100("qcs9100"),
+    Default("");
 
     fun isQnnModel(): Boolean = this != Default
 
