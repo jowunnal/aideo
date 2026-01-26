@@ -53,6 +53,7 @@
     <!-- Dialog -->
     <string name="dialog_download_required_header">추가 다운로드가 필요해요.</string>
     <string name="dialog_download_required_content">다운로드를 위해 추가 저장 공간(약 1.2GB)이 필요해요.</string>
+    <string name="dialog_download_whisper_content">다운로드를 위해 추가 저장 공간(약 300MB)이 필요해요.</string>
     <string name="dialog_download_positive">네, 다운로드 할게요.</string>
     <string name="dialog_download_negative">아니요, 하고싶지 않아요.</string>
 
@@ -79,6 +80,8 @@
     <string name="notification_channel_ai_model_desc">Aideo 앱의 AI 모델 로딩을 위한 채널 입니다.</string>
 
     <!-- Billing -->
+    <string name="billing_product_remove_ad">광고 제거</string>
+    <string name="billing_product_donation">개발자에게 기부</string>
     <string name="billing_purchase_completed">[%s] 상품의 구매가 완료되었어요.</string>
     <string name="billing_purchase_failed">구매에 실패했어요.</string>
     <string name="billing_error_invalid_product">유효하지 않은 상품이에요.</string>
@@ -107,6 +110,11 @@
     <string name="subscription_management_auto_renewal_desc">매달 자동으로 갱신됩니다.</string>
     <string name="subscription_management_one_time_payment">일회성 결제</string>
     <string name="subscription_management_one_time_payment_desc">다음 달에 자동으로 갱신되지 않습니다.</string>
+    <string name="subscription_management_info_popup_intro">구독 정보는 </string>
+    <string name="subscription_management_info_popup_estimate">예측치</string>
+    <string name="subscription_management_info_popup_middle"> 에요.\n정확한 정보는</string>
+    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
+    <string name="subscription_management_info_popup_ending">\n에서 확인해 주세요.</string>
 
     <!-- Subscription Screen -->
     <string name="subscription_title">프리미엄 구독</string>

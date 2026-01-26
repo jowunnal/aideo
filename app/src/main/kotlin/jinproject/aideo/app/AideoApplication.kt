@@ -30,13 +30,6 @@ class AideoApplication : Application(), ForegroundObserver {
             importance = NotificationManager.IMPORTANCE_HIGH,
         )
 
-        createNotificationChannel(
-            channelId = PlayAIService.NOTIFICATION_CHANNEL_ID,
-            channelName = getString(R.string.notification_channel_ai_model_name),
-            descriptionText = getString(R.string.notification_channel_ai_model_desc),
-            importance = NotificationManager.IMPORTANCE_HIGH,
-        )
-
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 

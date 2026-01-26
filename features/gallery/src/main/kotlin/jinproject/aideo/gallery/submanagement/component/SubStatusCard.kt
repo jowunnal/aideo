@@ -105,7 +105,7 @@ internal fun SubStatusCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 DescriptionMediumText(
-                    text = uiState.planName,
+                    text = stringResource(uiState.planNameResId),
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                 )
 
@@ -139,7 +139,7 @@ private fun SubStatusCardPreview() {
         SubStatusCard(
             uiState = SubscriptionManagementUiState.Subscribing(
                 id = Product.REMOVE_AD.id,
-                planName = "월간 구독",
+                planNameResId = R.string.billing_product_remove_ad,
                 price = "4,900원",
                 purchaseTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
                 billingPeriod = "P1M",

@@ -1,7 +1,9 @@
 package jinproject.aideo.core
 
 import android.app.Activity
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import jinproject.aideo.design.R
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -388,13 +390,13 @@ class BillingModule(
      * 앱에서 제공하는 상품
      */
     enum class Product(
-        val display: String,
+        @field:StringRes val displayResId: Int,
         val id: String,
         val type: String,
         val isConsumable: Boolean
     ) {
-        REMOVE_AD("광고 제거", "remove_ad", BillingClient.ProductType.SUBS, false),
-        DONATION("개발자에게 기부", "donation", BillingClient.ProductType.INAPP, true);
+        REMOVE_AD(R.string.billing_product_remove_ad, "remove_ad", BillingClient.ProductType.SUBS, false),
+        DONATION(R.string.billing_product_donation, "donation", BillingClient.ProductType.INAPP, true);
 
         companion object {
             fun findProductById(id: String): Product? = entries.find { value -> value.id == id }

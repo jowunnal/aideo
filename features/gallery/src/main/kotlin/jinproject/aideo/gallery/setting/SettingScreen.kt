@@ -1,7 +1,6 @@
 package jinproject.aideo.gallery.setting
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -24,13 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.play.core.aipacks.model.AiPackStatus
+import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.core.utils.LocalShowSnackBar
+import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.core.utils.getPackStatus
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.DropDownMenuCustom
@@ -44,21 +46,31 @@ import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoColor
 import jinproject.aideo.design.theme.AideoTheme
 import jinproject.aideo.gallery.setting.component.ModelSetting
+import jinproject.aideo.gallery.setting.component.SubscriptionManagementSetting
 
 @Composable
 fun SettingScreen(
     viewModel: SettingViewModel = hiltViewModel(),
     navigatePopBackStack: () -> Unit,
+    navigateToSubscriptionManagement: () -> Unit,
+    navigateToSubscription: () -> Unit,
 ) {
     val settingUiState by viewModel.settingUiState.collectAsStateWithLifecycle()
+    val billingModule = LocalBillingModule.current
+    val hasSubscription by produceState(initialValue = false, billingModule) {
+        value = billingModule.isProductPurchased(BillingModule.Product.REMOVE_AD)
+    }
 
     SettingScreen(
         settingUiState = settingUiState,
+        hasSubscription = hasSubscription,
         updateInferenceLanguageCode = viewModel::updateInferenceLanguage,
         updateTranslationLanguageCode = viewModel::updateTranslationLanguage,
         updateSpeechRecognitionModel = viewModel::updateSpeechRecognitionModel,
         updateTranslationModel = viewModel::updateTranslationModel,
         navigatePopBackStack = navigatePopBackStack,
+        navigateToSubscriptionManagement = navigateToSubscriptionManagement,
+        navigateToSubscription = navigateToSubscription,
     )
 
 }
@@ -66,15 +78,17 @@ fun SettingScreen(
 @Composable
 internal fun SettingScreen(
     settingUiState: SettingUiState,
+    hasSubscription: Boolean,
     context: Context = LocalContext.current,
     updateInferenceLanguageCode: (LanguageCode) -> Unit,
     updateTranslationLanguageCode: (LanguageCode) -> Unit,
     updateSpeechRecognitionModel: (SpeechRecognitionAvailableModel) -> Unit,
     updateTranslationModel: (TranslationAvailableModel) -> Unit,
     navigatePopBackStack: () -> Unit,
+    navigateToSubscriptionManagement: () -> Unit,
+    navigateToSubscription: () -> Unit,
 ) {
     var dialogState by rememberDialogState()
-    val showSnackBar = LocalShowSnackBar.current
 
     TextDialog(dialogState = dialogState) {
         dialogState.changeVisibility(false)
@@ -140,7 +154,7 @@ internal fun SettingScreen(
                                 AiPackStatus.NOT_INSTALLED, AiPackStatus.FAILED, AiPackStatus.CANCELED, AiPackStatus.PENDING -> {
                                     dialogState = dialogState.copy(
                                         header = context.getString(R.string.dialog_download_required_header),
-                                        content = "다운로드를 위해 추가 저장 공간(약 300MB)이 필요해요.",
+                                        content = context.getString(R.string.dialog_download_whisper_content),
                                         positiveMessage = context.getString(R.string.dialog_download_positive),
                                         negativeMessage = context.getString(R.string.dialog_download_negative),
                                     ).getShownDialogState(
@@ -148,20 +162,16 @@ internal fun SettingScreen(
                                             context.getAiPackManager()
                                                 .fetch(listOf(AiModelConfig.SPEECH_WHISPER_PACK))
                                                 .addOnCompleteListener {
-                                                    if (it.isSuccessful)
+                                                    if (it.isSuccessful && context.getPackAssetPath(
+                                                            AiModelConfig.SPEECH_WHISPER_PACK
+                                                        ) != null
+                                                    )
                                                         updateSpeechRecognitionModel(
                                                             SpeechRecognitionAvailableModel.findByName(
                                                                 item
                                                             )
                                                         )
                                                 }
-
-                                            context.startForegroundService(
-                                                Intent(
-                                                    context,
-                                                    Class.forName("jinproject.aideo.app.PlayAIService")
-                                                )
-                                            )
                                         }
                                     )
                                 }
@@ -169,7 +179,8 @@ internal fun SettingScreen(
                                 else -> {}
                             }
                         }
-                }
+                } else
+                    updateSpeechRecognitionModel(SpeechRecognitionAvailableModel.findByName(item))
             }
         )
 
@@ -201,20 +212,16 @@ internal fun SettingScreen(
                                             context.getAiPackManager()
                                                 .fetch(listOf(AiModelConfig.TRANSLATION_BASE_PACK))
                                                 .addOnCompleteListener {
-                                                    if (it.isSuccessful)
+                                                    if (it.isSuccessful && context.getPackAssetPath(
+                                                            AiModelConfig.TRANSLATION_BASE_PACK
+                                                        ) != null
+                                                    )
                                                         updateTranslationModel(
                                                             TranslationAvailableModel.findByName(
                                                                 item
                                                             )
                                                         )
                                                 }
-
-                                            context.startForegroundService(
-                                                Intent(
-                                                    context,
-                                                    Class.forName("jinproject.aideo.app.PlayAIService")
-                                                )
-                                            )
                                         }
                                     )
                                 }
@@ -222,8 +229,17 @@ internal fun SettingScreen(
                                 else -> {}
                             }
                         }
-                }
+                } else
+                    updateTranslationModel(TranslationAvailableModel.findByName(item))
             }
+        )
+
+        VerticalSpacer(20.dp)
+
+        SubscriptionManagementSetting(
+            hasSubscription = hasSubscription,
+            navigateToSubscriptionManagement = navigateToSubscriptionManagement,
+            navigateToSubscription = navigateToSubscription,
         )
 
         VerticalSpacer(20.dp)
@@ -273,10 +289,13 @@ private fun PreviewSettingScreen(
 ) = AideoTheme {
     SettingScreen(
         settingUiState = settingUiState,
+        hasSubscription = true,
         updateInferenceLanguageCode = {},
         updateTranslationLanguageCode = {},
         updateSpeechRecognitionModel = {},
         updateTranslationModel = {},
         navigatePopBackStack = {},
+        navigateToSubscriptionManagement = {},
+        navigateToSubscription = {},
     )
 }

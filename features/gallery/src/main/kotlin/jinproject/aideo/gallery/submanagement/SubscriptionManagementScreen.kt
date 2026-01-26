@@ -2,6 +2,7 @@ package jinproject.aideo.gallery.submanagement
 
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -39,7 +41,6 @@ import jinproject.aideo.core.BillingModule.Product
 import jinproject.aideo.core.isPurchasedAndAcknowledged
 import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.LocalBillingModule
-import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.HorizontalSpacer
 import jinproject.aideo.design.component.HorizontalWeightSpacer
@@ -59,11 +60,12 @@ import java.time.Period
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@Immutable
 sealed class SubscriptionManagementUiState {
     data object None : SubscriptionManagementUiState()
     data class Subscribing(
         val id: String,
-        val planName: String,
+        @field:StringRes val planNameResId: Int,
         val price: String,
         val purchaseTime: Long,
         val billingPeriod: String,
@@ -107,7 +109,6 @@ internal fun SubscriptionManagementScreen(
     navigateToSubscription: () -> Unit,
 ) {
     val billingModule = LocalBillingModule.current
-    val showSnackBar = LocalShowSnackBar.current
 
     val uiState by produceState<SubscriptionManagementUiState>(
         SubscriptionManagementUiState.None,
@@ -127,7 +128,7 @@ internal fun SubscriptionManagementScreen(
 
             SubscriptionManagementUiState.Subscribing(
                 id = product.id,
-                planName = product.display,
+                planNameResId = product.displayResId,
                 price = prisingPhase.formattedPrice,
                 purchaseTime = subPurchase.purchaseTime,
                 billingPeriod = prisingPhase.billingPeriod,

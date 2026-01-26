@@ -59,6 +59,7 @@ android {
 
 dependencies {
     implementation(project(":data"))
+    implementation(project(":design"))
     api(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     api(libs.bundles.billing)

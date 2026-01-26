@@ -53,6 +53,7 @@
     <!-- Dialog -->
     <string name="dialog_download_required_header">追加ダウンロードが必要です。</string>
     <string name="dialog_download_required_content">ダウンロードには追加のストレージ容量（約1.2GB）が必要です。</string>
+    <string name="dialog_download_whisper_content">ダウンロードには追加のストレージ容量（約300MB）が必要です。</string>
     <string name="dialog_download_positive">はい、ダウンロードします。</string>
     <string name="dialog_download_negative">いいえ、しません。</string>
 
@@ -79,6 +80,8 @@
     <string name="notification_channel_ai_model_desc">AideoアプリのAIモデル読み込みのためのチャンネルです。</string>
 
     <!-- Billing -->
+    <string name="billing_product_remove_ad">広告削除</string>
+    <string name="billing_product_donation">開発者に寄付</string>
     <string name="billing_purchase_completed">[%s]の購入が完了しました。</string>
     <string name="billing_purchase_failed">購入に失敗しました。</string>
     <string name="billing_error_invalid_product">無効な商品です。</string>
@@ -107,6 +110,11 @@
     <string name="subscription_management_auto_renewal_desc">毎月自動的に更新されます。</string>
     <string name="subscription_management_one_time_payment">一回限りの支払い</string>
     <string name="subscription_management_one_time_payment_desc">翌月に自動更新されません。</string>
+    <string name="subscription_management_info_popup_intro">サブスクリプション情報は</string>
+    <string name="subscription_management_info_popup_estimate">推定値</string>
+    <string name="subscription_management_info_popup_middle">です。\n正確な情報は</string>
+    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
+    <string name="subscription_management_info_popup_ending">\nでご確認ください。</string>
 
     <!-- Subscription Screen -->
     <string name="subscription_title">プレミアムサブスクリプション</string>

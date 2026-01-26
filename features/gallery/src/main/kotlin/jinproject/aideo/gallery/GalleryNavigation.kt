@@ -45,11 +45,14 @@ fun NavGraphBuilder.galleryNavGraph(
         composable<GalleryRoute.Gallery> {
             GalleryScreen(
                 navigateToSetting = navigateToSetting,
+                navigateToSubscription = navigateToSubscription
             )
         }
         composable<GalleryRoute.Setting> {
             SettingScreen(
-                navigatePopBackStack = navigatePopBackStack
+                navigatePopBackStack = navigatePopBackStack,
+                navigateToSubscriptionManagement = navigateToSubscriptionManagement,
+                navigateToSubscription = navigateToSubscription,
             )
         }
         composable<GalleryRoute.Subscription> {

@@ -53,6 +53,7 @@
     <!-- Dialog -->
     <string name="dialog_download_required_header">Additional download required.</string>
     <string name="dialog_download_required_content">Additional storage space (approximately 1.2GB) is required for download.</string>
+    <string name="dialog_download_whisper_content">Additional storage space (approximately 300MB) is required for download.</string>
     <string name="dialog_download_positive">Yes, download it.</string>
     <string name="dialog_download_negative">No, I don\'t want to.</string>
 
@@ -79,6 +80,8 @@
     <string name="notification_channel_ai_model_desc">Notification channel for AI model loading in Aideo.</string>
 
     <!-- Billing -->
+    <string name="billing_product_remove_ad">Ad Removal</string>
+    <string name="billing_product_donation">Donate to Developer</string>
     <string name="billing_purchase_completed">Purchase of [%s] has been completed.</string>
     <string name="billing_purchase_failed">Purchase failed.</string>
     <string name="billing_error_invalid_product">Invalid product.</string>
@@ -107,6 +110,11 @@
     <string name="subscription_management_auto_renewal_desc">Automatically renews every month.</string>
     <string name="subscription_management_one_time_payment">One-time payment</string>
     <string name="subscription_management_one_time_payment_desc">Will not automatically renew next month.</string>
+    <string name="subscription_management_info_popup_intro">Subscription info is </string>
+    <string name="subscription_management_info_popup_estimate">an estimate</string>
+    <string name="subscription_management_info_popup_middle">.\nFor accurate info,</string>
+    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
+    <string name="subscription_management_info_popup_ending">\nplease check at the above.</string>
 
     <!-- Subscription Screen -->
     <string name="subscription_title">Premium Subscription</string>

@@ -30,7 +30,8 @@
             android:value="${ADMOB_APP_ID}" />
         <meta-data
             android:name="com.google.mlkit.translation.DEPENDENCIES"
-            android:value="translate_japenese, translate_korean"></meta-data>
+            android:value="translate_japenese, translate_korean">
+        </meta-data>
 
         <uses-native-library
             android:name="libcdsprpc.so"
@@ -57,10 +58,7 @@
         </activity>
 
         <service android:name=".update.InAppUpdateService" />
-        <service
-            android:name=".PlayAIService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
+
     </application>
 
 </manifest>

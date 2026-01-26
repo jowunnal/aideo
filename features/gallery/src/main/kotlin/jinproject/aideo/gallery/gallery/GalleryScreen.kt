@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.util.Log
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -75,6 +74,7 @@ fun GalleryScreen(
     context: Context = LocalContext.current,
     localView: View = LocalView.current,
     navigateToSetting: () -> Unit,
+    navigateToSubscription: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -94,6 +94,7 @@ fun GalleryScreen(
         uiState = uiState,
         updateVideoList = viewModel::updateVideoList,
         navigateToSetting = navigateToSetting,
+        navigateToSubscription = navigateToSubscription
     )
 }
 
@@ -103,6 +104,7 @@ private fun GalleryScreen(
     context: Context = LocalContext.current,
     updateVideoList: (List<String>) -> Unit,
     navigateToSetting: () -> Unit,
+    navigateToSubscription: () -> Unit,
 ) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = PickMultipleVisualMedia()
@@ -142,6 +144,12 @@ private fun GalleryScreen(
                     backgroundTint = backgroundColor,
                     iconTint = contentColorFor(backgroundColor),
                 )
+                DefaultIconButton(
+                    icon = R.drawable.ic_shopping,
+                    onClick = navigateToSubscription,
+                    backgroundTint = backgroundColor,
+                    iconTint = contentColorFor(backgroundColor),
+                )
             }
 
         },
@@ -175,7 +183,7 @@ private fun GalleryScreen(
                                 context.getAiPackManager()
                                     .getPackStates(listOf(AiModelConfig.SPEECH_BASE_PACK))
                                     .addOnCompleteListener { task ->
-                                        when(task.result.packStates()[AiModelConfig.SPEECH_BASE_PACK]?.status()) {
+                                        when (task.result.packStates()[AiModelConfig.SPEECH_BASE_PACK]?.status()) {
                                             AiPackStatus.COMPLETED -> {
                                                 context.startForegroundService(
                                                     Intent(
@@ -185,8 +193,10 @@ private fun GalleryScreen(
                                                     }
                                                 )
                                             }
+
                                             AiPackStatus.CANCELED, AiPackStatus.FAILED, AiPackStatus.PENDING, AiPackStatus.NOT_INSTALLED -> {
-                                                context.getAiPackManager().fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
+                                                context.getAiPackManager()
+                                                    .fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
                                                 localShowSnackBar.invoke(
                                                     SnackBarMessage(
                                                         headerMessage = context.getString(R.string.download_failed_or_pending),
@@ -194,9 +204,8 @@ private fun GalleryScreen(
                                                     )
                                                 )
                                             }
-                                            else -> {
-                                                Log.d("test","abcd: ${task.result.packStates()[AiModelConfig.SPEECH_BASE_PACK]?.status()}")
-                                            }
+
+                                            else -> {}
                                         }
                                     }
                             }
@@ -262,6 +271,7 @@ private fun GalleryScreenPreview(
             uiState = galleryUiState,
             updateVideoList = {},
             navigateToSetting = {},
+            navigateToSubscription = {},
         )
     }
 }

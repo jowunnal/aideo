@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -97,6 +96,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -223,6 +223,8 @@ class MainActivity : ComponentActivity() {
                             )
                         )
                     }
+
+                    else -> {}
                 }
             }
             getAiPackManager().registerListener(aiPackListener)
@@ -474,19 +476,14 @@ class MainActivity : ComponentActivity() {
             .addOnCompleteListener { t ->
                 runCatching {
                     when (t.getPackStatus(AiModelConfig.SPEECH_BASE_PACK)) {
-                        AiPackStatus.DOWNLOADING -> {
-                            startForegroundService(Intent(this, PlayAIService::class.java))
-                        }
-
                         AiPackStatus.CANCELED, AiPackStatus.FAILED, AiPackStatus.PENDING -> {
                             getAiPackManager().fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
-                            startForegroundService(Intent(this, PlayAIService::class.java))
                         }
 
                         else -> {}
                     }
                 }.onFailure { t ->
-                    Log.e("test", "error while get AI Pack Manager: ${t.message}")
+                    Timber.e("error while get AI Pack Manager: ${t.message}")
                 }
             }
     }

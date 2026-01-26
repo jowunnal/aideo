@@ -53,6 +53,7 @@
     <!-- Dialog -->
     <string name="dialog_download_required_header">需要额外下载。</string>
     <string name="dialog_download_required_content">下载需要额外的存储空间（约1.2GB）。</string>
+    <string name="dialog_download_whisper_content">下载需要额外的存储空间（约300MB）。</string>
     <string name="dialog_download_positive">是的，下载它。</string>
     <string name="dialog_download_negative">不，我不想要。</string>
 
@@ -79,6 +80,8 @@
     <string name="notification_channel_ai_model_desc">Aideo应用的AI模型加载通知频道。</string>
 
     <!-- Billing -->
+    <string name="billing_product_remove_ad">去除广告</string>
+    <string name="billing_product_donation">捐赠开发者</string>
     <string name="billing_purchase_completed">[%s]购买已完成。</string>
     <string name="billing_purchase_failed">购买失败。</string>
     <string name="billing_error_invalid_product">无效的产品。</string>
@@ -107,6 +110,11 @@
     <string name="subscription_management_auto_renewal_desc">每月自动续订。</string>
     <string name="subscription_management_one_time_payment">一次性付款</string>
     <string name="subscription_management_one_time_payment_desc">下个月不会自动续订。</string>
+    <string name="subscription_management_info_popup_intro">订阅信息为</string>
+    <string name="subscription_management_info_popup_estimate">预估值</string>
+    <string name="subscription_management_info_popup_middle">。\n如需准确信息，请在</string>
+    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
+    <string name="subscription_management_info_popup_ending">\n中查看。</string>
 
     <!-- Subscription Screen -->
     <string name="subscription_title">高级订阅</string>
