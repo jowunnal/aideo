@@ -55,5 +55,9 @@ gradlePlugin {
             id = "jinProject.android.aipack"
             implementationClass = "jinproject.aideo.convention.android.AndroidAiPackPlugin"
         }
+        register("androidDynamicFeature") {
+            id = "jinProject.android.dynamic-feature"
+            implementationClass = "jinproject.aideo.convention.android.AndroidDynamicFeaturePlugin"
+        }
     }
 }

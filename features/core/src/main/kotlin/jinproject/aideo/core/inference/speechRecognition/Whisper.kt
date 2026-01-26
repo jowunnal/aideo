@@ -1,7 +1,6 @@
 package jinproject.aideo.core.inference.speechRecognition
 
 import android.content.Context
-import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
@@ -9,11 +8,12 @@ import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.AiModelConfig
-import jinproject.aideo.core.media.audio.AudioConfig
-import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
+import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
+import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Qualifier
@@ -83,7 +83,7 @@ class Whisper @Inject constructor(
                     }
             }
         } catch (e: Exception) {
-            Log.e("test", "Error while transcribing audio data", e)
+            Timber.e("Error while transcribing audio data: ${e.stackTraceToString()}")
         } finally {
             stream.release()
         }

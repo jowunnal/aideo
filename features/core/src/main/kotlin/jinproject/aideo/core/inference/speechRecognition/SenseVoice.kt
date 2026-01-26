@@ -1,8 +1,6 @@
 package jinproject.aideo.core.inference.speechRecognition
 
 import android.content.Context
-import android.util.Log
-import com.google.android.play.core.aipacks.AiPackManagerFactory
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
@@ -16,6 +14,7 @@ import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Qualifier
 
@@ -35,8 +34,6 @@ class SenseVoice @Inject constructor(
         if (isInitialized) {
             return
         }
-
-        val aiPackManager = AiPackManagerFactory.getInstance(context)
 
         config = OfflineRecognizerConfig(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
@@ -120,7 +117,7 @@ class SenseVoice @Inject constructor(
                     }
             }
         } catch (e: Exception) {
-            Log.e("test", "Error while transcribing audio data", e)
+            Timber.e("Error while transcribing audio data: ${e.stackTraceToString()}")
         } finally {
             stream.release()
         }

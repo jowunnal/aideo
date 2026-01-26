@@ -9,6 +9,7 @@ import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
 import com.k2fsa.sherpa.onnx.WaveReader
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.AvailableSoCModel.Companion.getAvailableSoCModel
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.diarization.SpeakerDiarization
 import jinproject.aideo.core.inference.punctuation.Punctuation
@@ -267,14 +268,6 @@ class SpeechToTranscription @Inject constructor(
         )
     }
 
-    private fun getAvailableSoCModel(): AvailableSoCModel {
-        return if (Build.VERSION.SDK_INT >= 31)
-            AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
-        else
-            AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
-
-    }
-
     fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
@@ -344,7 +337,7 @@ private class FixedChunkBuffer(private val chunkSize: Int = 512) {
     }
 }
 
-internal enum class AvailableSoCModel {
+enum class AvailableSoCModel {
     SM8450,
     SM8475,
     SM8550,
@@ -359,6 +352,14 @@ internal enum class AvailableSoCModel {
     companion object {
         fun findByName(name: String): AvailableSoCModel {
             return entries.find { it.name == name } ?: Default
+        }
+
+        fun getAvailableSoCModel(): AvailableSoCModel {
+            return if (Build.VERSION.SDK_INT >= 31)
+                AvailableSoCModel.findByName(Build.SOC_MODEL.uppercase())
+            else
+                AvailableSoCModel.findByName(Build.HARDWARE.uppercase())
+
         }
     }
 }

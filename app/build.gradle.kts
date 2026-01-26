@@ -63,31 +63,21 @@ android {
     }
 
     assetPacks += listOf(":ai_speech_base", ":ai_translation", ":ai_speech_whisper")
+    dynamicFeatures += setOf(
+        ":htp_v69_sm8475",
+        ":htp_v69_sm8450",
+        ":htp_v73_sm8550",
+        ":htp_v73_qcs9100",
+        ":htp_v75",
+        ":htp_v79",
+        ":htp_v81",
+    )
 
     bundle {
         deviceTargetingConfig = file("device_targeting_config.xml")
         deviceGroup {
             enableSplit = true
             defaultGroup = "other"
-        }
-    }
-
-    flavorDimensions += "htp_version"
-    productFlavors {
-        create("htp_v69") {
-            dimension = "htp_version"
-        }
-        create("htp_v73") {
-            dimension = "htp_version"
-        }
-        create("htp_v75") {
-            dimension = "htp_version"
-        }
-        create("htp_v79") {
-            dimension = "htp_version"
-        }
-        create("htp_v81") {
-            dimension = "htp_version"
         }
     }
 }
@@ -117,4 +107,5 @@ play {
         rootProject.file(getLocalKey("play.serviceAccountJsonPath"))
     )
     defaultToAppBundles.set(true)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
 }

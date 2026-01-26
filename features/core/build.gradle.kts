@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         ndk {
-            abiFilters.add("arm64-v8a")  // ← arm64-v8a만 빌드
+            abiFilters.add("arm64-v8a")
         }
         externalNativeBuild {
             cmake {
@@ -34,25 +34,6 @@ android {
     sourceSets {
         getByName("main") {
             jniLibs.srcDirs("src/main/jniLibs")
-        }
-    }
-
-    flavorDimensions += "htp_version"
-    productFlavors {
-        create("htp_v69") {
-            dimension = "htp_version"
-        }
-        create("htp_v73") {
-            dimension = "htp_version"
-        }
-        create("htp_v75") {
-            dimension = "htp_version"
-        }
-        create("htp_v79") {
-            dimension = "htp_version"
-        }
-        create("htp_v81") {
-            dimension = "htp_version"
         }
     }
 }
