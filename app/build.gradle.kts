@@ -1,16 +1,7 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import java.io.FileInputStream
-import java.util.Properties
 
 plugins {
     id("jinProject.android.application")
-}
-
-val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        load(FileInputStream(localPropertiesFile))
-    }
 }
 
 android {
@@ -18,10 +9,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file(localProperties.getProperty("signing.storeFile", ""))
-            storePassword = localProperties.getProperty("signing.storePassword", "")
-            keyAlias = localProperties.getProperty("signing.keyAlias", "")
-            keyPassword = localProperties.getProperty("signing.keyPassword", "")
+            storeFile = rootProject.file(getLocalKey("signing.storeFile"))
+            storePassword = getLocalKey("signing.storePassword")
+            keyAlias = getLocalKey("signing.keyAlias")
+            keyPassword = getLocalKey("signing.keyPassword")
         }
     }
 
@@ -123,8 +114,7 @@ dependencies {
 
 play {
     serviceAccountCredentials.set(
-        file(localProperties.getProperty("play.serviceAccountJsonPath", "key/play-service-account.json"))
+        rootProject.file(getLocalKey("play.serviceAccountJsonPath"))
     )
-    track.set("internal")  // internal, alpha, beta, production
     defaultToAppBundles.set(true)
 }
