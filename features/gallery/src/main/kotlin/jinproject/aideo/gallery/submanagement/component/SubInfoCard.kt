@@ -127,21 +127,13 @@ internal fun SubInfoCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(0.9f),
             )
             Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_bang),
+                imageVector = ImageVector.vectorResource(R.drawable.ic_help),
                 contentDescription = "Bang",
                 modifier = Modifier
                     .size(24.dp)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(0.8f),
-                        shape = CircleShape,
-                    )
-                    .shadow(4.dp, CircleShape)
-                    .background(MaterialTheme.colorScheme.background)
                     .clickableAvoidingDuplication {
                         popUpInfo.changeVisibility(true)
                     }
-                    .padding(4.dp)
                     .onGloballyPositioned { layoutCoordinates ->
                         popUpInfo = PopUpInfo(
                             offset = run {
@@ -159,7 +151,7 @@ internal fun SubInfoCard(
         }
 
         InfoRow(
-            icon = ImageVector.vectorResource(id = R.drawable.ic_shopping),
+            icon = ImageVector.vectorResource(id = R.drawable.ic_calendar),
             title = stringResource(R.string.subscription_management_start_date),
             value = uiState.calculateNextBillingDate().startDate,
         )
@@ -167,7 +159,7 @@ internal fun SubInfoCard(
         HorizontalDivider()
 
         InfoRow(
-            icon = ImageVector.vectorResource(id = R.drawable.ic_shopping),
+            icon = ImageVector.vectorResource(id = R.drawable.ic_credit_card),
             title = stringResource(R.string.subscription_management_payment_method),
             value = stringResource(R.string.subscription_management_google_play_payment),
         )

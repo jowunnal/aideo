@@ -19,8 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import jinproject.aideo.core.BillingModule.Product
@@ -53,13 +56,21 @@ internal fun SubStatusCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_crown),
                 contentDescription = null,
-                tint = AideoColor.amber_300.color,
+                tint = Color.White,
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                AideoColor.amber_300.color,
+                                AideoColor.orange_500.color
+                            )
+                        ),
+                        shape = CircleShape
+                    )
                     .padding(8.dp),
             )
 

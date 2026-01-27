@@ -213,7 +213,7 @@ private fun SubscriptionHeader() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
-            painter = painterResource(R.drawable.ic_shopping),
+            painter = painterResource(R.drawable.ic_crown),
             contentDescription = null,
             modifier = Modifier
                 .size(80.dp)
@@ -221,8 +221,8 @@ private fun SubscriptionHeader() {
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            AideoColor.orange.color,
-                            AideoColor.orange.color.copy(alpha = 0.2f)
+                            AideoColor.amber_300.color,
+                            AideoColor.orange_500.color
                         )
                     ),
                     shape = CircleShape

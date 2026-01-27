@@ -85,7 +85,7 @@ data class SettingUiState(
             name = SpeechRecognitionAvailableModel.SenseVoice.name,
             descRes = R.string.model_sensevoice_desc,
             tagRes = R.string.model_sensevoice_tag,
-            tagColor = AideoColor.amber,
+            tagColor = AideoColor.amber_400,
         ),
         ModelSettingState(
             name = SpeechRecognitionAvailableModel.Whisper.name,

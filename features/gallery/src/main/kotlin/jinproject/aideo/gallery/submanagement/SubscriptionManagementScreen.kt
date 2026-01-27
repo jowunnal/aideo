@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -214,9 +215,9 @@ private fun GooglePlayManagementCard(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = ImageVector.vectorResource(R.drawable.ic_shopping),
+            imageVector = ImageVector.vectorResource(R.drawable.ic_playstore),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = Color.Unspecified,
             modifier = Modifier.size(20.dp),
         )
         HorizontalSpacer(8.dp)
@@ -278,7 +279,7 @@ private fun NoneSubscribedContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Filled.Star,
+            imageVector = ImageVector.vectorResource(R.drawable.ic_crown),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

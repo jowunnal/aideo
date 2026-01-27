@@ -12,6 +12,7 @@ import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
+import jinproject.aideo.core.utils.extractQnnStubsToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
@@ -39,7 +40,8 @@ class SenseVoice @Inject constructor(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
         ).apply {
             modelConfig = if (isQnn) {
-                OfflineRecognizer.prependAdspLibraryPath(context.applicationInfo.nativeLibraryDir)
+                val qnnStubPath = extractQnnStubsToInternalStorage(context)
+                OfflineRecognizer.prependAdspLibraryPath(qnnStubPath)
 
                 val qnnSubDir = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/${socModel.assetSubDir}"
                 val copiedModelPath = copyAssetToInternalStorage(

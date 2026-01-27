@@ -26,7 +26,7 @@ value class AideoColor private constructor(val color: Color) {
         val red = AideoColor(Color(0xFFE0302D))
         val deepRed = AideoColor(Color(0xFF800006))
         val blue = AideoColor(Color(0xFF007AFF))
-        val orange = AideoColor(Color(0xFFFF5722))
+        val orange_500 = AideoColor(Color(0xFFFF9800))
 
         val light_primary = primary
         val light_onPrimary = white
@@ -64,8 +64,8 @@ value class AideoColor private constructor(val color: Color) {
         val dark_outline = grey_300
         val dark_outlineVariant = grey_400
 
-        val amber = AideoColor(Color(0xFFB45309))
-        val amber_300 = AideoColor(Color(0xFFF5B042))
+        val amber_400 = AideoColor(Color(0xFFFFCA28))
+        val amber_300 = AideoColor(Color(0xFFFFD54F))
         val indigo = AideoColor(Color(0xFF4338CA))
         val emerald = AideoColor(Color(0xFF047857))
 

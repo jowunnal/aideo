@@ -57,10 +57,10 @@ internal fun SubscriptionCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_shopping),
+                painter = painterResource(R.drawable.ic_crown),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                colorFilter = ColorFilter.tint(AideoColor.amber.color)
+                colorFilter = ColorFilter.tint(AideoColor.orange_500.color)
             )
             HorizontalSpacer(8.dp)
             TitleMediumText(
