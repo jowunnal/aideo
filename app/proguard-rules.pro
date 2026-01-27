@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep sherpa-onnx classes for JNI access
+# JNI accesses fields by name at runtime, so they must not be obfuscated
+-keep class com.k2fsa.sherpa.onnx.** { *; }
+-keep class jinproject.aideo.core.inference.native.wrapper.M2M100Native

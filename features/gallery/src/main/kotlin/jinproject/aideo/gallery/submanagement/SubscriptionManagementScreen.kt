@@ -114,9 +114,9 @@ internal fun SubscriptionManagementScreen(
         SubscriptionManagementUiState.None,
         billingModule
     ) {
-        val subPurchase = billingModule.queryPurchaseAsync(Product.REMOVE_AD.type).first()
+        val subPurchase = billingModule.queryPurchaseAsync(Product.REMOVE_AD.type).firstOrNull()
 
-        val productDetails = if (subPurchase.isPurchasedAndAcknowledged())
+        val productDetails = if (subPurchase?.isPurchasedAndAcknowledged() ?: false)
             billingModule.queryProductDetails(subPurchase.toProduct()!!)
         else
             null
@@ -130,7 +130,7 @@ internal fun SubscriptionManagementScreen(
                 id = product.id,
                 planNameResId = product.displayResId,
                 price = prisingPhase.formattedPrice,
-                purchaseTime = subPurchase.purchaseTime,
+                purchaseTime = subPurchase!!.purchaseTime,
                 billingPeriod = prisingPhase.billingPeriod,
                 isAutoRenewing = subPurchase.isAutoRenewing,
             )

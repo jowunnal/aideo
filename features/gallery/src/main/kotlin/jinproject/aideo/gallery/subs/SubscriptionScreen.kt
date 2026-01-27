@@ -83,10 +83,12 @@ internal fun SubscriptionScreen(
         val purchasableProducts =
             billingModule.getPurchasableProducts(listOf(Product.REMOVE_AD))
 
-        value = purchasableProducts?.first()?.let { p ->
-            val product = Product.findProductById(p.productId)!!
+        value = purchasableProducts?.firstOrNull()?.let { p ->
+            val product =
+                Product.findProductById(p.productId) ?: return@let SubscriptionUiState.Empty
             val prisingPhase =
-                p.subscriptionOfferDetails!!.first().pricingPhases.pricingPhaseList.first()
+                p.subscriptionOfferDetails?.first()?.pricingPhases?.pricingPhaseList?.first()
+                    ?: return@let SubscriptionUiState.Empty
 
             SubscriptionUiState.Exists(
                 product = product,

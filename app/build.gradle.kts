@@ -62,7 +62,7 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
-    assetPacks += listOf(":ai_speech_base", ":ai_translation", ":ai_speech_whisper")
+    assetPacks += listOf(":ai_speech_base", ":ai_translation", ":ai_speech_whisper", "ai_speech_sensevoice")
     dynamicFeatures += setOf(
         ":htp_v69_sm8475",
         ":htp_v69_sm8450",

@@ -43,4 +43,9 @@
         </config:device-selector>
     </config:device-group>
 
+    <config:device-group name="base">
+        <config:device-selector>
+        </config:device-selector>
+    </config:device-group>
+
 </config:device-targeting-config>
