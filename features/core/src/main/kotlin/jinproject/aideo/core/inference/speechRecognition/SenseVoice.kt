@@ -14,6 +14,7 @@ import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.extractQnnStubsToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
+import jinproject.aideo.core.utils.getPackageContext
 import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
 import javax.inject.Inject
@@ -40,21 +41,23 @@ class SenseVoice @Inject constructor(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
         ).apply {
             modelConfig = if (isQnn) {
-                val qnnStubPath = extractQnnStubsToInternalStorage(context)
+                val packageContext = context.getPackageContext()
+
+                val qnnStubPath = extractQnnStubsToInternalStorage(packageContext)
                 OfflineRecognizer.prependAdspLibraryPath(qnnStubPath)
 
                 val qnnSubDir = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/${socModel.assetSubDir}"
                 val copiedModelPath = copyAssetToInternalStorage(
                     path = "$qnnSubDir/$MODEL_QUANT_FILE",
-                    context = context,
+                    context = packageContext,
                 )
                 val copiedBinaryPath = copyAssetToInternalStorage(
                     path = "$qnnSubDir/$BINARY_QUANT_FILE",
-                    context = context,
+                    context = packageContext,
                 )
                 val copiedTokensPath = copyAssetToInternalStorage(
                     path = TOKEN_PATH,
-                    context = context
+                    context = packageContext
                 )
 
                 OfflineModelConfig(

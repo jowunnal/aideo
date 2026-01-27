@@ -19,8 +19,8 @@ android {
     defaultConfig {
         applicationId = "jinproject.aideo.app"
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.0.5"
+        versionCode = 12
+        versionName = "0.0.6"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -107,5 +107,5 @@ play {
         rootProject.file(getLocalKey("play.serviceAccountJsonPath"))
     )
     defaultToAppBundles.set(true)
-    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
 }
