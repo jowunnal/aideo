@@ -3,10 +3,14 @@ package jinproject.aideo.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.graphics.Color
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.google.android.play.core.splitcompat.SplitCompat
 import dagger.hilt.android.HiltAndroidApp
+import jinproject.aideo.app.BuildConfig
 import jinproject.aideo.design.R
+import timber.log.Timber
 import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
 
@@ -14,8 +18,17 @@ import jinproject.aideo.gallery.TranscribeService
 class AideoApplication : Application(), ForegroundObserver {
     override var isForeground: Boolean = false
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        SplitCompat.install(this)
+    }
+
     override fun onCreate() {
         super.onCreate()
+
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
 
         createNotificationChannel(
             channelId = "Aideo Channel",

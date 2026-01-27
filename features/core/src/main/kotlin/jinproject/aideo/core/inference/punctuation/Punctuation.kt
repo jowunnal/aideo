@@ -1,7 +1,6 @@
 package jinproject.aideo.core.inference.punctuation
 
 import android.content.Context
-import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflinePunctuation
 import com.k2fsa.sherpa.onnx.OfflinePunctuationConfig
 import com.k2fsa.sherpa.onnx.OfflinePunctuationModelConfig
@@ -11,6 +10,7 @@ import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.data.TranslationManager
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,7 +24,7 @@ class Punctuation @Inject constructor(
 
     fun initialize() {
         if (isInitialized) {
-            Log.d("test", "Already Onnx Punctuation has been initialized")
+            Timber.d("Already Onnx Punctuation has been initialized")
             return
         }
 
@@ -71,6 +71,7 @@ class Punctuation @Inject constructor(
         language == LanguageCode.Chinese.code || language == LanguageCode.English.code
 
     companion object {
-        const val CT_TRANSFORMER_MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
+        const val CT_TRANSFORMER_MODEL_PATH =
+            "${AiModelConfig.MODELS_ROOT_DIR}/punctuation.int8.onnx"
     }
 }

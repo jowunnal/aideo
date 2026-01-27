@@ -11,6 +11,7 @@ import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
+import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
@@ -35,15 +36,20 @@ class Whisper @Inject constructor(
             return
         }
 
+        val copiedTokensPath = copyAssetToInternalStorage(
+            path = WHISPER_TOKEN_PATH,
+            context = context
+        )
+
         config = OfflineRecognizerConfig(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
             modelConfig = OfflineModelConfig(
                 whisper = OfflineWhisperModelConfig(
-                    encoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_ENCODER_PATH",
-                    decoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_DECODER_PATH",
+                    encoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_WHISPER_PACK)}/$WHISPER_ENCODER_PATH",
+                    decoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_WHISPER_PACK)}/$WHISPER_DECODER_PATH",
                     language = Locale.getDefault().language,
                 ),
-                tokens = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$WHISPER_TOKEN_PATH",
+                tokens = copiedTokensPath,
                 debug = BuildConfig.DEBUG,
             )
         )

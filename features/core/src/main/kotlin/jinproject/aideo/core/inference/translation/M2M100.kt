@@ -2,11 +2,13 @@ package jinproject.aideo.core.inference.translation
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
 import jinproject.aideo.core.inference.native.wrapper.M2M100Native
 import jinproject.aideo.core.inference.translation.api.Translation
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
+import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
@@ -43,13 +45,25 @@ class M2M100 @Inject constructor(
             return
 
         val encoderInternalPath =
-            copyAssetToInternalStorage(path = ENCODER_MODEL_PATH, context = context)
+            copyAssetToInternalStorage(
+                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$ENCODER_MODEL_PATH",
+                context = context
+            )
         val decoderInternalPath =
-            copyAssetToInternalStorage(path = DECODER_MODEL_PATH, context = context)
+            copyAssetToInternalStorage(
+                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_MODEL_PATH",
+                context = context
+            )
         val decoderWithPastInternalPath =
-            copyAssetToInternalStorage(path = DECODER_WITH_PAST_MODEL_PATH, context = context)
+            copyAssetToInternalStorage(
+                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_WITH_PAST_MODEL_PATH",
+                context = context
+            )
         val spModelInternalPath =
-            copyAssetToInternalStorage(path = SP_MODEL_PATH, context = context)
+            copyAssetToInternalStorage(
+                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$SP_MODEL_PATH",
+                context = context
+            )
         val vocabInternalPath = copyAssetToInternalStorage(path = VOCAB_PATH, context = context)
         val tokenizerConfigInternalPath =
             copyAssetToInternalStorage(path = TOKENIZER_CONFIG_PATH, context = context)

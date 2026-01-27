@@ -19,8 +19,8 @@ android {
     defaultConfig {
         applicationId = "jinproject.aideo.app"
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.0.6"
+        versionCode = 13
+        versionName = "0.0.7"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -67,7 +67,6 @@ android {
         ":htp_v69_sm8475",
         ":htp_v69_sm8450",
         ":htp_v73_sm8550",
-        ":htp_v73_qcs9100",
         ":htp_v75",
         ":htp_v79",
         ":htp_v81",
@@ -100,6 +99,7 @@ dependencies {
     implementation(libs.lifecycle.process)
     coreLibraryDesugaring(libs.android.tools.desugar.jdk.libs)
     implementation(libs.play.ai.delivery)
+    implementation(libs.play.feature.delivery.ktx)
 }
 
 play {
@@ -107,5 +107,5 @@ play {
         rootProject.file(getLocalKey("play.serviceAccountJsonPath"))
     )
     defaultToAppBundles.set(true)
-    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
 }

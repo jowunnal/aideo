@@ -124,13 +124,13 @@ class MlKitTranslation @Inject constructor(
         }
     }
 
-    private suspend fun detectSubtitleLanguage(text: String): LanguageCode =
+    suspend fun detectLanguage(text: String): LanguageCode =
         suspendCancellableCoroutine { cont ->
             LanguageIdentification.getClient(
                 LanguageIdentificationOptions.Builder()
                     .setConfidenceThreshold(0.2f)
                     .build()
-            ).identifyLanguage(extractSubtitleContent(text))
+            ).identifyLanguage(text)
                 .addOnSuccessListener { languageCode ->
                     if (languageCode == "und") {
                         cont.resumeWithException(

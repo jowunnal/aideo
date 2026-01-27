@@ -25,7 +25,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     private val localSettingDataSource: LocalSettingDataSource,
     private val translationManager: TranslationManager,
 ) : ViewModel() {
@@ -61,6 +60,9 @@ class SettingViewModel @Inject constructor(
     fun updateSpeechRecognitionModel(model: SpeechRecognitionAvailableModel) {
         viewModelScope.launch {
             localSettingDataSource.setSelectedSpeechRecognitionModel(model.name)
+            if(model == SpeechRecognitionAvailableModel.Whisper && settingUiState.value.inferenceLanguage == LanguageCode.Auto)
+                localSettingDataSource.setInferenceTargetLanguage(LanguageCode.Korean.code)
+
         }
     }
 

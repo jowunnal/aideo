@@ -25,6 +25,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -45,10 +46,16 @@ class TranscribeService : LifecycleService() {
         super.onCreate()
 
         speechToTranscription.inferenceProgress.onEach { p ->
-            notifyTranscribe(
-                contentTitle = getString(jinproject.aideo.design.R.string.notification_creating_subtitles),
-                progress = p
-            )
+            if (p == 1f)
+                notifyTranscribe(
+                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
+                    progress = null
+                )
+            else
+                notifyTranscribe(
+                    contentTitle = getString(jinproject.aideo.design.R.string.notification_creating_subtitles),
+                    progress = p
+                )
         }.launchIn(lifecycleScope)
     }
 
@@ -56,7 +63,10 @@ class TranscribeService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         if (intent != null) {
-            notifyTranscribe(contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_creation), progress = null).also {
+            notifyTranscribe(
+                contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_creation),
+                progress = null
+            ).also {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                     startForeground(
                         NOTIFICATION_TRANSCRIBE_ID,
@@ -111,7 +121,10 @@ class TranscribeService : LifecycleService() {
 
             else -> {
                 // 자막 파일은 있으나 번역이 필요한 경우
-                notifyTranscribe(contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation), progress = null)
+                notifyTranscribe(
+                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
+                    progress = null
+                )
                 translateAndNotifySuccess(videoItem)
             }
         }
@@ -141,9 +154,13 @@ class TranscribeService : LifecycleService() {
             )
             launchPlayer(videoItem.uri)
         }.onFailure { exception ->
+            Timber.d("exception: ${exception.stackTraceToString()}")
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
-                description = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc, exception.message ?: ""),
+                description = getString(
+                    jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc,
+                    exception.message ?: ""
+                ),
                 videoUri = null,
             )
         }

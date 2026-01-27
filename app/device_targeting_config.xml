@@ -19,12 +19,6 @@
         </config:device-selector>
     </config:device-group>
 
-    <config:device-group name="v73_qcs9100">
-        <config:device-selector>
-            <config:system-on-chip manufacturer="QTI" model="QCS9100"/>
-        </config:device-selector>
-    </config:device-group>
-
     <config:device-group name="v75">
         <config:device-selector>
             <config:system-on-chip manufacturer="QTI" model="SM8650"/>

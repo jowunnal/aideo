@@ -3,11 +3,11 @@ package jinproject.aideo.core.utils
 import android.content.Context
 import android.content.res.AssetManager
 import jinproject.aideo.core.inference.AiModelConfig
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import kotlin.collections.contains
 
 fun extractQnnStubsToInternalStorage(context: Context): String {
     val stubDir = File(context.filesDir, AiModelConfig.QNN_STUBS_ROOT_DIR)
@@ -16,7 +16,13 @@ fun extractQnnStubsToInternalStorage(context: Context): String {
     }
 
     val assetManager = context.assets
+
+    // Debug: list root assets
+    val rootAssets = assetManager.list("") ?: emptyArray()
+    Timber.d("Root assets: ${rootAssets.joinToString()}")
+
     val stubFiles = assetManager.list(AiModelConfig.QNN_STUBS_ROOT_DIR) ?: emptyArray()
+    Timber.d("QNN stub files found: ${stubFiles.joinToString()}")
 
     for (fileName in stubFiles) {
         val assetPath = "${AiModelConfig.QNN_STUBS_ROOT_DIR}/$fileName"

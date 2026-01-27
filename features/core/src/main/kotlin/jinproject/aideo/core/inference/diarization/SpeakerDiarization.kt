@@ -1,7 +1,6 @@
 package jinproject.aideo.core.inference.diarization
 
 import android.content.Context
-import android.util.Log
 import com.k2fsa.sherpa.onnx.FastClusteringConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarization
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationConfig
@@ -13,6 +12,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,7 +27,7 @@ class SpeakerDiarization @Inject constructor(
 
     fun initialize() {
         if (isInitialized) {
-            Log.d("test", "Already OnnxDiarization has been initialized")
+            Timber.d("Already OnnxDiarization has been initialized")
             return
         }
 

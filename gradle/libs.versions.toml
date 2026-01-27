@@ -39,6 +39,7 @@ navigation = "2.8.7"
 oboe = "1.9.3"
 okhttp = "4.12.0"
 playAiDelivery = "0.1.1-alpha01"
+playFeatureDelivery = "2.1.0"
 playInApp = "2.1.0"
 protobuf = "3.25.0"
 retrofit = "3.0.0"
@@ -170,6 +171,7 @@ google-oboe = { module = "com.google.oboe:oboe", version.ref = "oboe" }
 # Play In App
 play-app-update = { module = "com.google.android.play:app-update", version.ref = "playInApp" }
 play-app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "playInApp" }
+play-feature-delivery-ktx = { module = "com.google.android.play:feature-delivery-ktx", version.ref = "playFeatureDelivery" }
 play-ai-delivery = {module = "com.google.android.play:ai-delivery", version.ref = "playAiDelivery"}
 
 # Protobuf

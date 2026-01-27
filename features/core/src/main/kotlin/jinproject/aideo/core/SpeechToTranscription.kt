@@ -17,12 +17,15 @@ import jinproject.aideo.core.inference.speechRecognition.SenseVoice
 import jinproject.aideo.core.inference.speechRecognition.TimeStampedSR
 import jinproject.aideo.core.inference.speechRecognition.Whisper
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
+import jinproject.aideo.core.inference.translation.MlKitTranslation
 import jinproject.aideo.core.inference.vad.SileroVad
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
+import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
@@ -53,6 +56,7 @@ class SpeechToTranscription @Inject constructor(
     private val punctuation: Punctuation,
     private val localFileDataSource: LocalFileDataSource,
     private val localSettingDataSource: LocalSettingDataSource,
+    private val mlKitTranslation: MlKitTranslation,
 ) {
     private lateinit var speechRecognition: SpeechRecognition
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
@@ -268,11 +272,20 @@ class SpeechToTranscription @Inject constructor(
         )
     }
 
-    fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
+    suspend fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
+        val srcLan = if (languageCode == LanguageCode.Auto.code) {
+            val extracted = TranslationManager.extractSubtitleContent(subtitleText)
+                .split("@")
+                .first { it.isNotBlank() }
+
+            mlKitTranslation.detectLanguage(extracted).code
+        } else
+            languageCode
+
         localFileDataSource.createFileAndWriteOnOutputStream(
             fileIdentifier = getSubtitleFileIdentifier(
                 id = videoItemId,
-                languageCode = languageCode
+                languageCode = srcLan
             ),
             writeContentOnFile = { outputStream ->
                 runCatching {
@@ -344,7 +357,6 @@ enum class AvailableSoCModel(val assetSubDir: String) {
     SM8650("sm8650"),
     SM8750("sm8750"),
     SM8850("sm8850"),
-    QCS9100("qcs9100"),
     Default("");
 
     fun isQnnModel(): Boolean = this != Default

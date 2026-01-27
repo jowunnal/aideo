@@ -14,9 +14,9 @@ import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.extractQnnStubsToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
-import jinproject.aideo.core.utils.getPackageContext
 import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Qualifier
 
@@ -37,27 +37,29 @@ class SenseVoice @Inject constructor(
             return
         }
 
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
+        Timber.d("Native libs: ${nativeDir.listFiles()?.map { it.name }}")
+
         config = OfflineRecognizerConfig(
             featConfig = getFeatureConfig(AudioConfig.SAMPLE_RATE, 80),
         ).apply {
-            modelConfig = if (isQnn) {
-                val packageContext = context.getPackageContext()
+            val copiedTokensPath = copyAssetToInternalStorage(
+                path = TOKEN_PATH,
+                context = context
+            )
 
-                val qnnStubPath = extractQnnStubsToInternalStorage(packageContext)
+            modelConfig = if (isQnn) {
+                val qnnStubPath = extractQnnStubsToInternalStorage(context)
                 OfflineRecognizer.prependAdspLibraryPath(qnnStubPath)
 
                 val qnnSubDir = "${AiModelConfig.QNN_MODELS_ROOT_DIR}/${socModel.assetSubDir}"
                 val copiedModelPath = copyAssetToInternalStorage(
                     path = "$qnnSubDir/$MODEL_QUANT_FILE",
-                    context = packageContext,
+                    context = context,
                 )
                 val copiedBinaryPath = copyAssetToInternalStorage(
                     path = "$qnnSubDir/$BINARY_QUANT_FILE",
-                    context = packageContext,
-                )
-                val copiedTokensPath = copyAssetToInternalStorage(
-                    path = TOKEN_PATH,
-                    context = packageContext
+                    context = context,
                 )
 
                 OfflineModelConfig(
@@ -66,8 +68,8 @@ class SenseVoice @Inject constructor(
                         language = "auto",
                         useInverseTextNormalization = true,
                         qnnConfig = QnnConfig(
-                            backendLib = "libQnnHtp.so",
-                            systemLib = "libQnnSystem.so",
+                            backendLib = "$qnnStubPath/libQnnHtp.so",
+                            systemLib = "$qnnStubPath/libQnnSystem.so",
                             contextBinary = copiedBinaryPath,
                         )
                     ),
@@ -79,11 +81,11 @@ class SenseVoice @Inject constructor(
             } else
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
-                        model = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$MODEL_PATH",
+                        model = "${context.getPackAssetPath(AiModelConfig.SPEECH_SENSE_VOICE_PACK)}/$MODEL_PATH",
                         language = "auto",
                         useInverseTextNormalization = true,
                     ),
-                    tokens = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$TOKEN_PATH",
+                    tokens = copiedTokensPath,
                     debug = BuildConfig.DEBUG,
                 )
         }
