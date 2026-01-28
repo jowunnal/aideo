@@ -9,7 +9,8 @@ class SubscriptionPreviewParameter : PreviewParameterProvider<SubscriptionUiStat
             SubscriptionUiState.Empty,
             SubscriptionUiState.Exists(
                 product = BillingModule.Product.REMOVE_AD,
-                formattedPrice = "4,900원"
+                formattedPrice = "4,900원",
+                productDetails = null
             )
         )
 }

@@ -62,10 +62,10 @@ class PlayerViewModel @Inject constructor(
                 }
             }
         }.flatMapLatest { language ->
-            exoPlayerManager.playerState.map { playingState ->
+            exoPlayerManager.playerState.map { playerState ->
                 PlayerUiState(
                     currentLanguage = language,
-                    playerState = playingState,
+                    playerState = playerState,
                 )
             }
         }.stateIn(
@@ -83,10 +83,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun prepareExoplayer(languageCode: String) {
+    fun prepareExoplayer() {
         exoPlayerManager.prepare(
             videoUri = currentVideoUri,
-            languageCode = languageCode,
+            languageCode = uiState.value.currentLanguage,
         )
         viewModelScope.launch(Dispatchers.Main) {
             exoPlayerManager.observePlayerPosition()

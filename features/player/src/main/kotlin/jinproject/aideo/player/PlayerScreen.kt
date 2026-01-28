@@ -1,6 +1,5 @@
 package jinproject.aideo.player
 
-import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -69,7 +68,6 @@ fun PlayerScreen(
     context: Context = LocalContext.current,
     localView: View = LocalView.current,
     configuration: Configuration = LocalConfiguration.current,
-    density: Density = LocalDensity.current,
     navigatePopBackStack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,12 +107,28 @@ fun PlayerScreen(
 
     RememberEffect(Unit) {
         localShowRewardAd {
-            viewModel.prepareExoplayer(uiState.currentLanguage)
+            viewModel.prepareExoplayer()
         }
     }
 
-    BackHandler(configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    BackHandler(true) {
+        if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            (context as ComponentActivity).requestedOrientation =
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            context.requestedOrientation =
+                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+
+        val windowInsetsController = WindowCompat.getInsetsController(
+            (localView.context as ComponentActivity).window,
+            localView
+        )
+
+        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+
+        navigatePopBackStack()
     }
 
     PlayerScreen(

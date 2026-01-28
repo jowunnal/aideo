@@ -34,9 +34,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 
-@Singleton
-@Stable
-class ExoPlayerManager @Inject constructor(@ApplicationContext private val context: Context) {
+class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val context: Context) {
 
     private var exoPlayer: ExoPlayer? = null
 
@@ -45,17 +43,15 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
     )
 
     private var playerPositionObserver: Job? = null
-    private val resumeSignal = Channel<Unit>(capacity = 1)
 
     @OptIn(UnstableApi::class)
     fun initialize() {
         if (exoPlayer == null) {
-            exoPlayer =
-                ExoPlayer.Builder(context)
-                    .build().apply {
-                        setSeekBackIncrementMs(5000)
-                        setupPlayerListener()
-                    }
+            exoPlayer = ExoPlayer.Builder(context)
+                .build().apply {
+                    setSeekBackIncrementMs(5000)
+                    setupPlayerListener()
+                }
         }
     }
 
@@ -70,21 +66,19 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         if (playerPositionObserver == null)
             playerPositionObserver = coroutineScope {
                 launch {
-                    for (i in resumeSignal) {
-                        while ((playerState.value as? PlayerState.Ready)?.isPlaying ?: false) {
+                    while (playerState.value is PlayerState.Ready) {
+                        if((playerState.value as PlayerState.Ready).isPlaying)
                             getExoPlayer()?.let { player ->
                                 updateCurrentPosition(player.currentPosition)
                             }
 
-                            delay(100)
-                        }
+                        delay(100)
                     }
                 }
             }
     }
 
     private fun cancelObservingPlayerPosition() {
-        resumeSignal.cancel()
         playerPositionObserver?.cancel()
         playerPositionObserver = null
     }
@@ -93,29 +87,16 @@ class ExoPlayerManager @Inject constructor(@ApplicationContext private val conte
         addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 (playerState.value as? PlayerState.Ready)?.updateIsPlaying(isPlaying)
-
-                if (isPlaying) {
-                    resumeSignal.trySend(Unit)
-                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 exoPlayer?.let { player ->
                     when (playbackState) {
                         STATE_READY -> {
-                            when (playerState.value) {
-                                PlayerState.Idle -> {
-                                    playerState.value = PlayerState.Ready.getDefault().apply {
-                                        updateDuration(player.duration)
-                                    }
-                                }
+                            if (playerState.value is PlayerState.Idle)
+                                playerState.value = PlayerState.Ready.getDefault()
 
-                                is PlayerState.Ready -> {
-                                    (playerState.value as PlayerState.Ready).apply {
-                                        updateDuration(player.duration)
-                                    }
-                                }
-                            }
+                            (playerState.value as? PlayerState.Ready)?.updateDuration(player.duration)
                         }
 
                         STATE_BUFFERING -> {}

@@ -44,35 +44,15 @@ class M2M100 @Inject constructor(
         if (!isInitialized)
             return
 
-        val encoderInternalPath =
-            copyAssetToInternalStorage(
-                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$ENCODER_MODEL_PATH",
-                context = context
-            )
-        val decoderInternalPath =
-            copyAssetToInternalStorage(
-                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_MODEL_PATH",
-                context = context
-            )
-        val decoderWithPastInternalPath =
-            copyAssetToInternalStorage(
-                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_WITH_PAST_MODEL_PATH",
-                context = context
-            )
-        val spModelInternalPath =
-            copyAssetToInternalStorage(
-                path = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$SP_MODEL_PATH",
-                context = context
-            )
         val vocabInternalPath = copyAssetToInternalStorage(path = VOCAB_PATH, context = context)
         val tokenizerConfigInternalPath =
             copyAssetToInternalStorage(path = TOKENIZER_CONFIG_PATH, context = context)
 
         isModelLoaded = m2M100Native!!.loadModel(
-            encoderPath = encoderInternalPath,
-            decoderPath = decoderInternalPath,
-            decoderWithPastPath = decoderWithPastInternalPath,
-            spModelPath = spModelInternalPath,
+            encoderPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$ENCODER_MODEL_PATH",
+            decoderPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_MODEL_PATH",
+            decoderWithPastPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_WITH_PAST_MODEL_PATH",
+            spModelPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$SP_MODEL_PATH",
             vocabPath = vocabInternalPath,
             tokenizerConfigPath = tokenizerConfigInternalPath,
         )

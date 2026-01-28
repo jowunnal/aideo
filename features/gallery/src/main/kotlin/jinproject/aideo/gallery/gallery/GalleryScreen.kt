@@ -1,11 +1,7 @@
 package jinproject.aideo.gallery.gallery
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
-import android.view.View
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
@@ -38,15 +34,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.play.core.aipacks.model.AiPackStatus
@@ -60,7 +52,6 @@ import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.bar.RowScopedTitleAppBar
 import jinproject.aideo.design.component.button.DefaultIconButton
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
-import jinproject.aideo.design.component.effect.RememberEffect
 import jinproject.aideo.design.component.layout.DownloadableLayout
 import jinproject.aideo.design.component.layout.DownloadableUiState
 import jinproject.aideo.design.component.text.DescriptionLargeText
@@ -71,24 +62,10 @@ import jinproject.aideo.gallery.TranscribeService
 @Composable
 fun GalleryScreen(
     viewModel: GalleryViewModel = hiltViewModel(),
-    context: Context = LocalContext.current,
-    localView: View = LocalView.current,
     navigateToSetting: () -> Unit,
     navigateToSubscription: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    RememberEffect(Unit) {
-        val windowInsetsController = WindowCompat.getInsetsController(
-            (localView.context as ComponentActivity).window,
-            localView
-        )
-
-        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-        windowInsetsController.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
-        (context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-    }
 
     GalleryScreen(
         uiState = uiState,

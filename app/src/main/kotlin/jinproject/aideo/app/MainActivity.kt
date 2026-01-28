@@ -12,24 +12,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalTonalElevationEnabled
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -37,7 +29,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -67,10 +58,7 @@ import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
 import jinproject.aideo.app.ad.AdMobManager
-import jinproject.aideo.app.navigation.NavigationDefaults
 import jinproject.aideo.app.navigation.NavigationGraph
-import jinproject.aideo.app.navigation.isBarHasToBeShown
-import jinproject.aideo.app.navigation.navigationSuiteItems
 import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
 import jinproject.aideo.core.BillingModule
@@ -316,29 +304,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val navBarItemColors = NavigationBarItemDefaults.colors(
-            indicatorColor = NavigationDefaults.navigationIndicatorColor()
-        )
-        val railBarItemColors = NavigationRailItemDefaults.colors(
-            indicatorColor = NavigationDefaults.navigationIndicatorColor()
-        )
-        val drawerItemColors = NavigationDrawerItemDefaults.colors()
-
-        val navigationSuiteItemColors = NavigationSuiteItemColors(
-            navigationBarItemColors = navBarItemColors,
-            navigationRailItemColors = railBarItemColors,
-            navigationDrawerItemColors = drawerItemColors,
-        )
-
         val router = rememberRouter(navController = navController)
-        val currentDestination by rememberUpdatedState(newValue = router.currentDestination)
-
-        val layoutType by rememberUpdatedState(
-            newValue = if (!currentDestination.isBarHasToBeShown())
-                NavigationSuiteType.None
-            else
-                NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
-        )
 
         CompositionLocalProvider(
             LocalTonalElevationEnabled provides false,
@@ -347,68 +313,48 @@ class MainActivity : ComponentActivity() {
             LocalShowSnackBar provides showSnackBar,
             LocalShowRewardAd provides ::showRewardedAd,
         ) {
-            NavigationSuiteScaffold(
-                navigationSuiteItems = {
-                    navigationSuiteItems(
-                        currentDestination = currentDestination,
-                        itemColors = navigationSuiteItemColors,
-                        onClick = { topLevelRoute ->
-                            router.navigateTopLevelDestination(topLevelRoute)
-                        }
-                    )
-                },
-                layoutType = layoutType,
-                containerColor = Color.Transparent,
-                contentColor = Color.Transparent,
-                navigationSuiteColors = NavigationSuiteDefaults.colors(
-                    navigationBarContainerColor = NavigationDefaults.containerColor(),
-                    navigationBarContentColor = NavigationDefaults.contentColor(),
-                    navigationRailContainerColor = NavigationDefaults.containerColor(),
-                    navigationRailContentColor = NavigationDefaults.contentColor(),
-                    navigationDrawerContainerColor = NavigationDefaults.containerColor(),
-                    navigationDrawerContentColor = NavigationDefaults.contentColor(),
-                ),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
+                    .addStatusBarPadding()
             ) {
-                Column(
-                    modifier = Modifier.addStatusBarPadding()
-                ) {
-                    AndroidView(
-                        modifier = Modifier.fillMaxWidth(),
-                        factory = { context ->
-                            AdView(context).apply {
-                                setAdSize(AdSize.BANNER)
-                                adUnitId = BuildConfig.ADMOB_UNIT_ID
-                                loadAd(AdRequest.Builder().build())
-                            }
-                        },
-                        update = {
-                            it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
+                AndroidView(
+                    modifier = Modifier.fillMaxWidth(),
+                    factory = { context ->
+                        AdView(context).apply {
+                            setAdSize(AdSize.BANNER)
+                            adUnitId = BuildConfig.ADMOB_UNIT_ID
+                            loadAd(AdRequest.Builder().build())
                         }
-                    )
-
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        snackbarHost = {
-                            SnackBarHostCustom(
-                                headerMessage = snackBarHostState.currentSnackbarData?.visuals?.message
-                                    ?: "",
-                                contentMessage = snackBarHostState.currentSnackbarData?.visuals?.actionLabel
-                                    ?: "",
-                                snackBarHostState = snackBarHostState,
-                                disMissSnackBar = { snackBarHostState.currentSnackbarData?.dismiss() })
-                        }
-                    ) { paddingValues ->
-                        NavigationGraph(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    bottom = paddingValues.calculateBottomPadding(),
-                                    start = paddingValues.calculateStartPadding(LayoutDirection.Rtl),
-                                    end = paddingValues.calculateStartPadding(LayoutDirection.Rtl),
-                                ),
-                            router = router,
-                        )
+                    },
+                    update = {
+                        it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
                     }
+                )
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    snackbarHost = {
+                        SnackBarHostCustom(
+                            headerMessage = snackBarHostState.currentSnackbarData?.visuals?.message
+                                ?: "",
+                            contentMessage = snackBarHostState.currentSnackbarData?.visuals?.actionLabel
+                                ?: "",
+                            snackBarHostState = snackBarHostState,
+                            disMissSnackBar = { snackBarHostState.currentSnackbarData?.dismiss() })
+                    }
+                ) { paddingValues ->
+                    NavigationGraph(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                bottom = paddingValues.calculateBottomPadding(),
+                                start = paddingValues.calculateStartPadding(LayoutDirection.Rtl),
+                                end = paddingValues.calculateStartPadding(LayoutDirection.Rtl),
+                            ),
+                        router = router,
+                    )
                 }
             }
         }

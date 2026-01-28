@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -34,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.android.billingclient.api.ProductDetails
 import jinproject.aideo.core.BillingModule.Product
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.utils.LocalBillingModule
@@ -59,11 +61,13 @@ sealed class SubscriptionUiState {
     data class Exists(
         val product: Product,
         val formattedPrice: String,
+        val productDetails: ProductDetails?,
     ) : SubscriptionUiState() {
         companion object {
             fun getDefault(): Exists = Exists(
                 product = Product.REMOVE_AD,
-                formattedPrice = "4,900원"
+                formattedPrice = "4,900원",
+                productDetails = null
             )
         }
     }
@@ -75,6 +79,8 @@ internal fun SubscriptionScreen(
     navigateToSubscriptionManagement: () -> Unit,
 ) {
     val billingModule = LocalBillingModule.current
+    val showSnackBar = LocalShowSnackBar.current
+    val context = LocalContext.current
 
     val uiState by produceState<SubscriptionUiState>(
         SubscriptionUiState.Empty,
@@ -93,12 +99,26 @@ internal fun SubscriptionScreen(
             SubscriptionUiState.Exists(
                 product = product,
                 formattedPrice = prisingPhase.formattedPrice,
+                productDetails = p
             )
         } ?: SubscriptionUiState.Empty
     }
 
     SubscriptionScreen(
         uiState = uiState,
+        launchBillingFlow = {
+            (uiState as? SubscriptionUiState.Exists)?.productDetails?.let { p ->
+                billingModule.purchaseSubscription(
+                    productDetails = p,
+                    offerIdx = 0
+                )
+            } ?: showSnackBar.invoke(
+                SnackBarMessage(
+                    headerMessage = context.getString(R.string.subscription_already_purchased_header),
+                    contentMessage = context.getString(R.string.subscription_already_purchased_content)
+                )
+            )
+        },
         navigatePopBackStack = navigatePopBackStack,
         navigateToSubscriptionManagement = navigateToSubscriptionManagement,
     )
@@ -107,13 +127,10 @@ internal fun SubscriptionScreen(
 @Composable
 private fun SubscriptionScreen(
     uiState: SubscriptionUiState,
+    launchBillingFlow: () -> Unit,
     navigatePopBackStack: () -> Unit,
     navigateToSubscriptionManagement: () -> Unit,
 ) {
-    val showSnackBar = LocalShowSnackBar.current
-    val alreadyPurchasedHeader = stringResource(R.string.subscription_already_purchased_header)
-    val alreadyPurchasedContent = stringResource(R.string.subscription_already_purchased_content)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -159,13 +176,7 @@ private fun SubscriptionScreen(
                 notice = stringResource(R.string.subscription_auto_renewal_notice),
                 buttonText = stringResource(R.string.subscription_subscribe_now),
                 onSubscribeClick = {
-                    if (uiState is SubscriptionUiState.Empty)
-                        showSnackBar.invoke(
-                            SnackBarMessage(
-                                headerMessage = alreadyPurchasedHeader,
-                                contentMessage = alreadyPurchasedContent
-                            )
-                        )
+                    launchBillingFlow()
                 },
             )
 
@@ -318,6 +329,7 @@ private fun PreviewSubscriptionScreen(
 ) = AideoTheme {
     SubscriptionScreen(
         uiState = uiState,
+        launchBillingFlow = {},
         navigatePopBackStack = {},
         navigateToSubscriptionManagement = {},
     )
