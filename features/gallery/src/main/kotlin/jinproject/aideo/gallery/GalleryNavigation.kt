@@ -4,7 +4,9 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.navigation.navOptions
 import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.gallery.GalleryScreen
 import jinproject.aideo.gallery.setting.SettingScreen
@@ -70,12 +72,15 @@ fun NavGraphBuilder.galleryNavGraph(
     }
 }
 
-fun NavController.navigateToGalleryGraph(navOptions: NavOptions?) {
-    navigate(GalleryRoute.GalleryGraph, navOptions)
-}
-
 fun NavController.navigateToSetting() = navigate(GalleryRoute.Setting)
 
-fun NavController.navigateToSubscription() = navigate(GalleryRoute.Subscription)
+fun NavController.navigateToSubscription() = navigateSingleInstance(GalleryRoute.Subscription)
 
-fun NavController.navigateToSubscriptionManagement() = navigate(GalleryRoute.SubscriptionManagement)
+fun NavController.navigateToSubscriptionManagement() = navigateSingleInstance(GalleryRoute.SubscriptionManagement)
+
+private fun NavController.navigateSingleInstance(route: GalleryRoute) {
+    val popped = popBackStack(route, inclusive = false)
+
+    if (!popped)
+        navigate(route)
+}

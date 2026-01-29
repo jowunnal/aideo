@@ -37,6 +37,8 @@
     <string name="content_desc_play">Play</string>
     <string name="content_desc_seek_back">Seek back %d seconds</string>
     <string name="content_desc_seek_forward">Seek forward %d seconds</string>
+    <string name="player_subtitle_conversion_start_header">Starting subtitle conversion.</string>
+    <string name="player_subtitle_conversion_start_content">Playback will resume automatically when complete.</string>
 
     <!-- Transcribe Service Notifications -->
     <string name="notification_creating_subtitles">Creating subtitles</string>

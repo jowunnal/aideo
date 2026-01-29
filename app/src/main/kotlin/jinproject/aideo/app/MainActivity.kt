@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +48,7 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.admanager.AdManagerAdView
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.play.core.aipacks.AiPackStateUpdateListener
@@ -58,6 +60,7 @@ import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
 import jinproject.aideo.app.ad.AdMobManager
+import jinproject.aideo.app.ad.BannerAd
 import jinproject.aideo.app.navigation.NavigationGraph
 import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
@@ -74,6 +77,7 @@ import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackStatus
 import jinproject.aideo.design.component.SnackBarHostCustom
+import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
 import jinproject.aideo.player.navigateToPlayerGraph
@@ -113,7 +117,7 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val adMobManager by lazy { AdMobManager(this) }
+    private val adMobManager by lazy { AdMobManager() }
 
     private lateinit var firebaseAnalytics: FirebaseAnalytics
 
@@ -148,8 +152,10 @@ class MainActivity : ComponentActivity() {
             Channel<SnackBarMessage>(Channel.CONFLATED)
         }
 
-        val showSnackBar: (SnackBarMessage) -> Unit = { snackBarMessage: SnackBarMessage ->
-            snackBarChannel.trySend(snackBarMessage)
+        val showSnackBar: (SnackBarMessage) -> Unit = remember {
+            { snackBarMessage: SnackBarMessage ->
+                snackBarChannel.trySend(snackBarMessage)
+            }
         }
 
         val ls =
@@ -227,7 +233,7 @@ class MainActivity : ComponentActivity() {
 
         val billingModule = remember {
             BillingModule(
-                activity = this,
+                activity = this@MainActivity,
                 coroutineScope = coroutineScope,
             )
         }
@@ -319,18 +325,9 @@ class MainActivity : ComponentActivity() {
                     .background(Color.Transparent)
                     .addStatusBarPadding()
             ) {
-                AndroidView(
+                BannerAd(
+                    adsVisibility = !isAdViewRemoved,
                     modifier = Modifier.fillMaxWidth(),
-                    factory = { context ->
-                        AdView(context).apply {
-                            setAdSize(AdSize.BANNER)
-                            adUnitId = BuildConfig.ADMOB_UNIT_ID
-                            loadAd(AdRequest.Builder().build())
-                        }
-                    },
-                    update = {
-                        it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
-                    }
                 )
 
                 Scaffold(
@@ -407,6 +404,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showRewardedAd(onResult: () -> Unit) {
+        if(adMobManager.isAdviewRemoved.value) {
+            onResult()
+            return
+        }
+
         mRewardedAd?.show(this) {
             onResult()
         } ?: run {

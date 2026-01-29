@@ -10,6 +10,7 @@ interface MediaRepository {
      * 어떠한 자막 파일도 없으면 -1
      */
     suspend fun checkSubtitleFileExist(id: Long): Int
+    suspend fun checkSubtitleFileExist(id: Long, srcLang: String): Int
 
     sealed class TranscriptionException : Exception() {
         data class TranscriptionFailed(

@@ -37,6 +37,8 @@
     <string name="content_desc_play">再生</string>
     <string name="content_desc_seek_back">%d秒戻る</string>
     <string name="content_desc_seek_forward">%d秒進む</string>
+    <string name="player_subtitle_conversion_start_header">字幕ファイルの変換を開始します。</string>
+    <string name="player_subtitle_conversion_start_content">変換が完了すると自動的に再生されます。</string>
 
     <!-- Transcribe Service Notifications -->
     <string name="notification_creating_subtitles">字幕を作成中</string>

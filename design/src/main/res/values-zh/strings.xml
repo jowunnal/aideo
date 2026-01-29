@@ -37,6 +37,8 @@
     <string name="content_desc_play">播放</string>
     <string name="content_desc_seek_back">后退%d秒</string>
     <string name="content_desc_seek_forward">前进%d秒</string>
+    <string name="player_subtitle_conversion_start_header">即将开始字幕转换。</string>
+    <string name="player_subtitle_conversion_start_content">转换完成后将自动播放。</string>
 
     <!-- Transcribe Service Notifications -->
     <string name="notification_creating_subtitles">正在生成字幕</string>

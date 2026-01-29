@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,9 +48,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
+import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.PopUpInfo
 import jinproject.aideo.design.component.button.DefaultIconButton
@@ -60,6 +64,9 @@ import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.design.utils.tu
 import jinproject.aideo.player.component.PlayerPopUp
 import jinproject.aideo.player.component.PlayerSurfaceViewComposable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json.Default.configuration
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -68,6 +75,7 @@ fun PlayerScreen(
     context: Context = LocalContext.current,
     localView: View = LocalView.current,
     configuration: Configuration = LocalConfiguration.current,
+    coroutineScope: CoroutineScope = rememberCoroutineScope(),
     navigatePopBackStack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +89,7 @@ fun PlayerScreen(
 
     val transitionState = updateTransition(visibility, label = "animateState")
     val localShowRewardAd = LocalShowRewardAd.current
+    val localShowSnackBar = LocalShowSnackBar.current
 
     RememberEffect(visibility) {
         val windowInsetsController = WindowCompat.getInsetsController(
@@ -134,7 +143,21 @@ fun PlayerScreen(
     PlayerScreen(
         uiState = uiState,
         transitionState = transitionState,
-        updateLanguageCode = viewModel::updateSubtitleLanguage,
+        updateLanguageCode = { languageCode ->
+            coroutineScope.launch {
+                if (!viewModel.isSubtitleExist(languageCode.code)) {
+                    viewModel.getExoPlayer()?.stop()
+                    localShowSnackBar(
+                        SnackBarMessage(
+                            headerMessage = context.getString(jinproject.aideo.design.R.string.player_subtitle_conversion_start_header),
+                            contentMessage = context.getString(jinproject.aideo.design.R.string.player_subtitle_conversion_start_content)
+                        )
+                    )
+                }
+            }
+
+            viewModel.updateSubtitleLanguage(languageCode)
+        },
         updateTransitionState = { visibility = !visibility },
         navigatePopBackStack = navigatePopBackStack,
         setTimer = { timeMillis ->

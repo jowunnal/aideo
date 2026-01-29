@@ -37,6 +37,8 @@
     <string name="content_desc_play">재생</string>
     <string name="content_desc_seek_back">뒤로 %d초 이동</string>
     <string name="content_desc_seek_forward">앞으로 %d초 이동</string>
+    <string name="player_subtitle_conversion_start_header">자막 파일 변환을 시작할게요.</string>
+    <string name="player_subtitle_conversion_start_content">변환이 완료되면 자동으로 재생되요.</string>
 
     <!-- Transcribe Service Notifications -->
     <string name="notification_creating_subtitles">자막 생성 중</string>

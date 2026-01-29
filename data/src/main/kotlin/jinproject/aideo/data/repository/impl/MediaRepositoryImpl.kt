@@ -25,6 +25,10 @@ class MediaRepositoryImpl @Inject constructor(
     override suspend fun checkSubtitleFileExist(id: Long): Int {
         val subtitleLanguage = localSettingDataSource.getSubtitleLanguage().first()
 
+        return checkSubtitleFileExist(id = id, srcLang = subtitleLanguage)
+    }
+
+    override suspend fun checkSubtitleFileExist(id: Long, srcLang: String): Int {
         val isSubtitleExist = localFileDataSource.isFileExist(
             fileId = id,
             fileExtension = "".toSubtitleFileIdentifier()
@@ -35,7 +39,7 @@ class MediaRepositoryImpl @Inject constructor(
                 localFileDataSource.isFileExist(
                     fileIdentifier = getSubtitleFileIdentifier(
                         id = id,
-                        languageCode = subtitleLanguage
+                        languageCode = srcLang
                     )
                 )
 

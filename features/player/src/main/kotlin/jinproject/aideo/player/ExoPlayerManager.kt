@@ -66,8 +66,8 @@ class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val
         if (playerPositionObserver == null)
             playerPositionObserver = coroutineScope {
                 launch {
-                    while (playerState.value is PlayerState.Ready) {
-                        if((playerState.value as PlayerState.Ready).isPlaying)
+                    while (true) {
+                        if((playerState.value as? PlayerState.Ready)?.isPlaying ?: false)
                             getExoPlayer()?.let { player ->
                                 updateCurrentPosition(player.currentPosition)
                             }
@@ -171,14 +171,10 @@ class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val
                 .build()
 
             player.apply {
-                val currentIdx = currentMediaItemIndex
                 val pos = currentPosition
 
-                stop()
-                removeMediaItem(currentIdx)
-                setMediaItem(mediaItem)
+                setMediaItem(mediaItem, pos)
                 prepare()
-                seekTo(pos)
                 playWhenReady = true
             }
         }

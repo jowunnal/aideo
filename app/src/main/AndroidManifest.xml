@@ -23,7 +23,8 @@
         android:roundIcon="@drawable/ic_aideo_app_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Aideo"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${ADMOB_APP_ID}" />
