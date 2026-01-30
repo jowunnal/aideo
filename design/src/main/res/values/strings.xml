@@ -97,7 +97,7 @@
     <string name="subscription_management_title">Subscription Management</string>
     <string name="subscription_management_google_play">Manage on Google Play</string>
     <string name="subscription_management_help_title">Need help?</string>
-    <string name="subscription_management_help_desc">For subscription-related inquiries, please contact Google Play Customer Support.</string>
+    <string name="subscription_management_help_desc">For inquiries regarding subscription services, please contact the Google Play Customer Center. For inquiries regarding refunds, please email jowunnal310@gmail.com.</string>
     <string name="subscription_management_no_subscription">No active subscription</string>
     <string name="subscription_management_no_subscription_desc">Get an ad-free experience with a premium subscription</string>
     <string name="subscription_management_view_plans">View subscription plans</string>
@@ -115,7 +115,6 @@
     <string name="subscription_management_info_popup_intro">Subscription info is </string>
     <string name="subscription_management_info_popup_estimate">an estimate</string>
     <string name="subscription_management_info_popup_middle">.\nFor accurate info,</string>
-    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
     <string name="subscription_management_info_popup_ending">\nplease check at the above.</string>
 
     <!-- Subscription Screen -->

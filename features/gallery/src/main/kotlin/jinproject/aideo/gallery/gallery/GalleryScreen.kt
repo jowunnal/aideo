@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,9 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.play.core.aipacks.model.AiPackStatus
+import jinproject.aideo.core.BillingModule.Product
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.design.R
@@ -58,6 +62,7 @@ import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.gallery.TranscribeService
+import jinproject.aideo.gallery.subs.SubscriptionUiState
 
 @Composable
 fun GalleryScreen(
@@ -67,8 +72,19 @@ fun GalleryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val billingModule = LocalBillingModule.current
+
+    val isRemovedAdPurchased by produceState<Boolean>(
+        true,
+        billingModule,
+        billingModule.isReady,
+    ) {
+        value = billingModule.isReady && billingModule.isProductPurchased(Product.REMOVE_AD)
+    }
+
     GalleryScreen(
         uiState = uiState,
+        isRemovedAdPurchased = isRemovedAdPurchased,
         updateVideoList = viewModel::updateVideoList,
         navigateToSetting = navigateToSetting,
         navigateToSubscription = navigateToSubscription
@@ -78,6 +94,7 @@ fun GalleryScreen(
 @Composable
 private fun GalleryScreen(
     uiState: DownloadableUiState,
+    isRemovedAdPurchased: Boolean,
     context: Context = LocalContext.current,
     updateVideoList: (List<String>) -> Unit,
     navigateToSetting: () -> Unit,
@@ -121,12 +138,14 @@ private fun GalleryScreen(
                     backgroundTint = backgroundColor,
                     iconTint = contentColorFor(backgroundColor),
                 )
-                DefaultIconButton(
-                    icon = R.drawable.ic_shopping,
-                    onClick = navigateToSubscription,
-                    backgroundTint = backgroundColor,
-                    iconTint = contentColorFor(backgroundColor),
-                )
+                AnimatedVisibility(!isRemovedAdPurchased) {
+                    DefaultIconButton(
+                        icon = R.drawable.ic_shopping,
+                        onClick = navigateToSubscription,
+                        backgroundTint = backgroundColor,
+                        iconTint = contentColorFor(backgroundColor),
+                    )
+                }
             }
 
         },
@@ -246,6 +265,7 @@ private fun GalleryScreenPreview(
     PreviewAideoTheme {
         GalleryScreen(
             uiState = galleryUiState,
+            isRemovedAdPurchased = true,
             updateVideoList = {},
             navigateToSetting = {},
             navigateToSubscription = {},

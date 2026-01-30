@@ -132,31 +132,22 @@ private fun SubscriptionScreen(
     navigateToSubscriptionManagement: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        AideoColor.blue.color.copy(alpha = 0.1f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+        modifier = Modifier.fillMaxSize()
     ) {
         SubscriptionAppBar(
             onBack = navigatePopBackStack,
             onGoToManagement = navigateToSubscriptionManagement,
         )
 
+        VerticalSpacer(30.dp)
+
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            VerticalSpacer(24.dp)
-
             SubscriptionHeader()
 
             VerticalSpacer(32.dp)

@@ -10,8 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.design.component.PopUp
 import jinproject.aideo.design.component.PopUpInfo
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.text.DescriptionMediumText
@@ -23,39 +23,35 @@ internal fun PlayerPopUp(
     uiState: PlayerUiState,
     updateLanguageCode: (LanguageCode) -> Unit,
 ) {
-    if (popUpInfo.visibility)
-        Popup(
-            offset = popUpInfo.offset,
-            onDismissRequest = {
-                popUpInfo.changeVisibility(false)
-            }
+    PopUp(
+        popUpInfo = popUpInfo
+    ) {
+        Column(
+            modifier = Modifier
+                .shadow(
+                    1.dp,
+                    RoundedCornerShape(20.dp)
+                )
+                .background(
+                    MaterialTheme.colorScheme.background,
+                    RoundedCornerShape(20.dp)
+                )
         ) {
-            Column(
-                modifier = Modifier
-                    .shadow(
-                        1.dp,
-                        RoundedCornerShape(20.dp)
+            LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray()
+                .forEach { language ->
+                    DescriptionMediumText(
+                        text = language.name,
+                        modifier = Modifier
+                            .clickableAvoidingDuplication {
+                                updateLanguageCode(language)
+                            }
+                            .padding(vertical = 8.dp, horizontal = 16.dp)
+                            .graphicsLayer {
+                                alpha =
+                                    if (language.code == uiState.currentLanguage) 1f else 0.5f
+                            },
                     )
-                    .background(
-                        MaterialTheme.colorScheme.background,
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                LanguageCode.entries.filter { it != LanguageCode.Auto }.toTypedArray()
-                    .forEach { language ->
-                        DescriptionMediumText(
-                            text = language.name,
-                            modifier = Modifier
-                                .clickableAvoidingDuplication {
-                                    updateLanguageCode(language)
-                                }
-                                .padding(vertical = 8.dp, horizontal = 16.dp)
-                                .graphicsLayer {
-                                    alpha =
-                                        if (language.code == uiState.currentLanguage) 1f else 0.5f
-                                },
-                        )
-                    }
-            }
+                }
         }
+    }
 }

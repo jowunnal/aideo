@@ -33,6 +33,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -48,7 +49,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.utils.LanguageCode
@@ -66,7 +66,6 @@ import jinproject.aideo.player.component.PlayerPopUp
 import jinproject.aideo.player.component.PlayerSurfaceViewComposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json.Default.configuration
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -190,7 +189,7 @@ private fun PlayerScreen(
     setTimer: (Long) -> Unit,
     playerSurfaceViewComposable: @Composable BoxScope.() -> Unit,
 ) {
-    var popUpInfo by remember { mutableStateOf(PopUpInfo(IntOffset(0, 0))) }
+    var popUpInfo by remember { mutableStateOf(PopUpInfo()) }
     val iconHeight = with(density) {
         24.dp.roundToPx()
     }
@@ -238,19 +237,17 @@ private fun PlayerScreen(
                 HorizontalWeightSpacer(1f)
                 DefaultIconButton(
                     onClick = {
-                        popUpInfo.changeVisibility(!popUpInfo.visibility)
+                        popUpInfo.updateVisibility(true)
                     },
                     icon = jinproject.aideo.design.R.drawable.ic_translation_language,
                     modifier = Modifier.onGloballyPositioned { layoutCoordinates ->
-                        popUpInfo = PopUpInfo(
-                            offset = run {
-                                val position = layoutCoordinates.positionInParent()
+                        val position = layoutCoordinates.positionInWindow()
 
-                                IntOffset(
-                                    position.x.toInt() - popUpHalfWidth,
-                                    position.y.toInt() + iconHeight
-                                )
-                            }
+                        popUpInfo.updateOffset(
+                            IntOffset(
+                                position.x.toInt() - popUpHalfWidth,
+                                position.y.toInt() + iconHeight
+                            )
                         )
                     },
                     backgroundTint = Color.Black,

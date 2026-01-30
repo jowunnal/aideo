@@ -97,7 +97,7 @@
     <string name="subscription_management_title">订阅管理</string>
     <string name="subscription_management_google_play">在Google Play管理</string>
     <string name="subscription_management_help_title">需要帮助吗？</string>
-    <string name="subscription_management_help_desc">订阅相关问题请联系Google Play客服。</string>
+    <string name="subscription_management_help_desc">如需諮詢訂閱服務相關事宜，請聯絡 Google Play 客服中心。如需諮詢退款事宜，請發送電子郵件至 jowunnal310@gmail.com。</string>
     <string name="subscription_management_no_subscription">没有有效订阅</string>
     <string name="subscription_management_no_subscription_desc">订阅高级版享受无广告体验</string>
     <string name="subscription_management_view_plans">查看订阅计划</string>
@@ -115,7 +115,6 @@
     <string name="subscription_management_info_popup_intro">订阅信息为</string>
     <string name="subscription_management_info_popup_estimate">预估值</string>
     <string name="subscription_management_info_popup_middle">。\n如需准确信息，请在</string>
-    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
     <string name="subscription_management_info_popup_ending">\n中查看。</string>
 
     <!-- Subscription Screen -->

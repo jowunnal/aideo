@@ -167,7 +167,6 @@ private fun SubscriptionManagementScreen(
 
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -176,9 +175,7 @@ private fun SubscriptionManagementScreen(
 
                 SubInfoCard(uiState)
 
-                GooglePlayManagementCard(
-                    uiState.id
-                )
+                GooglePlayManagementCard(uiState.id)
             } else {
                 NoneSubscribedContent(navigateToSubscribe = navigateToSubscribe)
             }
@@ -223,13 +220,13 @@ private fun GooglePlayManagementCard(
         HorizontalSpacer(8.dp)
         DescriptionSmallText(
             text = stringResource(R.string.subscription_management_google_play),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.surfaceVariant,
         )
         HorizontalWeightSpacer(1f)
         Icon(
             imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_right_small),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.surfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp),
         )
     }

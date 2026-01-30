@@ -97,7 +97,7 @@
     <string name="subscription_management_title">サブスクリプション管理</string>
     <string name="subscription_management_google_play">Google Playで管理</string>
     <string name="subscription_management_help_title">お困りですか？</string>
-    <string name="subscription_management_help_desc">サブスクリプションに関するお問い合わせは、Google Playカスタマーサポートまでご連絡ください。</string>
+    <string name="subscription_management_help_desc">サブスクリプションサービスに関するお問い合わせはGoogle Playのカスタマーセンターで解決できます。払い戻しに関するお問い合わせはjowunnal310@gmail.comにメールしてください。</string>
     <string name="subscription_management_no_subscription">有効なサブスクリプションがありません</string>
     <string name="subscription_management_no_subscription_desc">プレミアムサブスクリプションで広告なしの体験をお楽しみください</string>
     <string name="subscription_management_view_plans">サブスクリプションプランを見る</string>
@@ -115,7 +115,6 @@
     <string name="subscription_management_info_popup_intro">サブスクリプション情報は</string>
     <string name="subscription_management_info_popup_estimate">推定値</string>
     <string name="subscription_management_info_popup_middle">です。\n正確な情報は</string>
-    <string name="subscription_management_info_popup_path">[Google Play > Settings > Payments &amp; subscriptions > Subscriptions]</string>
     <string name="subscription_management_info_popup_ending">\nでご確認ください。</string>
 
     <!-- Subscription Screen -->
