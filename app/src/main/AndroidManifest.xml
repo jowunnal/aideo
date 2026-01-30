@@ -51,6 +51,16 @@
                     android:pathPrefix="/player"
                     android:scheme="aideo" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="jowunnal.github.io"
+                    android:pathPrefix="/aideo-app-links" />
+            </intent-filter>
         </activity>
 
         <service android:name=".update.InAppUpdateService" android:foregroundServiceType="dataSync"/>
