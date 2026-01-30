@@ -135,4 +135,7 @@
     <string name="subscription_footer_managed_by">• Subscription is managed through Google Play.</string>
     <string name="subscription_footer_auto_renewal">• Subscription automatically renews unless cancelled at least 24 hours before the end of the subscription period.</string>
     <string name="subscription_footer_refund_policy">• Refund policy follows Google Play policy.</string>
+
+    <!-- Term of Service Screen -->
+    <string name="term_title">Terms of Service</string>
 </resources>

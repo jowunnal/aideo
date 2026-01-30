@@ -135,4 +135,7 @@
     <string name="subscription_footer_managed_by">• 订阅通过Google Play管理。</string>
     <string name="subscription_footer_auto_renewal">• 如果在订阅期结束前24小时内未取消，订阅将自动续订。</string>
     <string name="subscription_footer_refund_policy">• 退款政策遵循Google Play政策。</string>
+
+    <!-- Term of Service Screen -->
+    <string name="term_title">使用條款</string>
 </resources>

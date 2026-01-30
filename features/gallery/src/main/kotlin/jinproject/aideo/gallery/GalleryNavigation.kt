@@ -12,6 +12,7 @@ import jinproject.aideo.gallery.gallery.GalleryScreen
 import jinproject.aideo.gallery.setting.SettingScreen
 import jinproject.aideo.gallery.submanagement.SubscriptionManagementScreen
 import jinproject.aideo.gallery.subs.SubscriptionScreen
+import jinproject.aideo.gallery.term.TermScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -33,6 +34,9 @@ sealed class GalleryRoute {
 
     @Serializable
     data object SubscriptionManagement : GalleryRoute()
+
+    @Serializable
+    data object Term : GalleryRoute()
 }
 
 fun NavGraphBuilder.galleryNavGraph(
@@ -40,6 +44,7 @@ fun NavGraphBuilder.galleryNavGraph(
     navigatePopBackStack: () -> Unit,
     navigateToSubscription: () -> Unit,
     navigateToSubscriptionManagement: () -> Unit,
+    navigateToTerm: () -> Unit,
 ) {
     navigation<GalleryRoute.GalleryGraph>(
         startDestination = GalleryRoute.Gallery
@@ -55,6 +60,7 @@ fun NavGraphBuilder.galleryNavGraph(
                 navigatePopBackStack = navigatePopBackStack,
                 navigateToSubscriptionManagement = navigateToSubscriptionManagement,
                 navigateToSubscription = navigateToSubscription,
+                navigateToTerm = navigateToTerm,
             )
         }
         composable<GalleryRoute.Subscription> {
@@ -67,6 +73,11 @@ fun NavGraphBuilder.galleryNavGraph(
             SubscriptionManagementScreen(
                 navigatePopBackStack = navigatePopBackStack,
                 navigateToSubscription = navigateToSubscription,
+            )
+        }
+        composable<GalleryRoute.Term> {
+            TermScreen(
+                navigatePopBackStack = navigatePopBackStack,
             )
         }
     }
@@ -84,3 +95,5 @@ private fun NavController.navigateSingleInstance(route: GalleryRoute) {
     if (!popped)
         navigate(route)
 }
+
+fun NavController.navigateToTerm() = navigate(GalleryRoute.Term)

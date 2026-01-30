@@ -135,4 +135,7 @@
     <string name="subscription_footer_managed_by">• 구독은 Google Play를 통해 관리됩니다.</string>
     <string name="subscription_footer_auto_renewal">• 구독 기간이 끝나기 최소 24시간 전에 취소하지 않으면 자동으로 갱신됩니다.</string>
     <string name="subscription_footer_refund_policy">• 환불 정책은 Google Play 정책을 따릅니다.</string>
+
+    <!-- Term of Service Screen -->
+    <string name="term_title">이용 약관</string>
 </resources>

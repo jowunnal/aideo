@@ -135,4 +135,7 @@
     <string name="subscription_footer_managed_by">• サブスクリプションはGoogle Playを通じて管理されます。</string>
     <string name="subscription_footer_auto_renewal">• サブスクリプション期間終了の24時間前までにキャンセルしないと、自動的に更新されます。</string>
     <string name="subscription_footer_refund_policy">• 返金ポリシーはGoogle Playポリシーに従います。</string>
+
+    <!-- Term of Service Screen -->
+    <string name="term_title">利用規約</string>
 </resources>

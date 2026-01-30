@@ -18,6 +18,7 @@ import jinproject.aideo.gallery.galleryNavGraph
 import jinproject.aideo.gallery.navigateToSetting
 import jinproject.aideo.gallery.navigateToSubscription
 import jinproject.aideo.gallery.navigateToSubscriptionManagement
+import jinproject.aideo.gallery.navigateToTerm
 import jinproject.aideo.player.playerNavGraph
 
 @Composable
@@ -43,6 +44,7 @@ internal fun NavigationGraph(
             navigatePopBackStack = navController::popBackStackIfCan,
             navigateToSubscription = navController::navigateToSubscription,
             navigateToSubscriptionManagement = navController::navigateToSubscriptionManagement,
+            navigateToTerm = navController::navigateToTerm,
         )
 
         playerNavGraph(
