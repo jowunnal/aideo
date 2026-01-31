@@ -44,6 +44,7 @@
     <string name="notification_creating_subtitles">正在生成字幕</string>
     <string name="notification_starting_subtitle_creation">开始生成字幕</string>
     <string name="notification_starting_subtitle_translation">开始翻译字幕</string>
+    <string name="notification_starting_subtitle_translation_in_progress">翻譯字幕</string>
     <string name="notification_subtitle_translation_completed">字幕翻译完成</string>
     <string name="notification_subtitle_translation_completed_desc">字幕已翻译为您选择的语言。</string>
     <string name="notification_subtitle_creation_completed">字幕生成完成</string>

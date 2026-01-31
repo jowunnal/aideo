@@ -1,8 +1,14 @@
 package jinproject.aideo.gallery.gallery
 
+import android.content.Context
+import android.content.Intent
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.LanguageCode
@@ -21,6 +27,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val androidMediaFileManager: AndroidMediaFileManager,
     private val localSettingDataSource: LocalSettingDataSource,
 ) : ViewModel() {
@@ -43,7 +50,15 @@ class GalleryViewModel @Inject constructor(
         initialValue = DownloadableUiState.Loading,
     )
 
-    fun updateVideoList(videoUris: List<String>) {
+    fun onEvent(event: GalleryEvent) {
+        when (event) {
+            is GalleryEvent.UpdateVideoSet -> updateVideoList(event.videoUris)
+            is GalleryEvent.RemoveVideoSet -> removeVideoList(event.videoUris)
+            is GalleryEvent.UpdateLanguage -> updateLanguage(event.languageCode)
+        }
+    }
+
+    private fun updateVideoList(videoUris: Set<String>) {
         viewModelScope.launch {
             val cachedVideoList = localSettingDataSource.getVideoUris().first()
 
@@ -55,7 +70,19 @@ class GalleryViewModel @Inject constructor(
         }
     }
 
-    fun updateLanguage(languageCode: LanguageCode) {
+    private fun removeVideoList(videoUris: Set<String>) {
+        viewModelScope.launch {
+            localSettingDataSource.removeVideoUris(videoUris)
+            videoUris.onEach { uri ->
+                context.contentResolver.releasePersistableUriPermission(
+                    uri.toUri(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+        }
+    }
+
+    private fun updateLanguage(languageCode: LanguageCode) {
         viewModelScope.launch {
             localSettingDataSource.setInferenceTargetLanguage(languageCode.code)
         }
@@ -66,3 +93,30 @@ data class GalleryUiState(
     override val data: ImmutableList<VideoItem>,
     val languageCode: String,
 ) : DownLoadedUiState<ImmutableList<VideoItem>>()
+
+sealed class GalleryEvent {
+    data class UpdateVideoSet(val videoUris: Set<String>) : GalleryEvent()
+    data class RemoveVideoSet(val videoUris: Set<String>) : GalleryEvent()
+    data class UpdateLanguage(val languageCode: LanguageCode) : GalleryEvent()
+}
+
+@Stable
+data class VideoItemSelection(
+    var isSelectionMode: Boolean,
+) {
+    val selectedUris = mutableStateSetOf<String>()
+
+    fun addSelectedUri(uri: String) {
+        selectedUris.add(uri)
+    }
+
+    fun removeSelectedUri(uri: String) {
+        selectedUris.remove(uri)
+    }
+
+    companion object {
+        fun getDefault(): VideoItemSelection = VideoItemSelection(
+            isSelectionMode = false
+        )
+    }
+}

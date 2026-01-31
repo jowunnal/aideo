@@ -55,6 +55,17 @@ class LocalSettingDataSource @Inject constructor(private val playerDataStore: Da
         }
     }
 
+    suspend fun removeVideoUris(uris: Set<String>) {
+        playerDataStore.updateData {
+            val videos = it.videosList
+
+            it.toBuilder()
+                .clearVideos()
+                .addAllVideos(videos.filter { video -> !uris.contains(video) })
+                .build()
+        }
+    }
+
     suspend fun setSubtitleLanguage(language: String) {
         playerDataStore.updateData {
             it.toBuilder().setSubtitleLanguage(language).build()

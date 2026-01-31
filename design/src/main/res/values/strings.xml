@@ -44,6 +44,7 @@
     <string name="notification_creating_subtitles">Creating subtitles</string>
     <string name="notification_starting_subtitle_creation">Starting subtitle creation</string>
     <string name="notification_starting_subtitle_translation">Starting subtitle translation</string>
+    <string name="notification_starting_subtitle_translation_in_progress">Translating subtitles</string>
     <string name="notification_subtitle_translation_completed">Subtitle translation completed</string>
     <string name="notification_subtitle_translation_completed_desc">Subtitles have been translated to your selected language.</string>
     <string name="notification_subtitle_creation_completed">Subtitle creation completed</string>

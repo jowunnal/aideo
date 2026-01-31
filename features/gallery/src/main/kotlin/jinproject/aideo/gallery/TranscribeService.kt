@@ -48,7 +48,7 @@ class TranscribeService : LifecycleService() {
         speechToTranscription.inferenceProgress.onEach { p ->
             if (p == 1f)
                 notifyTranscribe(
-                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
+                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation_in_progress),
                     progress = null
                 )
             else

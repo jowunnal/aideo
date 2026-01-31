@@ -44,6 +44,7 @@
     <string name="notification_creating_subtitles">字幕を作成中</string>
     <string name="notification_starting_subtitle_creation">字幕作成を開始</string>
     <string name="notification_starting_subtitle_translation">字幕翻訳を開始</string>
+    <string name="notification_starting_subtitle_translation_in_progress">字幕翻訳中</string>
     <string name="notification_subtitle_translation_completed">字幕翻訳が完了</string>
     <string name="notification_subtitle_translation_completed_desc">設定した言語への字幕翻訳が完了しました。</string>
     <string name="notification_subtitle_creation_completed">字幕作成が完了</string>

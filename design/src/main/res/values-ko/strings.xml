@@ -44,6 +44,7 @@
     <string name="notification_creating_subtitles">자막 생성 중</string>
     <string name="notification_starting_subtitle_creation">자막 생성 시작</string>
     <string name="notification_starting_subtitle_translation">자막 번역 시작</string>
+    <string name="notification_starting_subtitle_translation_in_progress">자막 번역 중</string>
     <string name="notification_subtitle_translation_completed">자막 번역 완료</string>
     <string name="notification_subtitle_translation_completed_desc">설정 언어로 자막 번역이 완료되었어요.</string>
     <string name="notification_subtitle_creation_completed">자막 생성 완료</string>
