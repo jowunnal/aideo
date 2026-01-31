@@ -3,7 +3,10 @@ package jinproject.aideo.gallery.gallery
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -101,9 +104,10 @@ sealed class GalleryEvent {
 }
 
 @Stable
-data class VideoItemSelection(
-    var isSelectionMode: Boolean,
-) {
+class VideoItemSelection {
+    var isSelectionMode by mutableStateOf(false)
+        private set
+
     val selectedUris = mutableStateSetOf<String>()
 
     fun addSelectedUri(uri: String) {
@@ -114,9 +118,7 @@ data class VideoItemSelection(
         selectedUris.remove(uri)
     }
 
-    companion object {
-        fun getDefault(): VideoItemSelection = VideoItemSelection(
-            isSelectionMode = false
-        )
+    fun updateIsSelectionMode(bool: Boolean) {
+        isSelectionMode = bool
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -136,7 +137,7 @@ private fun GalleryScreen(
 
             else -> {
                 var videoItemSelection by remember {
-                    mutableStateOf(VideoItemSelection.getDefault())
+                    mutableStateOf(VideoItemSelection())
                 }
 
                 VideoGridContent(
@@ -145,7 +146,7 @@ private fun GalleryScreen(
                     context = context,
                     onRemoveVideos = { uris ->
                         onEvent(GalleryEvent.RemoveVideoSet(uris))
-                        videoItemSelection = VideoItemSelection.getDefault()
+                        videoItemSelection = VideoItemSelection()
                     }
                 )
             }

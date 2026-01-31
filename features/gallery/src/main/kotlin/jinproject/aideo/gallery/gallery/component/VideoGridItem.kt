@@ -16,9 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,12 +54,13 @@ import jinproject.aideo.gallery.gallery.VideoItemSelection
 internal fun VideoGridItem(
     videoItem: VideoItem,
     videoItemSelection: VideoItemSelection,
+    modifier: Modifier = Modifier,
     generateSubtitle: () -> Unit,
     enterSelectionMode: () -> Unit,
     addSelectedUri: (String) -> Unit,
     removeSelectedUri: (String) -> Unit,
 ) {
-    val isSelected by remember {
+    val isSelected by remember(videoItemSelection) {
         derivedStateOf {
             videoItemSelection.selectedUris.contains(videoItem.uri)
         }
@@ -78,7 +77,7 @@ internal fun VideoGridItem(
     )
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(150.dp)
             .shadow(
@@ -148,7 +147,7 @@ internal fun VideoGridItem(
             .combinedClickableAvoidingDuplication(
                 onClick = {
                     if (videoItemSelection.isSelectionMode) {
-                        if(isSelected)
+                        if (isSelected)
                             removeSelectedUri(videoItem.uri)
                         else
                             addSelectedUri(videoItem.uri)
@@ -197,7 +196,7 @@ private fun VideoGridItemUnSelectionModePreview(
     PreviewAideoTheme {
         VideoGridItem(
             videoItem = galleryUiState.data.first(),
-            videoItemSelection = VideoItemSelection.getDefault(),
+            videoItemSelection = VideoItemSelection(),
             generateSubtitle = {},
             enterSelectionMode = {},
             addSelectedUri = {},
@@ -215,8 +214,8 @@ private fun VideoGridItemSelectionModePreview(
     PreviewAideoTheme {
         VideoGridItem(
             videoItem = galleryUiState.data.first(),
-            videoItemSelection = VideoItemSelection.getDefault().apply {
-                isSelectionMode = true
+            videoItemSelection = VideoItemSelection().apply {
+                updateIsSelectionMode(true)
             },
             generateSubtitle = {},
             enterSelectionMode = {},
@@ -235,8 +234,8 @@ private fun VideoGridItemSelectionModeOnSelectedPreview(
     PreviewAideoTheme {
         VideoGridItem(
             videoItem = galleryUiState.data.first(),
-            videoItemSelection = VideoItemSelection.getDefault().apply {
-                isSelectionMode = true
+            videoItemSelection = VideoItemSelection().apply {
+                updateIsSelectionMode(true)
                 addSelectedUri(galleryUiState.data.first().uri)
             },
             generateSubtitle = {},

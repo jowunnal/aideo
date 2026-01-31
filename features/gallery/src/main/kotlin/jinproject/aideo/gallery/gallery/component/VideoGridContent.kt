@@ -6,21 +6,24 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -31,7 +34,7 @@ import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.design.R
-import jinproject.aideo.design.component.button.DefaultIconButton
+import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.theme.AideoColor
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.gallery.TranscribeService
@@ -61,10 +64,11 @@ internal fun VideoGridContent(
                 .fillMaxSize()
                 .align(Alignment.Center)
         ) {
-            items(videoItems) { video ->
+            items(videoItems, key = { video -> video.id }) { video ->
                 VideoGridItem(
                     videoItem = video,
                     videoItemSelection = videoItemSelection,
+                    modifier = Modifier.animateItem(),
                     generateSubtitle = {
                         context.getAiPackManager()
                             .getPackStates(listOf(AiModelConfig.SPEECH_BASE_PACK))
@@ -96,7 +100,7 @@ internal fun VideoGridContent(
                             }
                     },
                     enterSelectionMode = {
-                        videoItemSelection.isSelectionMode = true
+                        videoItemSelection.updateIsSelectionMode(true)
                     },
                     addSelectedUri = { uri ->
                         videoItemSelection.addSelectedUri(uri)
@@ -108,42 +112,32 @@ internal fun VideoGridContent(
             }
         }
 
-        DeleteIconOnSelectionMode(
-            selectionMode = videoItemSelection.isSelectionMode,
-            onClick = {
-                onRemoveVideos(videoItemSelection.selectedUris)
-            }
-        )
-    }
-}
-
-@Composable
-private fun BoxScope.DeleteIconOnSelectionMode(
-    selectionMode: Boolean,
-    onClick: () -> Unit,
-) {
-    AnimatedVisibility(
-        visible = selectionMode,
-        modifier = Modifier
-            .align(BottomCenter)
-            .padding(bottom = 20.dp),
-    ) {
-        DefaultIconButton(
-            icon = R.drawable.ic_delete,
-            onClick = onClick,
+        AnimatedVisibility(
+            visible = videoItemSelection.isSelectionMode,
             modifier = Modifier
-                .shadow(
-                    1.dp,
-                    RoundedCornerShape(100.dp)
-                )
-                .background(
-                    MaterialTheme.colorScheme.background,
-                    RoundedCornerShape(100.dp)
-                )
-                .padding(4.dp),
-            iconTint = AideoColor.red.color,
-            iconSize = 32.dp
-        )
+                .align(BottomCenter)
+                .padding(bottom = 20.dp),
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
+                contentDescription = "Delete video",
+                modifier = Modifier
+                    .size(40.dp)
+                    .shadow(
+                        1.dp,
+                        RoundedCornerShape(100.dp)
+                    )
+                    .background(
+                        MaterialTheme.colorScheme.background,
+                        RoundedCornerShape(100.dp)
+                    )
+                    .clickableAvoidingDuplication {
+                        onRemoveVideos(videoItemSelection.selectedUris)
+                    }
+                    .padding(4.dp),
+                tint = AideoColor.red.color
+            )
+        }
     }
 }
 
@@ -155,7 +149,7 @@ private fun VideoGridContentUnSelectionPreview(
 ) {
     PreviewAideoTheme {
         VideoGridContent(
-            videoItemSelection = VideoItemSelection.getDefault(),
+            videoItemSelection = VideoItemSelection(),
             videoItems = galleryUiState.data,
             onRemoveVideos = {},
         )
@@ -170,8 +164,8 @@ private fun VideoGridContentSelectionPreview(
 ) {
     PreviewAideoTheme {
         VideoGridContent(
-            videoItemSelection = VideoItemSelection.getDefault().apply {
-                isSelectionMode = true
+            videoItemSelection = VideoItemSelection().apply {
+                updateIsSelectionMode(true)
             },
             videoItems = galleryUiState.data,
             onRemoveVideos = {},
