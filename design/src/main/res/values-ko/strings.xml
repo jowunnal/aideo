@@ -4,6 +4,10 @@
     <!-- Gallery Screen -->
     <string name="gallery_title">갤러리</string>
     <string name="gallery_empty">비어 있음</string>
+    <string name="gallery_new_project">새 프로젝트</string>
+    <string name="gallery_new_project_desc">비디오 업로드 &amp; 번역</string>
+    <string name="gallery_recently_completed">최근 완료</string>
+    <string name="gallery_view_all">전체 보기</string>
     <string name="content_desc_play_video">비디오 재생</string>
 
     <!-- Settings Screen -->
@@ -136,7 +140,28 @@
     <string name="subscription_footer_managed_by">• 구독은 Google Play를 통해 관리됩니다.</string>
     <string name="subscription_footer_auto_renewal">• 구독 기간이 끝나기 최소 24시간 전에 취소하지 않으면 자동으로 갱신됩니다.</string>
     <string name="subscription_footer_refund_policy">• 환불 정책은 Google Play 정책을 따릅니다.</string>
+    <string name="subscription_error_headline">오류가 발생했어요.</string>
+    <string name="subscription_error_product_not_found">존재하지 않는 상품이에요.</string>
 
     <!-- Term of Service Screen -->
     <string name="term_title">이용 약관</string>
+
+    <!-- Setting Screen (More) -->
+    <string name="setting_title">더보기</string>
+    <string name="setting_section_ai_model">AI 모델 설정</string>
+    <string name="setting_ai_models_languages">AI 모델 및 언어</string>
+    <string name="setting_ai_models_languages_desc">AI 모델 및 언어 설정 구성</string>
+    <string name="setting_section_subscription">구독</string>
+    <string name="setting_manage_subscription">구독 관리</string>
+    <string name="setting_manage_subscription_desc">구독 플랜 확인 및 업그레이드</string>
+    <string name="setting_section_support">지원</string>
+    <string name="setting_term_desc">이용 약관 보기</string>
+
+    <!-- Library Screen -->
+    <string name="library_title">라이브러리</string>
+    <string name="library_project_count">%d개 프로젝트</string>
+    <string name="library_projects_count">%d개 프로젝트</string>
+    <string name="library_sort_newest">최신순</string>
+    <string name="library_sort_oldest">오래된순</string>
+    <string name="library_empty">완료된 프로젝트가 없습니다</string>
 </resources>

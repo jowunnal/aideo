@@ -4,6 +4,10 @@
     <!-- Gallery Screen -->
     <string name="gallery_title">ギャラリー</string>
     <string name="gallery_empty">空です</string>
+    <string name="gallery_new_project">新規プロジェクト</string>
+    <string name="gallery_new_project_desc">動画をアップロード＆翻訳</string>
+    <string name="gallery_recently_completed">最近完了</string>
+    <string name="gallery_view_all">すべて見る</string>
     <string name="content_desc_play_video">動画を再生</string>
 
     <!-- Settings Screen -->
@@ -136,7 +140,28 @@
     <string name="subscription_footer_managed_by">• サブスクリプションはGoogle Playを通じて管理されます。</string>
     <string name="subscription_footer_auto_renewal">• サブスクリプション期間終了の24時間前までにキャンセルしないと、自動的に更新されます。</string>
     <string name="subscription_footer_refund_policy">• 返金ポリシーはGoogle Playポリシーに従います。</string>
+    <string name="subscription_error_headline">エラーが発生しました。</string>
+    <string name="subscription_error_product_not_found">存在しない商品です。</string>
 
     <!-- Term of Service Screen -->
     <string name="term_title">利用規約</string>
+
+    <!-- Setting Screen (More) -->
+    <string name="setting_title">その他</string>
+    <string name="setting_section_ai_model">AIモデル設定</string>
+    <string name="setting_ai_models_languages">AIモデルと言語</string>
+    <string name="setting_ai_models_languages_desc">AIモデルと言語設定を構成</string>
+    <string name="setting_section_subscription">サブスクリプション</string>
+    <string name="setting_manage_subscription">サブスクリプション管理</string>
+    <string name="setting_manage_subscription_desc">プランの確認とアップグレード</string>
+    <string name="setting_section_support">サポート</string>
+    <string name="setting_term_desc">利用規約を表示</string>
+
+    <!-- Library Screen -->
+    <string name="library_title">ライブラリ</string>
+    <string name="library_project_count">%d件のプロジェクト</string>
+    <string name="library_projects_count">%d件のプロジェクト</string>
+    <string name="library_sort_newest">新しい順</string>
+    <string name="library_sort_oldest">古い順</string>
+    <string name="library_empty">完了したプロジェクトがありません</string>
 </resources>

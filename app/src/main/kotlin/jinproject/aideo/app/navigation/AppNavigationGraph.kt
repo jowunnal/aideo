@@ -15,11 +15,13 @@ import androidx.navigation.compose.NavHost
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.galleryNavGraph
-import jinproject.aideo.gallery.navigateToSetting
-import jinproject.aideo.gallery.navigateToSubscription
-import jinproject.aideo.gallery.navigateToSubscriptionManagement
-import jinproject.aideo.gallery.navigateToTerm
+import jinproject.aideo.library.libraryNavGraph
+import jinproject.aideo.library.navigateToLibraryGraph
 import jinproject.aideo.player.playerNavGraph
+import jinproject.aideo.setting.navigateToSettingAIModel
+import jinproject.aideo.setting.navigateToSubscription
+import jinproject.aideo.setting.navigateToTerm
+import jinproject.aideo.setting.settingNavigation
 
 @Composable
 internal fun NavigationGraph(
@@ -40,15 +42,63 @@ internal fun NavigationGraph(
         },
     ) {
         galleryNavGraph(
-            navigateToSetting = navController::navigateToSetting,
-            navigatePopBackStack = navController::popBackStackIfCan,
-            navigateToSubscription = navController::navigateToSubscription,
-            navigateToSubscriptionManagement = navController::navigateToSubscriptionManagement,
-            navigateToTerm = navController::navigateToTerm,
+            navigateToLibrary = navController::navigateToLibraryGraph,
         )
+
+        libraryNavGraph()
 
         playerNavGraph(
             navigatePopBackStack = navController::popBackStackIfCan
         )
+
+        settingNavigation(
+            navigateToSettingAIModel = navController::navigateToSettingAIModel,
+            navigateToSubscription = navController::navigateToSubscription,
+            navigateToTerm = navController::navigateToTerm,
+            navigatePopBackStack = navController::popBackStackIfCan
+        )
     }
+}
+
+
+internal fun NavigationSuiteScope.navigationSuiteItems(
+    currentDestination: NavDestination?,
+    itemColors: NavigationSuiteItemColors,
+    onClick: (TopLevelRoute) -> Unit,
+) {
+    TopLevelRoutes.forEach { destination ->
+        val selected = currentDestination.isDestinationInHierarchy(destination)
+
+        item(
+            selected = selected,
+            onClick = { onClick(destination) },
+            icon = {
+                if (!selected)
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = destination.icon),
+                        contentDescription = "clickIcon",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                else
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = destination.iconClicked),
+                        contentDescription = "clickedIcon",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+            },
+            colors = itemColors,
+        )
+    }
+}
+
+@Immutable
+internal object NavigationDefaults {
+    @Composable
+    fun navigationIndicatorColor() = MaterialTheme.colorScheme.surface
+
+    @Composable
+    fun containerColor() = MaterialTheme.colorScheme.surface
+
+    @Composable
+    fun contentColor() = MaterialTheme.colorScheme.onSurface
 }

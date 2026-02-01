@@ -4,7 +4,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navOptions
+import jinproject.aideo.core.TopLevelRoute
+import jinproject.aideo.gallery.GalleryRoute
+import jinproject.aideo.gallery.navigateToGalleryGraph
+import jinproject.aideo.library.LibraryRoute
+import jinproject.aideo.library.navigateToLibraryGraph
+import jinproject.aideo.setting.SettingRoute
+import jinproject.aideo.setting.navigateToSettingGraph
+
+internal val TopLevelRoutes: List<TopLevelRoute> = listOf(
+    GalleryRoute.Gallery,
+    LibraryRoute.Library,
+    SettingRoute.Setting,
+)
 
 @Composable
 internal fun rememberRouter(navController: NavHostController) =
@@ -15,7 +33,40 @@ internal fun rememberRouter(navController: NavHostController) =
  * @param navController navigation을 수행하는 주체
  */
 @Stable
-internal class Router(val navController: NavHostController)
+internal class Router(val navController: NavHostController) {
+
+    val currentDestination: NavDestination?
+        @Composable get() = navController
+            .currentBackStackEntryAsState().value?.destination
+
+    internal fun navigateTopLevelDestination(topLevelRoute: TopLevelRoute) {
+        val navOptions = navOptions {
+            navController.currentBackStackEntry?.destination?.route?.let {
+                popUpTo(it) {
+                    inclusive = true
+                }
+            }
+            launchSingleTop = true
+        }
+
+        when (topLevelRoute) {
+            is GalleryRoute.Gallery -> navController.navigateToGalleryGraph(navOptions)
+            is LibraryRoute.Library -> navController.navigateToLibraryGraph(navOptions)
+            is SettingRoute.Setting -> navController.navigateToSettingGraph(navOptions)
+        }
+    }
+
+}
+
+fun NavDestination?.isBarHasToBeShown(): Boolean =
+    this?.let {
+        TopLevelRoutes.any { topLevelRoute -> hasRoute(route = topLevelRoute::class) }
+    } == true
+
+fun <T> NavDestination?.isDestinationInHierarchy(destination: T) =
+    this?.hierarchy?.any {
+        it.hasRoute(destination!!::class)
+    } == true
 
 fun NavController.popBackStackIfCan() {
     this.previousBackStackEntry?.let {

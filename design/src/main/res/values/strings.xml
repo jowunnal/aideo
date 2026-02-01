@@ -4,6 +4,10 @@
     <!-- Gallery Screen -->
     <string name="gallery_title">Gallery</string>
     <string name="gallery_empty">Empty</string>
+    <string name="gallery_new_project">New Project</string>
+    <string name="gallery_new_project_desc">Upload Video &amp; Translate</string>
+    <string name="gallery_recently_completed">Recently Completed</string>
+    <string name="gallery_view_all">View all</string>
     <string name="content_desc_play_video">Play Video</string>
 
     <!-- Settings Screen -->
@@ -136,7 +140,28 @@
     <string name="subscription_footer_managed_by">• Subscription is managed through Google Play.</string>
     <string name="subscription_footer_auto_renewal">• Subscription automatically renews unless cancelled at least 24 hours before the end of the subscription period.</string>
     <string name="subscription_footer_refund_policy">• Refund policy follows Google Play policy.</string>
+    <string name="subscription_error_headline">An error occurred.</string>
+    <string name="subscription_error_product_not_found">Product not found.</string>
 
     <!-- Term of Service Screen -->
     <string name="term_title">Terms of Service</string>
+
+    <!-- Setting Screen (More) -->
+    <string name="setting_title">More</string>
+    <string name="setting_section_ai_model">AI Model Setting</string>
+    <string name="setting_ai_models_languages">AI Models &amp; Languages</string>
+    <string name="setting_ai_models_languages_desc">Configure AI model and language settings</string>
+    <string name="setting_section_subscription">Subscription</string>
+    <string name="setting_manage_subscription">Manage Subscription</string>
+    <string name="setting_manage_subscription_desc">View and upgrade your plan</string>
+    <string name="setting_section_support">Support</string>
+    <string name="setting_term_desc">View terms and conditions</string>
+
+    <!-- Library Screen -->
+    <string name="library_title">Library</string>
+    <string name="library_project_count">%d project</string>
+    <string name="library_projects_count">%d projects</string>
+    <string name="library_sort_newest">Newest first</string>
+    <string name="library_sort_oldest">Oldest first</string>
+    <string name="library_empty">No completed projects yet</string>
 </resources>
