@@ -68,7 +68,7 @@ internal fun LibraryVideoCard(
                         drawContent()
                         drawRect(Color.Black.copy(alpha = 0.3f))
                     },
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.FillWidth,
             )
 
             Image(
