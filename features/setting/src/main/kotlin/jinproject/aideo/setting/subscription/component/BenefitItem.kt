@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery.subs.component
+package jinproject.aideo.setting.subscription.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

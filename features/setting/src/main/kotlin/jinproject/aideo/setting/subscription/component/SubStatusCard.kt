@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery.submanagement.component
+package jinproject.aideo.setting.subscription.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,20 +25,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import jinproject.aideo.core.BillingModule.Product
 import jinproject.aideo.design.R
-import jinproject.aideo.design.theme.AideoTheme
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 import jinproject.aideo.design.component.VerticalSpacer
 import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.component.text.TitleMediumText
 import jinproject.aideo.design.theme.AideoColor
-import jinproject.aideo.gallery.submanagement.SubscriptionManagementUiState
+import jinproject.aideo.design.theme.AideoTheme
+import jinproject.aideo.setting.subscription.SubscriptionUiState
 
 @Composable
 internal fun SubStatusCard(
-    uiState: SubscriptionManagementUiState.Subscribing,
+    uiState: SubscriptionUiState.Subscribing,
 ) {
     Column(
         modifier = Modifier
@@ -65,8 +61,8 @@ internal fun SubStatusCard(
                     .background(
                         brush = Brush.linearGradient(
                             colors = listOf(
-                                AideoColor.amber_300.color,
-                                AideoColor.orange_500.color
+                                AideoColor.primary.color,
+                                AideoColor.deep_primary.color
                             )
                         ),
                         shape = CircleShape
@@ -148,14 +144,7 @@ internal fun SubStatusCard(
 private fun SubStatusCardPreview() {
     AideoTheme {
         SubStatusCard(
-            uiState = SubscriptionManagementUiState.Subscribing(
-                id = Product.REMOVE_AD.id,
-                planNameResId = R.string.billing_product_remove_ad,
-                price = "4,900원",
-                purchaseTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                billingPeriod = "P1M",
-                isAutoRenewing = true,
-            )
+            uiState = SubscriptionUiState.Subscribing.getDefault()
         )
     }
 }

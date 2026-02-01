@@ -1,6 +1,7 @@
-package jinproject.aideo.gallery.term
+package jinproject.aideo.setting.term
 
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,7 +28,9 @@ internal fun TermScreen(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
-                WebView(context)
+                WebView(context).apply {
+                    webViewClient = WebViewClient()
+                }
             },
             update = { webView ->
                 webView.loadUrl("https://sites.google.com/d/1bxuuJY1HGvxCRHkpHrePsohl7zR0QGOi/p/1mGeRAVteqiyAfJb4RbkC__nf247bALc5/edit")

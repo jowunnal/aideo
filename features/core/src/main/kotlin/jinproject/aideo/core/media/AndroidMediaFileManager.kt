@@ -29,10 +29,16 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteOrder
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.ExperimentalTime
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -64,10 +70,11 @@ class AndroidMediaFileManager @Inject constructor(
             var name: String? = null
             val id = videoUriString.toUri().lastPathSegment?.toLong()
                 ?: throw IllegalArgumentException("Invalid URI")
+            var date: Long? = null
 
             val projection = arrayOf(
                 MediaStore.Video.Media.DISPLAY_NAME,
-                MediaStore.Video.Media.DATE_ADDED,
+                MediaStore.Video.Media.DATE_TAKEN,
             )
 
             context.contentResolver.query(
@@ -79,14 +86,21 @@ class AndroidMediaFileManager @Inject constructor(
             )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex =
-                        cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                        cursor.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME)
+
+                    val dateIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATE_TAKEN)
 
                     if (nameIndex != -1)
                         name = cursor.getString(nameIndex)
+
+                    if (dateIndex != -1)
+                        date = cursor.getLong(dateIndex)
+
+                    Timber.tag("test").d("Queried Video Info[name: $name, date: $date, id: $id]")
                 }
             }
 
-            if (name != null) {
+            if (name != null && date != null) {
                 context.contentResolver.takePersistableUriPermission(
                     videoUri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -99,6 +113,12 @@ class AndroidMediaFileManager @Inject constructor(
                     thumbnailPath = createThumbnailAndGetPath(
                         uri = videoUri.toString(),
                         fileName = id.toString().toThumbnailFileIdentifier()
+                    ),
+                    date = LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(date),
+                        ZoneId.systemDefault()
+                    ).format(
+                        DateTimeFormatter.ofPattern("yyyy.MM.dd")
                     )
                 )
             } else
@@ -331,4 +351,5 @@ data class VideoItem(
     val id: Long,
     val title: String,
     val thumbnailPath: String?,
+    val date: String = "",
 ) : Parcelable

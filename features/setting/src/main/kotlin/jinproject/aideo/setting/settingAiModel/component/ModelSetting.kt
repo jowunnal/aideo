@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery.setting.component
+package jinproject.aideo.setting.settingAiModel.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -25,7 +25,7 @@ import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoColor
 import jinproject.aideo.design.theme.AideoTheme
-import jinproject.aideo.gallery.setting.ModelSettingState
+import jinproject.aideo.setting.settingAiModel.ModelSettingState
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentSetOf
 

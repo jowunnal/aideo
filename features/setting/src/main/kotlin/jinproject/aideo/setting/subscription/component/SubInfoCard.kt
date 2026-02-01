@@ -1,4 +1,4 @@
-package jinproject.aideo.gallery.submanagement.component
+package jinproject.aideo.setting.subscription.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -38,24 +38,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import jinproject.aideo.core.BillingModule.Product
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.HorizontalDivider
 import jinproject.aideo.design.component.PopUp
 import jinproject.aideo.design.component.PopUpInfo
-import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.text.DescriptionAnnotatedSmallText
 import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionMediumText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoTheme
-import jinproject.aideo.gallery.submanagement.SubscriptionManagementUiState
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import jinproject.aideo.setting.subscription.SubscriptionUiState
 
 @Composable
 internal fun SubInfoCard(
-    uiState: SubscriptionManagementUiState.Subscribing,
+    uiState: SubscriptionUiState.Subscribing,
     density: Density = LocalDensity.current,
 ) {
     var popUpInfo by remember {
@@ -91,7 +87,12 @@ internal fun SubInfoCard(
                     popUpInfo = popUpInfo
                 ) {
                     val annotatedString = buildAnnotatedString {
-                        append(stringResource(R.string.subscription_management_info_popup_intro, " "))
+                        append(
+                            stringResource(
+                                R.string.subscription_management_info_popup_intro,
+                                " "
+                            )
+                        )
                         withStyle(
                             SpanStyle(
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -231,14 +232,7 @@ private fun InfoRow(
 private fun SubInfoCardPreview() {
     AideoTheme {
         SubInfoCard(
-            uiState = SubscriptionManagementUiState.Subscribing(
-                id = Product.REMOVE_AD.id,
-                planNameResId = R.string.billing_product_remove_ad,
-                price = "4,900원",
-                purchaseTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                billingPeriod = "P1M",
-                isAutoRenewing = true,
-            )
+            uiState = SubscriptionUiState.Subscribing.getDefault()
         )
     }
 }
@@ -248,14 +242,7 @@ private fun SubInfoCardPreview() {
 private fun SubInfoCardNonAutoRenewingPreview() {
     AideoTheme {
         SubInfoCard(
-            uiState = SubscriptionManagementUiState.Subscribing(
-                id = Product.REMOVE_AD.id,
-                planNameResId = R.string.billing_product_remove_ad,
-                price = "4,900원",
-                purchaseTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                billingPeriod = "P1M",
-                isAutoRenewing = false,
-            )
+            uiState = SubscriptionUiState.Subscribing.getDefault()
         )
     }
 }

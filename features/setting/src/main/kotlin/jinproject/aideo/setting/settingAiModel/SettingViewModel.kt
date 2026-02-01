@@ -1,11 +1,9 @@
-package jinproject.aideo.gallery.setting
+package jinproject.aideo.setting.settingAiModel
 
-import android.content.Context
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
@@ -36,7 +34,9 @@ class SettingViewModel @Inject constructor(
                     ?: LanguageCode.Auto,
                 translationLanguage = LanguageCode.findByCode(playerSetting.subtitleLanguage)
                     ?: LanguageCode.Korean,
-                speechRecognitionSelectedModel = SpeechRecognitionAvailableModel.findByName(playerSetting.speechRecognitionModel),
+                speechRecognitionSelectedModel = SpeechRecognitionAvailableModel.findByName(
+                    playerSetting.speechRecognitionModel
+                ),
                 translationSelectedModel = TranslationAvailableModel.findByName(playerSetting.translationModel)
             )
         }.stateIn(
@@ -60,7 +60,7 @@ class SettingViewModel @Inject constructor(
     fun updateSpeechRecognitionModel(model: SpeechRecognitionAvailableModel) {
         viewModelScope.launch {
             localSettingDataSource.setSelectedSpeechRecognitionModel(model.name)
-            if(model == SpeechRecognitionAvailableModel.Whisper && settingUiState.value.inferenceLanguage == LanguageCode.Auto)
+            if (model == SpeechRecognitionAvailableModel.Whisper && settingUiState.value.inferenceLanguage == LanguageCode.Auto)
                 localSettingDataSource.setInferenceTargetLanguage(LanguageCode.Korean.code)
 
         }

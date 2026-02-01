@@ -1,42 +1,32 @@
-package jinproject.aideo.gallery.setting
+package jinproject.aideo.setting.settingAiModel
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.play.core.aipacks.model.AiPackStatus
-import jinproject.aideo.core.BillingModule
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackAssetPath
@@ -46,58 +36,41 @@ import jinproject.aideo.design.component.DropDownMenuCustom
 import jinproject.aideo.design.component.TextDialog
 import jinproject.aideo.design.component.VerticalSpacer
 import jinproject.aideo.design.component.bar.BackButtonTitleAppBar
-import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.getShownDialogState
 import jinproject.aideo.design.component.rememberDialogState
 import jinproject.aideo.design.component.text.DescriptionLargeText
 import jinproject.aideo.design.component.text.DescriptionSmallText
 import jinproject.aideo.design.theme.AideoColor
 import jinproject.aideo.design.theme.AideoTheme
-import jinproject.aideo.gallery.setting.component.ModelSetting
-import jinproject.aideo.gallery.setting.component.SubscriptionManagementSetting
+import jinproject.aideo.setting.settingAiModel.component.ModelSetting
 
 @Composable
-fun SettingScreen(
+fun SettingAiModelScreen(
     viewModel: SettingViewModel = hiltViewModel(),
     navigatePopBackStack: () -> Unit,
-    navigateToSubscriptionManagement: () -> Unit,
-    navigateToSubscription: () -> Unit,
-    navigateToTerm: () -> Unit,
 ) {
     val settingUiState by viewModel.settingUiState.collectAsStateWithLifecycle()
-    val billingModule = LocalBillingModule.current
-    val hasSubscription by produceState(initialValue = false, billingModule) {
-        value = billingModule.isProductPurchased(BillingModule.Product.REMOVE_AD)
-    }
 
-    SettingScreen(
+    SettingAiModelScreen(
         settingUiState = settingUiState,
-        hasSubscription = hasSubscription,
         updateInferenceLanguageCode = viewModel::updateInferenceLanguage,
         updateTranslationLanguageCode = viewModel::updateTranslationLanguage,
         updateSpeechRecognitionModel = viewModel::updateSpeechRecognitionModel,
         updateTranslationModel = viewModel::updateTranslationModel,
         navigatePopBackStack = navigatePopBackStack,
-        navigateToSubscriptionManagement = navigateToSubscriptionManagement,
-        navigateToSubscription = navigateToSubscription,
-        navigateToTerm = navigateToTerm,
     )
 
 }
 
 @Composable
-internal fun SettingScreen(
+internal fun SettingAiModelScreen(
     settingUiState: SettingUiState,
-    hasSubscription: Boolean,
     context: Context = LocalContext.current,
     updateInferenceLanguageCode: (LanguageCode) -> Unit,
     updateTranslationLanguageCode: (LanguageCode) -> Unit,
     updateSpeechRecognitionModel: (SpeechRecognitionAvailableModel) -> Unit,
     updateTranslationModel: (TranslationAvailableModel) -> Unit,
     navigatePopBackStack: () -> Unit,
-    navigateToSubscriptionManagement: () -> Unit,
-    navigateToSubscription: () -> Unit,
-    navigateToTerm: () -> Unit,
 ) {
     var dialogState by rememberDialogState()
 
@@ -245,37 +218,6 @@ internal fun SettingScreen(
                     updateTranslationModel(TranslationAvailableModel.findByName(item))
             }
         )
-
-        VerticalSpacer(20.dp)
-
-        SubscriptionManagementSetting(
-            hasSubscription = hasSubscription,
-            navigateToSubscriptionManagement = navigateToSubscriptionManagement,
-            navigateToSubscription = navigateToSubscription,
-        )
-
-        VerticalSpacer(20.dp)
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .shadow(1.dp, RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(10.dp))
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DescriptionSmallText(
-                text = stringResource(R.string.term_title),
-            )
-            Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_right_small),
-                contentDescription = "Navigate to term of service screen",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.clickableAvoidingDuplication(onClick = navigateToTerm)
-            )
-        }
     }
 }
 
@@ -320,16 +262,12 @@ private fun PreviewSettingScreen(
     @PreviewParameter(SettingUiStatePreviewParameter::class)
     settingUiState: SettingUiState
 ) = AideoTheme {
-    SettingScreen(
+    SettingAiModelScreen(
         settingUiState = settingUiState,
-        hasSubscription = true,
         updateInferenceLanguageCode = {},
         updateTranslationLanguageCode = {},
         updateSpeechRecognitionModel = {},
         updateTranslationModel = {},
         navigatePopBackStack = {},
-        navigateToSubscriptionManagement = {},
-        navigateToSubscription = {},
-        navigateToTerm = {},
     )
 }
