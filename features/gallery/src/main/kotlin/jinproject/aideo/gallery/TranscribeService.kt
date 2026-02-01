@@ -78,9 +78,18 @@ class TranscribeService : LifecycleService() {
             }
         }
 
-        val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            intent?.getParcelableExtra("videoItem", VideoItem::class.java)
-        else
+        val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val galleryVideoItem = intent?.getParcelableExtra("videoItem", VideoItem::class.java)
+            galleryVideoItem?.let {
+                VideoItem(
+                    uri = galleryVideoItem.uri,
+                    id = galleryVideoItem.id,
+                    thumbnailPath = galleryVideoItem.thumbnailPath,
+                    date = galleryVideoItem.date,
+                    title = "",
+                )
+            }
+        } else
             intent?.getParcelableExtra("videoItem")
 
         val offFlag = intent?.getBooleanExtra("status", false)

@@ -1,7 +1,7 @@
 package jinproject.aideo.gallery.gallery
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.gallery.gallery.model.GalleryVideoItem
 import kotlinx.collections.immutable.persistentListOf
 
 class GalleryUiStatePreviewParameter : PreviewParameterProvider<GalleryUiState> {
@@ -9,23 +9,23 @@ class GalleryUiStatePreviewParameter : PreviewParameterProvider<GalleryUiState> 
         get() = sequenceOf(
             GalleryUiState(
                 data = persistentListOf(
-                    VideoItem(
+                    GalleryVideoItem(
                         uri = "",
                         id = 0,
-                        title = "title",
                         thumbnailPath = "",
+                        date = "2025.01.28",
                     ),
-                    VideoItem(
+                    GalleryVideoItem(
                         uri = "",
-                        id = 0,
-                        title = "title",
+                        id = 1,
                         thumbnailPath = "",
+                        date = "2025.01.27",
                     ),
-                    VideoItem(
+                    GalleryVideoItem(
                         uri = "",
-                        id = 0,
-                        title = "title",
+                        id = 2,
                         thumbnailPath = "",
+                        date = "2025.01.26",
                     ),
                 ),
                 languageCode = "",

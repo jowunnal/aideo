@@ -10,10 +10,12 @@ import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.common.io.Files.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.media.VideoItem
+import jinproject.aideo.gallery.gallery.model.GalleryVideoItem
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
@@ -44,7 +46,14 @@ class GalleryViewModel @Inject constructor(
         }
 
         GalleryUiState(
-            data = videoItems.toImmutableList(),
+            data = videoItems.sortedByDescending { it.date }.take(2).map { item ->
+                GalleryVideoItem(
+                    uri = item.uri,
+                    id = item.id,
+                    thumbnailPath = item.thumbnailPath,
+                    date = item.date
+                )
+            }.toImmutableList(),
             languageCode = language
         )
     }.restartableStateIn(
@@ -92,33 +101,14 @@ class GalleryViewModel @Inject constructor(
     }
 }
 
+@Stable
 data class GalleryUiState(
-    override val data: ImmutableList<VideoItem>,
+    override val data: ImmutableList<GalleryVideoItem>,
     val languageCode: String,
-) : DownLoadedUiState<ImmutableList<VideoItem>>()
+) : DownLoadedUiState<ImmutableList<GalleryVideoItem>>()
 
 sealed class GalleryEvent {
     data class UpdateVideoSet(val videoUris: Set<String>) : GalleryEvent()
     data class RemoveVideoSet(val videoUris: Set<String>) : GalleryEvent()
     data class UpdateLanguage(val languageCode: LanguageCode) : GalleryEvent()
-}
-
-@Stable
-class VideoItemSelection {
-    var isSelectionMode by mutableStateOf(false)
-        private set
-
-    val selectedUris = mutableStateSetOf<String>()
-
-    fun addSelectedUri(uri: String) {
-        selectedUris.add(uri)
-    }
-
-    fun removeSelectedUri(uri: String) {
-        selectedUris.remove(uri)
-    }
-
-    fun updateIsSelectionMode(bool: Boolean) {
-        isSelectionMode = bool
-    }
 }
