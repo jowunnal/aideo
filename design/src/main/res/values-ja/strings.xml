@@ -157,6 +157,11 @@
     <string name="setting_section_support">サポート</string>
     <string name="setting_term_desc">利用規約を表示</string>
 
+    <!-- Video Status -->
+    <string name="video_status_completed">完了</string>
+    <string name="video_status_need_translate">翻訳が必要</string>
+    <string name="video_status_need_inference">推論が必要</string>
+
     <!-- Library Screen -->
     <string name="library_title">ライブラリ</string>
     <string name="library_project_count">%d件のプロジェクト</string>

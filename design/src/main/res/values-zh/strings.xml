@@ -157,6 +157,11 @@
     <string name="setting_section_support">支持</string>
     <string name="setting_term_desc">查看条款和条件</string>
 
+    <!-- Video Status -->
+    <string name="video_status_completed">已完成</string>
+    <string name="video_status_need_translate">需要翻译</string>
+    <string name="video_status_need_inference">需要推理</string>
+
     <!-- Library Screen -->
     <string name="library_title">资料库</string>
     <string name="library_project_count">%d个项目</string>

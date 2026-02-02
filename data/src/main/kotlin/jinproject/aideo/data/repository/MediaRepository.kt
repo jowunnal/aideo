@@ -23,4 +23,10 @@ interface MediaRepository {
             override val cause: Throwable? = null
         ) : TranscriptionException()
     }
+
+    companion object {
+        const val EXIST = 1
+        const val NEED_TRANSLATE = 0
+        const val NEED_INFERENCE = -1
+    }
 }

@@ -157,6 +157,11 @@
     <string name="setting_section_support">지원</string>
     <string name="setting_term_desc">이용 약관 보기</string>
 
+    <!-- Video Status -->
+    <string name="video_status_completed">완료됨</string>
+    <string name="video_status_need_translate">번역 필요</string>
+    <string name="video_status_need_inference">추론 필요</string>
+
     <!-- Library Screen -->
     <string name="library_title">라이브러리</string>
     <string name="library_project_count">%d개 프로젝트</string>

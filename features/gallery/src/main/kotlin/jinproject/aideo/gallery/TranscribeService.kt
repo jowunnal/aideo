@@ -118,12 +118,12 @@ class TranscribeService : LifecycleService() {
         val isSubtitleExist = mediaRepository.checkSubtitleFileExist(videoItem.id)
 
         when (isSubtitleExist) {
-            1 -> {
+            MediaRepository.EXIST -> {
                 // 이미 자막이 존재하는 경우: 딥링크로 플레이어 이동
                 launchPlayer(videoItem.uri)
             }
 
-            -1 -> {
+            MediaRepository.NEED_INFERENCE -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
                 extractAudioAndTranscribe(videoItem = videoItem)
             }

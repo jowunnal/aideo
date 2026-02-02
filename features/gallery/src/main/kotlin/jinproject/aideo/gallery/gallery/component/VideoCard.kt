@@ -3,7 +3,6 @@ package jinproject.aideo.gallery.gallery.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,9 +35,9 @@ import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.SubcomposeAsyncImageWithPreview
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.component.text.DescriptionSmallText
-import jinproject.aideo.design.component.text.FooterText
 import jinproject.aideo.design.utils.PreviewAideoTheme
 import jinproject.aideo.gallery.gallery.model.GalleryVideoItem
+import jinproject.aideo.gallery.gallery.model.VideoStatus
 
 @Composable
 internal fun VideoCard(
@@ -109,11 +108,11 @@ internal fun VideoCard(
             Spacer(
                 modifier = Modifier
                     .size(8.dp)
-                    .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
+                    .background(videoItem.status.color.color, shape = CircleShape)
             )
             HorizontalSpacer(6.dp)
             DescriptionSmallText(
-                text = "Completed",
+                text = stringResource(videoItem.status.displayRes),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             )
         }
@@ -129,7 +128,8 @@ private fun VideoCardPreview() {
                 uri = "test",
                 id = 1,
                 thumbnailPath = null,
-                date = "2025.01.28"
+                date = "2025.01.28",
+                status = VideoStatus.COMPLETED
             ),
             onClick = {}
         )

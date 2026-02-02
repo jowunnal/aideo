@@ -12,7 +12,18 @@ data class GalleryVideoItem(
     val id: Long,
     val thumbnailPath: String?,
     val date: String,
-) : Parcelable
+    val status: VideoStatus,
+) : Parcelable {
+    companion object {
+        fun fromVideoItem(videoItem: VideoItem, status: VideoStatus): GalleryVideoItem = GalleryVideoItem(
+            uri = videoItem.uri,
+            id = videoItem.id,
+            thumbnailPath = videoItem.thumbnailPath,
+            date = videoItem.date,
+            status = status,
+        )
+    }
+}
 
 fun GalleryVideoItem.toVideoItem(): VideoItem = VideoItem(
     uri = uri,

@@ -15,7 +15,6 @@ import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -23,7 +22,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import javax.inject.Inject
 
@@ -49,7 +47,8 @@ class PlayerViewModel @Inject constructor(
         localSettingDataSource.getSubtitleLanguage().onEach { language ->
             val id = currentVideoUri.toVideoItemId()
 
-            val subtitleExist = mediaRepository.checkSubtitleFileExist(currentVideoUri.toVideoItemId()) == 1
+            val subtitleExist =
+                mediaRepository.checkSubtitleFileExist(currentVideoUri.toVideoItemId()) == MediaRepository.EXIST
 
             if (!subtitleExist) {
                 translationManager.translateSubtitle(id)
@@ -86,7 +85,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     suspend fun isSubtitleExist(language: String): Boolean {
-        return mediaRepository.checkSubtitleFileExist(id = currentVideoUri.toVideoItemId(), srcLang = language) == 1
+        return mediaRepository.checkSubtitleFileExist(
+            id = currentVideoUri.toVideoItemId(),
+            srcLang = language
+        ) == MediaRepository.EXIST
     }
 
     fun prepareExoplayer() {

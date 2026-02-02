@@ -157,6 +157,11 @@
     <string name="setting_section_support">Support</string>
     <string name="setting_term_desc">View terms and conditions</string>
 
+    <!-- Video Status -->
+    <string name="video_status_completed">Completed</string>
+    <string name="video_status_need_translate">Need translate</string>
+    <string name="video_status_need_inference">Need inference</string>
+
     <!-- Library Screen -->
     <string name="library_title">Library</string>
     <string name="library_project_count">%d project</string>

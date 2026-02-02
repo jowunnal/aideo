@@ -44,11 +44,11 @@ class MediaRepositoryImpl @Inject constructor(
                 )
 
             return if (isSubtitleByLanguageExist)
-                1
+                MediaRepository.EXIST
             else
-                0
+                MediaRepository.NEED_TRANSLATE
         }
 
-        return -1
+        return MediaRepository.NEED_INFERENCE
     }
 }
