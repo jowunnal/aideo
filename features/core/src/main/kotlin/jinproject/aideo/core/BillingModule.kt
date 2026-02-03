@@ -1,7 +1,9 @@
 package jinproject.aideo.core
 
 import android.app.Activity
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import jinproject.aideo.design.R
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -16,11 +18,11 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
-import jinproject.aideo.core.BillingModule.Product.Companion.findProductById
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
@@ -28,7 +30,6 @@ import java.util.concurrent.CopyOnWriteArraySet
  *
  * @param activity 결제에 필요한 컨텍스트, 내부적으로 AppicationContext 참조하여 사용
  * @param coroutineScope 코루틴 호환하여 실행될 코루틴 스쿠프
- * @param callback 결제 실행 후 준비,성공,실패 콜백
  * @property isReady 결제를 수행하기에 준비된 상태인지의 여부
  */
 @Immutable
@@ -46,8 +47,7 @@ class BillingModule(
                         coroutineScope.launch(Dispatchers.IO) {
                             handlePurchase(
                                 purchase = purchase,
-                                isConsumable = purchase.products.first()
-                                    .findProductById()!!.isConsumable
+                                isConsumable = Product.findProductById(purchase.products.first())!!.isConsumable
                             )
                         }
                     }
@@ -56,6 +56,7 @@ class BillingModule(
 
             else -> {
                 failListener.call(billingResult.responseCode)
+                Timber.e(billingResult.debugMessage)
             }
         }
     }
@@ -63,35 +64,32 @@ class BillingModule(
     private val billingClient: BillingClient = BillingClient.newBuilder(activity)
         .setListener(purChasedUpdatedListener)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+        .enableAutoServiceReconnection()
         .build()
 
     init {
-        initBillingClient(3)
+        initBillingClient()
     }
 
     /**
      * 구글 결제 백엔드와의 연결 활성화
      */
-    fun initBillingClient(maxCount: Int) {
-        if (maxCount > 0) {
-            billingClient.startConnection(object : BillingClientStateListener {
-                override fun onBillingSetupFinished(billingResult: BillingResult) {
-                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        readyListener.call(this@BillingModule)
-                        isReady = true
-                    } else {
-                        failListener.call(billingResult.responseCode)
-                        isReady = false
-                        initBillingClient(maxCount - 1)
-                    }
-                }
-
-                override fun onBillingServiceDisconnected() {
+    fun initBillingClient() {
+        billingClient.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    readyListener.call(this@BillingModule)
+                    isReady = true
+                } else {
+                    failListener.call(billingResult.responseCode)
                     isReady = false
-                    initBillingClient(maxCount - 1)
                 }
-            })
-        }
+            }
+
+            override fun onBillingServiceDisconnected() {
+                isReady = false
+            }
+        })
     }
 
     private val successListener: BillingListener<Purchase> = BillingListener()
@@ -137,14 +135,15 @@ class BillingModule(
     }
 
     /**
-     * 구매가능한 상품이면 상품정보를 가져오는 함수
+     * 구매 가능한 상품의 상품 정보를 fetch
      *
-     * @param product : 상품
-     * @return 상품정보 또는 구매 가능한 상품이 아닌 경우 null
+     * @param products : 상품 목록
+     * @return 상품정보 or 구매 가능한 상품이 아닌 경우 null
+     * @see Product
      */
     suspend fun getPurchasableProducts(
         products: List<Product>,
-    ): List<ProductDetails?>? {
+    ): List<ProductDetails>? {
         val productList = products.map { product ->
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(product.id)
@@ -161,37 +160,106 @@ class BillingModule(
         }
 
         if (productDetailsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-            return productDetailsResult.productDetailsList?.map { product ->
-                val availableProduct = product.productId.findProductById()
+            return productDetailsResult.productDetailsList?.mapNotNull { productDetails ->
+                val availableProduct = Product.findProductById(productDetails.productId)
+                    ?: return null // 존재하지 않는 상품 또는 Product 에 없는 상품
 
-                require(availableProduct != null) {
-                    "플레이 콘솔의 상품목록에 없는 상품이거나 Product 클래스의 요소에 선언 되지 않았습니다."
+                if (availableProduct.type == BillingClient.ProductType.SUBS) {
+                    val isSupportSub =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS).responseCode == BillingClient.BillingResponseCode.OK
+                    val isSupportSubUpdate =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE).responseCode == BillingClient.BillingResponseCode.OK
+
+                    if (!isSupportSub || !isSupportSubUpdate)
+                        return@mapNotNull null // Device's play-service 가 SUBS 를 지원하지 않음
                 }
 
                 if (availableProduct.isConsumable)
-                    product
+                    productDetails
                 else {
-                    val purchasedHistory = queryPurchaseAsync()
+                    val purchasedHistory = queryPurchaseAsync(availableProduct.type)
 
-                    purchasedHistory.find { it.products.contains(product.productId) }?.let {
-                        null
-                    } ?: product
+                    if (purchasedHistory.find { it.products.contains(productDetails.productId) } != null)
+                        null // 구매 기록이 있어, 더 이상 구매할 수 없음.
+                    else
+                        productDetails
                 }
             }
+        } else {
+            failListener.call(productDetailsResult.billingResult.responseCode)
+            return null
+        }
+    }
+
+    suspend fun queryProductDetails(
+        product: Product,
+    ): ProductDetails? {
+        val product = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(product.id)
+            .setProductType(product.type)
+            .build()
+
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(listOf(product))
+            .build()
+
+        val productDetailsResult = withContext(Dispatchers.IO) {
+            billingClient.queryProductDetails(params)
         }
 
-        return null
+        if (productDetailsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            return productDetailsResult.productDetailsList?.find { productDetails ->
+                if (productDetails.productType == BillingClient.ProductType.SUBS) {
+                    val isSupportSub =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS).responseCode == BillingClient.BillingResponseCode.OK
+                    val isSupportSubUpdate =
+                        billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE).responseCode == BillingClient.BillingResponseCode.OK
+
+                    if (!isSupportSub || !isSupportSubUpdate)
+                        return null // Device's play-service 가 SUBS 를 지원하지 않음
+                }
+
+                return productDetails
+            }
+        } else {
+            failListener.call(productDetailsResult.billingResult.responseCode)
+            return null
+        }
     }
 
     /**
      * 결제 플로우 실행
      *
-     * @param productDetails : 구매 가능한 상품
+     * @param productDetails : 구매 가능한 구독 상품
+     * @param offerIdx : 구독 상품의 선택된 옵션에 대한 index, 구독 상품이 아닌 경우 return
+     * @see getPurchasableProducts
      */
-    fun purchase(productDetails: ProductDetails) {
+    fun purchaseSubscription(productDetails: ProductDetails, offerIdx: Int) {
+        val offerToken = productDetails.subscriptionOfferDetails
+            ?.get(offerIdx)
+            ?.offerToken ?: return
+
         val productDetailsParamsList = listOf(
             BillingFlowParams.ProductDetailsParams.newBuilder()
                 .setProductDetails(productDetails)
+                .setOfferToken(offerToken)
+                .build()
+        )
+
+        val billingFlowParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(productDetailsParamsList)
+            .build()
+
+        billingClient.launchBillingFlow(activity, billingFlowParams)
+    }
+
+    fun purchaseOneTime(productDetails: ProductDetails) {
+        val offerToken = productDetails.oneTimePurchaseOfferDetails?.offerToken ?: return
+
+        val productDetailsParamsList = listOf(
+            BillingFlowParams.ProductDetailsParams.newBuilder()
+                .setProductDetails(productDetails)
+                .setOfferToken(offerToken)
                 .build()
         )
 
@@ -207,7 +275,7 @@ class BillingModule(
      *
      * 구매된 상태에 한하여,
      * 소비성 제품이면, 소비 처리후 콜백 실행
-     * 소비성 제품이 아니면, 승인되지 않은 경우, 승인 처리후 콜백 실행
+     * 소비성 제품이 아니고, 승인되지 않은 경우, 승인 처리후 콜백 실행
      *
      * @param purchase 구매 상품
      * @param isConsumable 소비성 제품 인지 아닌지
@@ -245,13 +313,13 @@ class BillingModule(
         }
 
     /**
-     * 구매 처리 수동 실행
-     *
+     * 구매 목록 가져오기
+     * @param type : 상품 타입(InApp, Sub)
      * @return 구매 목록 반환
      */
-    suspend fun queryPurchaseAsync(): List<Purchase> {
+    suspend fun queryPurchaseAsync(type: String): List<Purchase> {
         val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
+            .setProductType(type)
 
         val queryAsyncResult = withContext(Dispatchers.IO) {
             billingClient.queryPurchasesAsync(params.build())
@@ -272,66 +340,33 @@ class BillingModule(
         purchaseList.forEach { purchase ->
             handlePurchase(
                 purchase = purchase,
-                isConsumable = purchase.products.first().findProductById()!!.isConsumable,
+                isConsumable = Product.findProductById(purchase.products.first())!!.isConsumable,
             )
         }
     }
 
     /**
-     * 구매 목록내에서 특정 상품이 구매 와 승인 되었는지 확인
-     * @param purchaseList 구매 목록
-     * @param productId 비교할 상품 id
+     * 구매 목록내에서 특정 상품이 구매 및 승인 되었는지 확인
+     * @param product : 상품
      * @return 구매 후 승인 되었다면 true, 없으면 false
      */
     suspend fun isProductPurchased(product: Product): Boolean {
-        return queryPurchaseAsync().filter { purchase ->
+        return queryPurchaseAsync(product.type).filter { purchase ->
             purchase.isPurchasedAndAcknowledged()
-        }.find { purchase ->
+        }.any { purchase ->
             purchase.products.contains(product.id)
-        } != null
-    }
-
-    /**
-     * 구매 목록내에서 특정 상품이 구매 와 승인 되었는지 확인
-     * @param purchaseList 구매 목록
-     * @param productId 비교할 상품 id
-     * @return 구매 후 승인 되었다면 true, 없으면 false
-     */
-    fun isProductPurchased(product: Product, purchaseList: List<Purchase>): Boolean {
-        return purchaseList.filter { purchase ->
-            purchase.isPurchasedAndAcknowledged()
-        }.find { purchase ->
-            purchase.products.contains(product.id)
-        } != null
+        }
     }
 
     interface BillingCallback<T> {
         fun call(c: T)
     }
 
-    interface OnReadyListener : BillingCallback<BillingModule> {
-        override fun call(c: BillingModule) {
-            onReady(c)
-        }
+    interface OnReadyListener : BillingCallback<BillingModule>
 
-        fun onReady(billingModule: BillingModule)
-    }
+    interface OnSuccessListener : BillingCallback<Purchase>
 
-    interface OnSuccessListener : BillingCallback<Purchase> {
-        override fun call(c: Purchase) {
-            onSuccess(c)
-        }
-
-        fun onSuccess(purchase: Purchase)
-    }
-
-    interface OnFailListener : BillingCallback<Int> {
-        override fun call(c: Int) {
-            onFailure(c)
-        }
-
-        fun onFailure(errorCode: Int)
-    }
+    interface OnFailListener : BillingCallback<Int>
 
     class BillingListener<T> {
         private val callbacks: CopyOnWriteArraySet<BillingCallback<T>> = CopyOnWriteArraySet()
@@ -349,15 +384,20 @@ class BillingModule(
         }
     }
 
-    enum class Product(val id: String, val type: String, val isConsumable: Boolean) {
-        AD_REMOVE("ad_remove", BillingClient.ProductType.INAPP, false),
-        SUPPORT("support", BillingClient.ProductType.INAPP, true),
-        SYMBOL_GM("symbol_guild_mark", BillingClient.ProductType.INAPP, true),
-        AI_TOKEN("ai_token", BillingClient.ProductType.INAPP, true);
+    /**
+     * 앱에서 제공하는 상품
+     */
+    enum class Product(
+        @field:StringRes val displayResId: Int,
+        val id: String,
+        val type: String,
+        val isConsumable: Boolean
+    ) {
+        REMOVE_AD(R.string.billing_product_remove_ad, "remove_ad", BillingClient.ProductType.SUBS, false),
+        DONATION(R.string.billing_product_donation, "donation", BillingClient.ProductType.INAPP, true);
 
         companion object {
-            fun String.findProductById() =
-                runCatching { entries.find { value -> value.id == this } }.getOrNull()
+            fun findProductById(id: String): Product? = entries.find { value -> value.id == id }
         }
     }
 }
@@ -376,4 +416,5 @@ fun Purchase.isPurchasedAndAcknowledged(): Boolean =
 
 fun Purchase.isPurchased(): Boolean = purchaseState == Purchase.PurchaseState.PURCHASED
 
-fun Purchase.toProduct(): BillingModule.Product? = products.first().findProductById()
+fun Purchase.toProduct(): BillingModule.Product? =
+    BillingModule.Product.findProductById(products.first())

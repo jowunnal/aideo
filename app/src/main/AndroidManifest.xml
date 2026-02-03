@@ -1,27 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
+    <uses-permission android:name="com.android.vending.BILLING" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+        android:minSdkVersion="34" />
+
 
     <application
         android:name=".AideoApplication"
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@drawable/ic_aideo_app_foreground"
         android:label="@string/app_name"
+        android:largeHeap="true"
         android:roundIcon="@drawable/ic_aideo_app_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Aideo"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${ADMOB_APP_ID}" />
+
+        <uses-native-library
+            android:name="libcdsprpc.so"
+            android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="jinproject.aideo.app"
             android:theme="@style/Theme.Aideo">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,11 +44,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                <data android:scheme="https" android:host="aideo_app" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="app"
+                    android:pathPrefix="/player"
+                    android:scheme="aideo" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="jowunnal.github.io"
+                    android:pathPrefix="/aideo-app-links" />
             </intent-filter>
         </activity>
 
-        <service android:name=".update.InAppUpdateService" />
+        <service android:name=".update.InAppUpdateService" android:foregroundServiceType="dataSync"/>
+
     </application>
 
 </manifest>

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option java_package = "jinproject.aideo.app";
+option java_multiple_files = true;
+
+message PlayerPreferences {
+  string inference_language = 1;
+  repeated string videos = 2;
+  string subtitle_language = 3;
+  string selected_speech_recognition_model = 4;
+  string selected_translation_model = 5;
+}

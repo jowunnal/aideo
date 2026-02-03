@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
@@ -18,20 +19,24 @@ import jinproject.aideo.design.theme.AideoTheme
 
 @Composable
 fun AppBarText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+    color: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     DefaultText(
         modifier = modifier,
         text = text,
-        style = MaterialTheme.typography.headlineSmall,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W400),
+        textAlign = textAlign,
+        color = color
     )
 }
 
 @Composable
 fun BottomBarText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     clicked: Boolean,
 ) {
     DefaultText(
@@ -43,9 +48,45 @@ fun BottomBarText(
 }
 
 @Composable
-fun HeadlineText(
-    modifier: Modifier = Modifier,
+fun HeadlineLargeText(
     text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 1,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    DefaultText(
+        modifier = modifier,
+        text = text,
+        style = MaterialTheme.typography.headlineLarge,
+        color = color,
+        maxLines = maxLines,
+        textAlign = textAlign,
+    )
+}
+
+@Composable
+fun HeadlineMediumText(
+    text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 1,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    DefaultText(
+        modifier = modifier,
+        text = text,
+        style = MaterialTheme.typography.headlineMedium,
+        color = color,
+        maxLines = maxLines,
+        textAlign = textAlign,
+    )
+}
+
+@Composable
+fun HeadlineSmallText(
+    text: String,
+    modifier: Modifier = Modifier,
     maxLines: Int = 1,
     color: Color = MaterialTheme.colorScheme.onBackground,
     textAlign: TextAlign = TextAlign.Start,
@@ -62,8 +103,8 @@ fun HeadlineText(
 
 @Composable
 fun TitleMediumText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -81,8 +122,8 @@ fun TitleMediumText(
 
 @Composable
 fun TitleSmallText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -99,8 +140,8 @@ fun TitleSmallText(
 
 @Composable
 fun DescriptionLargeText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -117,24 +158,27 @@ fun DescriptionLargeText(
 
 @Composable
 fun DescriptionMediumText(
-    modifier: Modifier = Modifier,
     text: String,
-    color: Color = MaterialTheme.colorScheme.onBackground
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     DefaultText(
         modifier = modifier,
         text = text,
-        style = MaterialTheme.typography.bodyMedium,
+        style = style,
         overflow = Ellipsis,
         color = color,
         maxLines = Int.MAX_VALUE,
+        textAlign = textAlign,
     )
 }
 
 @Composable
 fun DescriptionSmallText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodySmall,
     color: Color = MaterialTheme.colorScheme.onBackground,
     textAlign: TextAlign = TextAlign.Start,
@@ -152,9 +196,9 @@ fun DescriptionSmallText(
 
 @Composable
 fun DefaultAnnotatedText(
-    modifier: Modifier = Modifier,
     text: AnnotatedString,
     style: TextStyle,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign = TextAlign.Start,
     overflow: TextOverflow = TextOverflow.Clip,
@@ -175,8 +219,8 @@ fun DefaultAnnotatedText(
 
 @Composable
 fun DescriptionAnnotatedLargeText(
-    modifier: Modifier = Modifier,
     text: AnnotatedString,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -193,8 +237,8 @@ fun DescriptionAnnotatedLargeText(
 
 @Composable
 fun DescriptionAnnotatedMediumText(
-    modifier: Modifier = Modifier,
     text: AnnotatedString,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -211,8 +255,8 @@ fun DescriptionAnnotatedMediumText(
 
 @Composable
 fun DescriptionAnnotatedSmallText(
-    modifier: Modifier = Modifier,
     text: AnnotatedString,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -230,8 +274,8 @@ fun DescriptionAnnotatedSmallText(
 
 @Composable
 fun FooterText(
-    modifier: Modifier = Modifier,
     text: String,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground
 ) {
     DefaultText(
@@ -245,9 +289,9 @@ fun FooterText(
 
 @Composable
 fun DefaultText(
-    modifier: Modifier = Modifier,
     text: String,
     style: TextStyle,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
     textAlign: TextAlign = TextAlign.Start,
     overflow: TextOverflow = TextOverflow.Clip,
@@ -297,8 +341,8 @@ private fun PreviewAppBarText() = AideoTheme {
 
 @Composable
 @Preview(showBackground = true, backgroundColor = 0xFFFFFF)
-private fun PreviewHeadlineText() = AideoTheme {
-    HeadlineText(
+private fun PreviewHeadlineSmallText() = AideoTheme {
+    HeadlineSmallText(
         text = "이렇게 보입니다. 길면 잘리게 됩니다. 이렇게 잘리게 됩니다.",
         modifier = Modifier.width(220.dp)
     )

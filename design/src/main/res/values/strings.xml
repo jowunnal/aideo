@@ -1,3 +1,172 @@
 <resources>
     <string name="app_name">Aideo</string>
+
+    <!-- Gallery Screen -->
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_empty">Empty</string>
+    <string name="gallery_new_project">New Project</string>
+    <string name="gallery_new_project_desc">Upload Video &amp; Translate</string>
+    <string name="gallery_recently_completed">Recently Completed</string>
+    <string name="gallery_view_all">View all</string>
+    <string name="content_desc_play_video">Play Video</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_inference_language">Inference Language</string>
+    <string name="settings_inference_language_desc">Select the language for speech recognition.</string>
+    <string name="settings_translation_language">Translation Language</string>
+    <string name="settings_translation_language_desc">Select the language for subtitle translation.</string>
+    <string name="settings_inference_model">Inference Model</string>
+    <string name="settings_inference_model_desc">Select the model for inference.</string>
+    <string name="settings_translation_model">Translation Model</string>
+    <string name="settings_translation_model_desc">Select the model for translation.</string>
+    <string name="settings_current_settings">Current Settings:</string>
+    <string name="settings_current_inference_language">- Inference Language: %s</string>
+    <string name="settings_current_translation_language">- Translation Language: %s</string>
+    <string name="settings_current_inference_model">- Inference Model: %s</string>
+    <string name="settings_current_translation_model">- Translation Model: %s</string>
+
+    <!-- Model Settings -->
+    <string name="model_sensevoice_desc">Relatively fast transcription, but may have lower accuracy.</string>
+    <string name="model_sensevoice_tag">Fast</string>
+    <string name="model_whisper_desc">Relatively slow transcription, but may have higher accuracy.</string>
+    <string name="model_whisper_tag">Slow</string>
+    <string name="model_mlkit_desc">Small model size with fast translation, but relatively lower accuracy.</string>
+    <string name="model_mlkit_tag">Lightweight</string>
+    <string name="model_m2m100_desc">Provides more accurate translation, but larger model size and may take longer.</string>
+    <string name="model_m2m100_tag">High Quality</string>
+
+    <!-- Player Screen -->
+    <string name="content_desc_pause">Pause</string>
+    <string name="content_desc_play">Play</string>
+    <string name="content_desc_seek_back">Seek back %d seconds</string>
+    <string name="content_desc_seek_forward">Seek forward %d seconds</string>
+    <string name="player_subtitle_conversion_start_header">Starting subtitle conversion.</string>
+    <string name="player_subtitle_conversion_start_content">Playback will resume automatically when complete.</string>
+
+    <!-- Transcribe Service Notifications -->
+    <string name="notification_creating_subtitles">Creating subtitles</string>
+    <string name="notification_starting_subtitle_creation">Starting subtitle creation</string>
+    <string name="notification_starting_subtitle_translation">Starting subtitle translation</string>
+    <string name="notification_starting_subtitle_translation_in_progress">Translating subtitles</string>
+    <string name="notification_subtitle_translation_completed">Subtitle translation completed</string>
+    <string name="notification_subtitle_translation_completed_desc">Subtitles have been translated to your selected language.</string>
+    <string name="notification_subtitle_creation_completed">Subtitle creation completed</string>
+    <string name="notification_subtitle_creation_completed_desc">Subtitles have been successfully created.</string>
+    <string name="notification_subtitle_creation_failed">Subtitle creation failed</string>
+    <string name="notification_subtitle_creation_failed_desc">Failed to create subtitles. (%s)</string>
+    <string name="notification_action_stop">Stop</string>
+
+    <!-- Dialog -->
+    <string name="dialog_download_required_header">Additional download required.</string>
+    <string name="dialog_download_required_content">Additional storage space (approximately 1.2GB) is required for download.</string>
+    <string name="dialog_download_whisper_content">Additional storage space (approximately 300MB) is required for download.</string>
+    <string name="dialog_download_positive">Yes, download it.</string>
+    <string name="dialog_download_negative">No, I don\'t want to.</string>
+
+    <!-- Permission -->
+    <string name="permission_required">Permission is required.</string>
+
+    <!-- Download -->
+    <string name="download_started">Download will begin.</string>
+    <string name="download_please_wait">Please wait a moment.</string>
+    <string name="download_cancelled">Download was cancelled.</string>
+    <string name="download_cancelled_desc">You cannot use the feature properly without downloading.</string>
+    <string name="download_ai_model_in_progress">AI model is being downloaded.</string>
+    <string name="download_ai_model_please_wait">Please try again shortly.</string>
+    <string name="download_ai_pack_in_progress">Downloading AI model for [%s].</string>
+    <string name="download_failed_or_pending">Download failed or is pending.</string>
+    <string name="download_retry_request">Retrying download.</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_aideo_name">Aideo Notification Channel</string>
+    <string name="notification_channel_aideo_desc">Notification channel for Aideo.</string>
+    <string name="notification_channel_transcribe_name">Subtitle Creation Channel</string>
+    <string name="notification_channel_transcribe_desc">Notification channel for subtitle creation in Aideo.</string>
+    <string name="notification_channel_ai_model_name">AI Model Management Channel</string>
+    <string name="notification_channel_ai_model_desc">Notification channel for AI model loading in Aideo.</string>
+
+    <!-- Billing -->
+    <string name="billing_product_remove_ad">Ad Removal</string>
+    <string name="billing_product_donation">Donate to Developer</string>
+    <string name="billing_purchase_completed">Purchase of [%s] has been completed.</string>
+    <string name="billing_purchase_failed">Purchase failed.</string>
+    <string name="billing_error_invalid_product">Invalid product.</string>
+    <string name="billing_error_incorrect_product">Incorrect product.</string>
+    <string name="billing_error_cancelled">Purchase was cancelled.</string>
+    <string name="billing_error_unavailable">Product is unavailable.</string>
+    <string name="billing_error_already_owned">You already own this product.</string>
+    <string name="billing_error_network">A network error occurred.</string>
+
+    <!-- Subscription Management Screen -->
+    <string name="subscription_management_title">Subscription Management</string>
+    <string name="subscription_management_google_play">Manage on Google Play</string>
+    <string name="subscription_management_help_title">Need help?</string>
+    <string name="subscription_management_help_desc">For inquiries regarding subscription services, please contact the Google Play Customer Center. For inquiries regarding refunds, please email jowunnal310@gmail.com.</string>
+    <string name="subscription_management_no_subscription">No active subscription</string>
+    <string name="subscription_management_no_subscription_desc">Get an ad-free experience with a premium subscription</string>
+    <string name="subscription_management_view_plans">View subscription plans</string>
+    <string name="subscription_management_premium_member">Premium Member</string>
+    <string name="subscription_management_active_status">Active</string>
+    <string name="subscription_management_next_billing">Next billing date</string>
+    <string name="subscription_management_info_title">Subscription Info</string>
+    <string name="subscription_management_start_date">Subscription start date</string>
+    <string name="subscription_management_payment_method">Payment method</string>
+    <string name="subscription_management_google_play_payment">Google Play Payment</string>
+    <string name="subscription_management_auto_renewal">Auto renewal</string>
+    <string name="subscription_management_auto_renewal_desc">Automatically renews every month.</string>
+    <string name="subscription_management_one_time_payment">One-time payment</string>
+    <string name="subscription_management_one_time_payment_desc">Will not automatically renew next month.</string>
+    <string name="subscription_management_info_popup_intro">Subscription info is </string>
+    <string name="subscription_management_info_popup_estimate">an estimate</string>
+    <string name="subscription_management_info_popup_middle">.\nFor accurate info,</string>
+    <string name="subscription_management_info_popup_ending">\nplease check at the above.</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">Premium Subscription</string>
+    <string name="subscription_header_title">Enjoy ad-free</string>
+    <string name="subscription_header_desc">Upgrade to premium and enjoy an ad-free experience</string>
+    <string name="subscription_benefits_title">Premium Benefits</string>
+    <string name="subscription_benefit_ad_removal">Ad removal</string>
+    <string name="subscription_benefit_ad_removal_desc">All ads removed for uninterrupted usage</string>
+    <string name="subscription_monthly_plan">Monthly subscription</string>
+    <string name="subscription_monthly_plan_desc">Auto-renews monthly</string>
+    <string name="subscription_price_unit">/ month</string>
+    <string name="subscription_price_unavailable">Price unavailable</string>
+    <string name="subscription_auto_renewal_notice">Auto-renewal: Subscription automatically renews every month and can be cancelled at any time.</string>
+    <string name="subscription_subscribe_now">Subscribe now</string>
+    <string name="subscription_already_purchased_header">You already purchased this item.</string>
+    <string name="subscription_already_purchased_content">Duplicate purchases are not allowed.</string>
+    <string name="subscription_footer_managed_by">• Subscription is managed through Google Play.</string>
+    <string name="subscription_footer_auto_renewal">• Subscription automatically renews unless cancelled at least 24 hours before the end of the subscription period.</string>
+    <string name="subscription_footer_refund_policy">• Refund policy follows Google Play policy.</string>
+    <string name="subscription_error_headline">An error occurred.</string>
+    <string name="subscription_error_product_not_found">Product not found.</string>
+
+    <!-- Term of Service Screen -->
+    <string name="term_title">Terms of Service</string>
+
+    <!-- Setting Screen (More) -->
+    <string name="setting_title">More</string>
+    <string name="setting_section_ai_model">AI Model Setting</string>
+    <string name="setting_ai_models_languages">AI Models &amp; Languages</string>
+    <string name="setting_ai_models_languages_desc">Configure AI model and language settings</string>
+    <string name="setting_section_subscription">Subscription</string>
+    <string name="setting_manage_subscription">Manage Subscription</string>
+    <string name="setting_manage_subscription_desc">View and upgrade your plan</string>
+    <string name="setting_section_support">Support</string>
+    <string name="setting_term_desc">View terms and conditions</string>
+
+    <!-- Video Status -->
+    <string name="video_status_completed">Completed</string>
+    <string name="video_status_need_translate">Need translate</string>
+    <string name="video_status_need_inference">Need inference</string>
+
+    <!-- Library Screen -->
+    <string name="library_title">Library</string>
+    <string name="library_project_count">%d project</string>
+    <string name="library_projects_count">%d projects</string>
+    <string name="library_sort_newest">Newest first</string>
+    <string name="library_sort_oldest">Oldest first</string>
+    <string name="library_empty">No completed projects yet</string>
 </resources>

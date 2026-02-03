@@ -17,9 +17,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun rememberTimeScheduler(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
+    callBack: suspend () -> Unit = {},
 ): TimeScheduler {
     val state = remember {
-        TimeScheduler(coroutineScope)
+        TimeScheduler(coroutineScope, callBack)
     }
 
     return state
@@ -34,7 +35,7 @@ fun rememberTimeScheduler(
 @Stable
 class TimeScheduler(
     private val scope: CoroutineScope,
-    private val callBack: suspend () -> Unit = {},
+    val callBack: suspend () -> Unit = {},
 ) {
     private var scheduledTime by mutableLongStateOf(0L)
 
@@ -56,13 +57,8 @@ class TimeScheduler(
     fun setTime(minimumExecutingTime: Long = STANDARD_MILLIS) {
         scheduledTime = minimumExecutingTime
 
-        job = if (job == null) {
-            execute()
-        } else {
-            if (job!!.isActive)
-                job!!.cancel()
-
-            execute()
+        if (job == null) {
+            job = execute()
         }
     }
 

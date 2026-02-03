@@ -50,7 +50,7 @@ fun MTProgressIndicatorRotating(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         MTProgressIndicatorInfiniteRotating()

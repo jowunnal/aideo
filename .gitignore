@@ -181,4 +181,16 @@ fabric.properties
 
 !/gradle/wrapper/gradle-wrapper.jar
 
+features/core/src/main/assets/
+*.so
+*.bin
+ai_*/src/main/assets/
+bundletool.jar
+debug-install.apks
+buildAndInstallApksWithBundletool.sh
+CLAUDE.md
+key/
+build_logs/
+scripts/
+
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin

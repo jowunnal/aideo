@@ -1,5 +1,6 @@
 package jinproject.aideo.app.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors
@@ -11,28 +12,54 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
-import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
+import jinproject.aideo.gallery.galleryNavGraph
+import jinproject.aideo.library.libraryNavGraph
+import jinproject.aideo.library.navigateToLibraryGraph
+import jinproject.aideo.player.playerNavGraph
+import jinproject.aideo.setting.navigateToSettingAIModel
+import jinproject.aideo.setting.navigateToSubscription
+import jinproject.aideo.setting.navigateToTerm
+import jinproject.aideo.setting.settingNavigation
 
 @Composable
 internal fun NavigationGraph(
     modifier: Modifier = Modifier,
     router: Router,
-    showRewardedAd: (() -> Unit) -> Unit,
-    showSnackBar: (SnackBarMessage) -> Unit,
 ) {
     val navController = router.navController
 
     NavHost(
         navController = navController,
         startDestination = GalleryRoute.GalleryGraph,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+        },
+        exitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+        },
     ) {
+        galleryNavGraph(
+            navigateToLibrary = navController::navigateToLibraryGraph,
+        )
 
+        libraryNavGraph()
 
+        playerNavGraph(
+            navigatePopBackStack = navController::popBackStackIfCan
+        )
+
+        settingNavigation(
+            navigateToSettingAIModel = navController::navigateToSettingAIModel,
+            navigateToSubscription = navController::navigateToSubscription,
+            navigateToTerm = navController::navigateToTerm,
+            navigatePopBackStack = navController::popBackStackIfCan
+        )
     }
 }
+
 
 internal fun NavigationSuiteScope.navigationSuiteItems(
     currentDestination: NavDestination?,

@@ -4,8 +4,10 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.widget.Toast
+import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.app.update.InAppUpdateManager
 
+@AndroidEntryPoint
 class InAppUpdateService: Service() {
     lateinit var inAppUpdateManager: InAppUpdateManager
 
