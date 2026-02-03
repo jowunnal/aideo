@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -51,8 +49,6 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
@@ -67,6 +63,7 @@ import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
 import jinproject.aideo.app.ad.AdMobManager
+import jinproject.aideo.app.ad.BannerAd
 import jinproject.aideo.app.navigation.NavigationDefaults
 import jinproject.aideo.app.navigation.NavigationGraph
 import jinproject.aideo.app.navigation.isBarHasToBeShown
@@ -374,18 +371,9 @@ class MainActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier.addStatusBarPadding()
                 ) {
-                    AndroidView(
+                    BannerAd(
+                        adsVisibility = !isAdViewRemoved,
                         modifier = Modifier.fillMaxWidth(),
-                        factory = { context ->
-                            AdView(context).apply {
-                                setAdSize(AdSize.BANNER)
-                                adUnitId = BuildConfig.ADMOB_UNIT_ID
-                                loadAd(AdRequest.Builder().build())
-                            }
-                        },
-                        update = {
-                            it.visibility = if (isAdViewRemoved) View.GONE else View.VISIBLE
-                        }
                     )
 
                     Scaffold(
@@ -463,7 +451,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showRewardedAd(onResult: () -> Unit) {
-        if(adMobManager.isAdviewRemoved.value) {
+        if (adMobManager.isAdviewRemoved.value) {
             onResult()
             return
         }

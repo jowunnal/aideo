@@ -68,30 +68,28 @@ class BillingModule(
         .build()
 
     init {
-        initBillingClient(3)
+        initBillingClient()
     }
 
     /**
      * 구글 결제 백엔드와의 연결 활성화
      */
-    fun initBillingClient(maxCount: Int) {
-        if (maxCount > 0) {
-            billingClient.startConnection(object : BillingClientStateListener {
-                override fun onBillingSetupFinished(billingResult: BillingResult) {
-                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        readyListener.call(this@BillingModule)
-                        isReady = true
-                    } else {
-                        failListener.call(billingResult.responseCode)
-                        isReady = false
-                    }
-                }
-
-                override fun onBillingServiceDisconnected() {
+    fun initBillingClient() {
+        billingClient.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    readyListener.call(this@BillingModule)
+                    isReady = true
+                } else {
+                    failListener.call(billingResult.responseCode)
                     isReady = false
                 }
-            })
-        }
+            }
+
+            override fun onBillingServiceDisconnected() {
+                isReady = false
+            }
+        })
     }
 
     private val successListener: BillingListener<Purchase> = BillingListener()
