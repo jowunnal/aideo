@@ -4,7 +4,7 @@
 
 추론 관련 전체 클래스 및 의존성 그래프는 다음과 같이 설계합니다.
 
-<img src="documentation/review/AI_class_dependency_graph.png" />
+<img src="AI_class_dependency_graph.png" />
 
 e.g) 
 
