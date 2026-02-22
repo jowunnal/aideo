@@ -192,5 +192,6 @@ CLAUDE.md
 key/
 build_logs/
 scripts/
+.serena/
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin
