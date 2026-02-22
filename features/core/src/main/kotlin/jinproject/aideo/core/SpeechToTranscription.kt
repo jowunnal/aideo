@@ -60,7 +60,7 @@ class SpeechToTranscription @Inject constructor(
 ) {
     private lateinit var speechRecognition: SpeechRecognition
     private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
-    private val inferenceAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
+    private val inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
 
     val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
@@ -125,7 +125,11 @@ class SpeechToTranscription @Inject constructor(
                     while (job.isActive || buffer.totalSamples >= windowSize) {
                         val chunk = buffer.readChunk()
                         if (chunk != null) {
-                            inferenceAudioChannel.send(chunk)
+                            vad.acceptWaveform(chunk)
+
+                            if (vad.isSpeechDetected()) {
+                                inferenceVadAndSd()
+                            }
                         } else {
                             try {
                                 resumeSignal.receive()
@@ -136,7 +140,10 @@ class SpeechToTranscription @Inject constructor(
                         }
                     }
 
-                    inferenceAudioChannel.send(buffer.flush())
+                    vad.acceptWaveform(buffer.flush())
+                    vad.flush()
+                    inferenceVadAndSd()
+
                     inferenceAudioChannel.close()
                 }
             }
@@ -144,40 +151,21 @@ class SpeechToTranscription @Inject constructor(
             val transcribedSrtText = async {
                 var processedAudioSize = 0
 
-                for (i in inferenceAudioChannel) {
-                    vad.acceptWaveform(i)
-                    processedAudioSize += i.size
+                for (singleSpeechSegment in inferenceAudioChannel) {
+                    processedAudioSize += singleSpeechSegment.vadResult.samples.size
 
-                    if (vad.isSpeechDetected()) {
-                        while (vad.hasSegment()) {
-                            vad.getNextSegment().also { nextVadSegment ->
-                                transcribeSingleSegment(
-                                    nextVadSegment = nextVadSegment,
-                                    language = language
-                                )
+                    transcribeSingleSegment(
+                        singleSpeechSegment = singleSpeechSegment,
+                        language = language
+                    )
 
-                                (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
-                                    val total =
-                                        AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
+                    (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
+                        val total =
+                            AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
 
-                                    inferenceProgress.value =
-                                        processedAudioSize.toFloat() / (total).toFloat()
-                                }
-                            }
-                            vad.popSegment()
-                        }
+                        inferenceProgress.value =
+                            processedAudioSize.toFloat() / (total).toFloat()
                     }
-                }
-
-                vad.flush()
-                while (vad.hasSegment()) {
-                    vad.getNextSegment().also { nextVadSegment ->
-                        transcribeSingleSegment(
-                            nextVadSegment = nextVadSegment,
-                            language = language
-                        )
-                    }
-                    vad.popSegment()
                 }
 
                 inferenceProgress.value = 1f
@@ -203,36 +191,47 @@ class SpeechToTranscription @Inject constructor(
         }
     }
 
-    private suspend fun transcribeSingleSegment(nextVadSegment: SpeechSegment, language: String) {
-        val standardTime =
-            nextVadSegment.start / AudioConfig.SAMPLE_RATE.toFloat()
-
-        val sdResult =
-            if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 10)
-                speakerDiarization.process(nextVadSegment.samples)
-            else
-                arrayOf(
-                    OfflineSpeakerDiarizationSegment(
-                        speaker = 0,
-                        start = 0f,
-                        end = 10f
+    private suspend fun inferenceVadAndSd() {
+        while (vad.hasSegment()) {
+            val nextVadSegment = vad.getNextSegment()
+            val sdResult =
+                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 10)
+                    speakerDiarization.process(nextVadSegment.samples)
+                else
+                    arrayOf(
+                        OfflineSpeakerDiarizationSegment(
+                            speaker = 0,
+                            start = 0f,
+                            end = 10f
+                        )
                     )
-                )
 
+            inferenceAudioChannel.send(SingleSpeechSegment(
+                vadResult = nextVadSegment,
+                sdResult = sdResult,
+            ))
+
+            vad.popSegment()
+        }
+    }
+
+    private suspend fun transcribeSingleSegment(singleSpeechSegment: SingleSpeechSegment, language: String) {
+        val standardTime = singleSpeechSegment.vadResult.start / AudioConfig.SAMPLE_RATE.toFloat()
         (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
 
         var lastEndIdx = 0
+        val sampleSize = singleSpeechSegment.vadResult.samples.size
 
-        sdResult.forEach { sd ->
+        singleSpeechSegment.sdResult.forEach { sd ->
             val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+                .coerceIn(lastEndIdx, sampleSize)
             val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, nextVadSegment.samples.size)
+                .coerceIn(lastEndIdx, sampleSize)
             lastEndIdx = endIdx
 
             (speechRecognition as? TimeStampedSR)?.setTimes(sd.start, sd.end)
             speechRecognition.transcribe(
-                audioData = nextVadSegment.samples.copyOfRange(
+                audioData = singleSpeechSegment.vadResult.samples.copyOfRange(
                     startIdx,
                     endIdx
                 ), language = language
@@ -310,6 +309,11 @@ class SpeechToTranscription @Inject constructor(
         extractedAudioChannel.send(samples)
         extractedAudioChannel.close()
     }
+
+    private class SingleSpeechSegment(
+        val vadResult: SpeechSegment,
+        val sdResult: Array<OfflineSpeakerDiarizationSegment>,
+    )
 }
 
 private class FixedChunkBuffer(private val chunkSize: Int = 512) {
