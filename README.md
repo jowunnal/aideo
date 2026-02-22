@@ -43,4 +43,4 @@
 
 [비디오로 부터 음성을 추출, 텍스트로 추론, 번역 까지의 End-to-End 파이프라인을 구축](documentation/review/비디오_자막_End-to-End_Pipeline_구축.md)
 
-[SOLID 원칙을 기반으로 추론 관련 클래스 설계](documentation/review/SOLID_원칙_적용한_추론_클래스_설계.md)
+[SOLID 원칙을 기반으로 추론 관련 클래스 설계](documentation/review/SOLID_원칙_적용한_추론_클래스_설계.md) 
