@@ -13,7 +13,7 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 `MediaCodec` 을 `Decoder` 로 이용하여, 인코딩된 비디오의 오디오 트랙을 원시 오디오 데이터(WAV)로 decode 한 후, 30초 분량의 오디오를 축적하여 추론 모델의 입력 구조에 맞게 Normalization 을 수행합니다. 해당 과정에서의 Key Point 는 두가지 입니다.
 
 1. **메모리 재 할당 Overhead 를 줄이기 위해 배열을 활용** : (SampleRate * Channel 수 * byte 수 * 초) 를 토대로 30초(추론 모델의 최대 입력 길이) 분량의 원시 오디오 길이 크기의 배열을 생성하여, Normalization 한 결과를 추론 채널로 전송합니다. 이 과정에서 불 필요하게 메모리 공간을 재 할당하지 않아, Garbage Collection 이 빈번하게 실행되지 않도록 만들어 성능을 최적화 합니다.
-2. **병렬 실행으로 성능 최적화** : 오디오를 추출하고 Normalization 하는데 걸리는 시간이 꽤 소요되기 때문에 추론 모델의 최대 입력 길이만큼 분할하여 병렬적으로 오디오 추출 및 추론이 수행되도록 `Coroutine` 을 활용하여 최적화 합니다. 뿐만 아니라, `MediaCodec` 의 `encode/decode` 도 두개의 코루틴으로 병렬 실행하여 최적화 합니다.
+2. **비동기 실행으로 성능 최적화** : `음성->텍스트 추론`에 병목 현상이 있어, '추출'과 '추론' 작업을 `Coroutine` 으로 나눈 뒤 비동기 실행하여 최적화 합니다.
 
 ## 음성->텍스트 추론 단계
 
@@ -43,17 +43,19 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 
 ## End-to-End Pipeline Details
 
-End-to-End Pipeline 을 단순화한 결과는 다음과 같습니다.
+`음성추출 -> 자막 생성` 까지의 전체 End-to-End Pipeline 을 단순화한 결과는 다음과 같습니다.
 
 <img src="chart3_simple.png" />
 
 End-to-End Pipeline 은 추론 소요 시간이 길기 때문에 `ForegroundService` 에서 실행되며, 3가지 작업 단위로 분할한 파이프라인으로 수행합니다.
 
 - 비디오의 음성 트랙 추출 : MediaCodec 의 decoder 로 raw 음성 데이터를 30초 분량씩 모아, `16000 Sample Rate & Mono Channel & Float32 type` 으로 변환한 후 AudioBuffer Channel 로 전송
-- AudioBuffer Channel : `VAD` 입력 구조에 맞게 WindowSize(512) 만큼 Audio 를 분할하여 Inference Channel 로 전송
-- Inference Channel : 분할된 Audio 를 `VAD` 실행 -> 최대 9.5초 분량의 Audio를 `Speaker Diarization` 실행 -> `화자별-음성` Mapped Audio 를 `Speech Recognition` 실행 후 StringBuilder 에 append
+- AudioBuffer Channel : `VAD` 입력 구조에 맞게 WindowSize(512) 만큼 Audio 를 분할 -> `VAD` 실행 -> `Speaker Diarization` 실행 -> `화자별-음성` Mapped Audio 를 Inference Channel 로 전송
+- Inference Channel : `화자별-음성` Mapped Audio 를 `Speech Recognition` 실행 후 StringBuilder 에 append
 
-추론이 모두 수행되면, StringBuilder 의 char 들을 String 으로 변환하여 `.srt` 자막 파일 생성 및 내부 저장소에 저장합니다.
+작업 수행에 소요되는 시간은 `SpeechRecognition` > `Vad & Speaker Diarization` > `Audio Extraction` 순으로 소요됩니다. 따라서, 작업 별 병목 현상을 3가지 단계로 나뉜 파이프라인을 구축하여 비동기 실행함으로써 최적화 합니다.
+
+`SpeechRecognition` 추론까지 완료되면, StringBuilder 의 char 들을 String 으로 변환하여 `.srt` 자막 파일 생성 및 내부 저장소에 저장합니다.
 
 ## 번역 추론 단계
 
