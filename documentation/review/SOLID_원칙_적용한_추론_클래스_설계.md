@@ -18,6 +18,7 @@ e.g)
 위 의존성 그래프 설계를 통해 다음 목적들을 실현합니다.
 
 1. 단일 책임 원칙(SRP) & 인터페이스 분리 원칙(ISP)
+
 - **Manager Class** : `AI Model Category(SpeechToText, Translation etc)` 만의 책임을 갖습니다. 해당 `AI Model Category` 를 실현하기 위해 필요한 AI 모델들을 의존합니다. Manager 클래스는 `AI Model Category` 를 실현하기 위해 필요한 변경사항 외에는, 내부 구조의 변경이 일어나지 않습니다.
 - **AI Model Class** : 특정 `AI Model(SenseVoice, Whisper, Silero-VAD etc)` 만의 책임을 갖습니다. 특정 `AI Model` 의 입출력 구조와 같은 구체적 정보가 변경하지 않는 한, 내부 구조의 변경이 일어나지 않습니다.
 - **추론 Runtime Library 관련 Class** : AI Model 의 특정 Format(Onnx, LiteRT) 을 읽고, 이해 할 수 있는 `추론 Runtime Library(Onnx-Runtime)` 만의 책임을 갖습니다. `추론 Runtime Library` 의 버전 변경으로 인한 내부 변경이 일어나지 않는 한, 이 클래스의 변경이 일어나지 않습니다.
@@ -28,7 +29,7 @@ e.g)
 
 이 원칙을 근거로 가장 변경될 가능성이 적은 `Onnx Native Runtime Library < AI 모델 클래스 < AI Category Manager 클래스 < Feature` 방향으로 의존성을 설계했습니다.
 
-Native Runtime Library 는 외부 의존성이지만, 특별한 문제가 없는 한 버전 변경 가능성이 적으며, 변경이 있다 하더라도 캡슐화로 최대한 외부 요소를 그대로 드러내지 않도록 합니다.
+Native Runtime Library 는 외부 의존성이지만, 특별한 문제가 없는 한 버전 변경 가능성이 적으며, 변경이 있다 하더라도 캡슐화로 최대한 외부 요소를 그대로 드러내지 않도록 하였습니다.
 
 AI Model 이 Runtime Library 를 의존하도록 구현함으로써, 특정 Model 을 어떠한 Format(Onnx, LiteRT) 으로 추출하여도 그에 맞는 Runtime Library 관련 Class 를 선택함으로써 팩토리 처럼 사용할 수 있도록 설계했습니다.
 
@@ -74,7 +75,10 @@ LSP 의 핵심은 잘 설계된 추상화 입니다.
 
 4. 의존성 역전 원칙(DIP)
 
-- **MediaFileManager** : 기기 내부의 `Media File I/O` 을 다룹니다. 이는 Platform 의존성(Android 의 경우 MediaCodec)이 강하며, 특정 Platform 에서 필요한 구현체를 주입할 수 있도록 추상화 합니다.
-- **AI 모델** : 이는 구체적인 AI 모델의 의존성이 강합니다. 특정 `AI Model Category Manager` 에서 필요한 AI 구현체 모델을 주입할 수 있도록 추상화 합니다.
-- **AI Model Runtime Library** : 이는 AI Model 의 특정 Format 에 의존성이 강합니다. 특정 AI Model 이 어떤 Format(Onnx, LiteRT, etc) 으로 생성되었는가에 따라 필요한 `추론 Runtime Library` 를 구성합니다.
+DIP 역시 LSP 와 마찬가지로 추상화가 핵심입니다. 객체가 구현체를 직접 의존하지 말고, 추상화된 고수준의 컴포넌트를 의존하라는 원칙입니다. 이를 **의존성 주입 개념**과 함께 활용하여 **OCP** 를 만족시킬 수 있었고, 궁극적으로 **유지보수 용이성**과 **확장성**을 높일 수 있을 뿐만 아니라 테스트 가능성까지 확보할 수 있었습니다.
 
+- **MediaFileManager** : 기기 내부의 `Media File I/O` 을 다룹니다. 이는 Platform 의존성(Android 의 경우 MediaCodec)이 강하며, 특정 Platform 에서 필요한 구현체를 주입받기 위해 추상화 됩니다. 따라서, 기기 내부의 Media File I/O 가 필요한 경우 구체적인 AndroidMediaFileManager 를 의존하는 것이 아닌, MediaFileManager 를 의존하고 구현체는 주입받음으로써 확장성을 높입니다.
+- **AI 모델** : 이는 구체적인 AI 모델의 의존성이 강합니다. 특정 `AI Model Category Manager` 에서 필요한 AI 구현체 모델을 주입받을 수 있도록 추상화 합니다. 따라서, SpeechToTranscription 에서는 SpeechRecognition 을 수행하기 위해 구현체(SenseVoice or Whisper)를 필요에 따라 주입 받아 사용함으로써 확장성을 높입니다.
+- **AI Model Runtime Library** : 이는 AI Model 의 특정 Format 에 의존성이 강합니다. 특정 AI Model 이 어떤 Format(Onnx, LiteRT, etc) 으로 생성되었는가에 따라 필요한 `추론 Runtime Library` 를 주입 받습니다.
+
+의존성 역전 원칙을 활용함에 따라 기능이 확장되면서 추가되는 AI 모델들에 대해 기존의 코드를 변경할 이유가 없어졌습니다. 새로운 AI 모델이 추가되는 상황에서도 새로운 구현체를 만들어 주입하기만 하면 기존의 코드를 그대로 재 사용할 수 있었습니다.
