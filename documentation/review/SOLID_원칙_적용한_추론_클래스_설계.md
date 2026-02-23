@@ -31,11 +31,11 @@ e.g)
 
 Native Runtime Library 는 외부 의존성이지만, 특별한 문제가 없는 한 버전 변경 가능성이 적으며, 변경이 있다 하더라도 캡슐화로 최대한 외부 요소를 그대로 드러내지 않도록 하였습니다.
 
-AI Model 이 Runtime Library 를 의존하도록 구현함으로써, 특정 Model 을 어떠한 Format(Onnx, LiteRT) 으로 추출하여도 그에 맞는 Runtime Library 관련 Class 를 선택함으로써 팩토리 처럼 사용할 수 있도록 설계했습니다.
+AI Model 이 Runtime Library 를 의존하도록 구현함으로써, 특정 Model 을 어떠한 Format(Onnx, LiteRT) 으로 추출하여도 그에 맞는 Runtime Library 관련 Class 를 선택함으로써 변경에는 닫혀있고, 확장에는 열려있는 구조로 설계할 수 있었습니다.
 
 3. 리스코프 치환 원칙(LSP)
 
-LSP 의 핵심은 잘 설계된 추상화 입니다.  
+LSP는 고수준의 계약을 저수준이 이행해야 한다는 원칙으로, 이 원칙의 핵심은 잘 설계된 추상화 입니다.  
 
 잘 설계 되지 못한 추상화는 구현체를 생성할 때 변경 사항을 야기하고, 이것이 구현되는 다른 모든 클래스에 영향을 미칩니다. 
 
