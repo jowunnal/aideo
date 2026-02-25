@@ -5,6 +5,7 @@ import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.languageid.LanguageIdentificationOptions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.data.TranslationManager.extractSubtitleContent
@@ -26,9 +27,14 @@ class MlKitTranslation @Inject constructor(
     private val localSettingDataSource: LocalSettingDataSource
 ) : jinproject.aideo.core.inference.translation.api.Translation() {
 
+    private var translator: Translator? = null
+
     override fun initialize() {}
 
-    override fun release() {}
+    override fun release() {
+        translator?.close()
+        translator = null
+    }
 
     override suspend fun translate(
         text: String,
@@ -52,26 +58,27 @@ class MlKitTranslation @Inject constructor(
                 )
                 .build()
 
-            val translator = Translation.getClient(options)
+            translator = Translation.getClient(options)
 
             val conditions = DownloadConditions.Builder()
                 .build()
 
-            translator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener {
-                    translator.translate(text).addOnSuccessListener { result ->
-                        translator.close()
+            translator?.downloadModelIfNeeded(conditions)
+                ?.addOnSuccessListener {
+                    translator?.translate(text)?.addOnSuccessListener { result ->
+                        translator?.close()
                         cont.resume(result)
-                    }.addOnFailureListener { e ->
-                        translator.close()
+                    }?.addOnFailureListener { e ->
+                        translator?.close()
                         cont.resumeWithException(e)
                     }
-                }.addOnFailureListener { e ->
+                }?.addOnFailureListener { e ->
                     cont.resumeWithException(e)
                 }
 
             cont.invokeOnCancellation {
-                translator.close()
+                translator?.close()
+                translator = null
             }
         }
     }

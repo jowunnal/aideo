@@ -6,8 +6,6 @@
 
 [![AGP](https://img.shields.io/badge/AGP-8.10.0-green.svg)](https://gradle.org/)
 
-[![minSdkVersion](https://img.shields.io/badge/minSdkVersion-30-red)](https://developer.android.com/distribute/best-practices/develop/target-sdk)
-
 [![targetSdkVersion](https://img.shields.io/badge/targetSdkVersion-36-orange)](https://developer.android.com/distribute/best-practices/develop/target-sdk)
 
 <img src="documentation/screenshot_total.png" />
@@ -22,7 +20,7 @@
 
 # 주요 기능
 
-- **자막 생성** : 비디오의 자막을 생성해 주기 위해서 비디오로 부터 `음성을 추출` · 추출된 음성을 AI 모델 입력에 맞게 `전처리` · AI 모델을 활용한 `추론 로직` · 추론 결과인 텍스트를 `.srt` 포맷으로 `후처리` · 원하는 언어로 `번역` · 자막 파일 저장 까지의 `End-to-End Pipeline` 을 구축하고, 이를 사용자에게 간편한 방식으로 제공합니다.
+- **자막 생성** : 비디오의 자막을 생성해 주기 위해서 비디오로 부터 `음성을 추출` · 추출된 음성을 AI 모델 입력에 맞게 `전처리` · AI 모델을 활용한 `추론 로직` · 추론 결과인 텍스트를 `.srt` 포맷으로 `후처리` · 원하는 언어로 `번역` · 자막 파일 저장 · 취소 및 취소 후 새로운 작업 시작 까지의 `End-to-End Pipeline` 을 구축하고, 이를 사용자에게 간편한 방식으로 제공합니다.
 
 # Stacks
 
@@ -32,6 +30,7 @@
 | UI toolkit | Compose |
 | Architecture | Google-Recommended Architecture |
 | Design Pattern | MVVM, MVI |
+| Android | Activity, ViewModel, ForegroundService, MediaCodec |
 | Asynchronous | Kotlinx.Coroutines, Kotlinx.Coroutines.Flow |
 | Dependency Injection | Hilt |
 | Data | DataStore(proto3) |

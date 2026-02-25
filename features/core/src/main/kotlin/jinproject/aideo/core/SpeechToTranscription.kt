@@ -35,6 +35,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -59,8 +60,8 @@ class SpeechToTranscription @Inject constructor(
     private val mlKitTranslation: MlKitTranslation,
 ) {
     private lateinit var speechRecognition: SpeechRecognition
-    private val extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
-    private val inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
+    private var extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
+    private var inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
 
     val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
@@ -68,6 +69,7 @@ class SpeechToTranscription @Inject constructor(
     var isReady: Boolean = false
         private set
 
+    @OptIn(DelicateCoroutinesApi::class)
     suspend fun initialize() {
         isReady = true
 
@@ -83,17 +85,39 @@ class SpeechToTranscription @Inject constructor(
 
         vad.initialize()
         speakerDiarization.initialize()
+
+        if(extractedAudioChannel.isClosedForSend)
+            extractedAudioChannel  = Channel<FloatArray>(capacity = Channel.BUFFERED)
+        if(inferenceAudioChannel.isClosedForSend)
+            inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
     }
 
     fun release() {
-        if (::speechRecognition.isInitialized)
-            speechRecognition.release()
-
+        speechRecognition.release()
         vad.release()
         punctuation.release()
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
         isReady = false
+        speakerDiarization.release()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    fun cancelAndReInitialize() {
+        extractedAudioChannel.cancel()
+        inferenceAudioChannel.cancel()
+
+        if (speechRecognition.isUsed) {
+            speechRecognition.release()
+        }
+
+        vad.reset()
+        speakerDiarization.release()
+        speakerDiarization.initialize()
+        speechRecognition.initialize()
+
+        extractedAudioChannel = Channel(capacity = Channel.BUFFERED)
+        inferenceAudioChannel = Channel(capacity = Channel.BUFFERED)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
@@ -187,7 +211,6 @@ class SpeechToTranscription @Inject constructor(
             )
 
             inferenceProgress.value = 1f
-            vad.reset()
         }
     }
 
@@ -206,16 +229,21 @@ class SpeechToTranscription @Inject constructor(
                         )
                     )
 
-            inferenceAudioChannel.send(SingleSpeechSegment(
-                vadResult = nextVadSegment,
-                sdResult = sdResult,
-            ))
+            inferenceAudioChannel.send(
+                SingleSpeechSegment(
+                    vadResult = nextVadSegment,
+                    sdResult = sdResult,
+                )
+            )
 
             vad.popSegment()
         }
     }
 
-    private suspend fun transcribeSingleSegment(singleSpeechSegment: SingleSpeechSegment, language: String) {
+    private suspend fun transcribeSingleSegment(
+        singleSpeechSegment: SingleSpeechSegment,
+        language: String
+    ) {
         val standardTime = singleSpeechSegment.vadResult.start / AudioConfig.SAMPLE_RATE.toFloat()
         (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
 

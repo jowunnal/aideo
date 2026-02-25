@@ -20,8 +20,10 @@ import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.repository.MediaRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -95,21 +97,33 @@ class TranscribeService : LifecycleService() {
         val offFlag = intent?.getBooleanExtra("status", false)
 
         if (offFlag != null && offFlag) {
-            speechToTranscription.release()
-            stopSelf()
+            lifecycleScope.launch {
+                job?.cancelAndJoin()
+                stopSelf()
+            }
         }
 
-        if (videoItem != null && job == null)
+        if (videoItem != null) {
+            val isTranscribeRunning = job != null
+            val previousJob = job
+
             job = lifecycleScope.launch(Dispatchers.Default) {
+                previousJob?.cancelAndJoin()
                 notificationManager.cancel(NOTIFICATION_RESULT_ID)
-                speechToTranscription.initialize()
-                translationManager.initialize()
+                if(!isTranscribeRunning) {
+                    speechToTranscription.initialize()
+                    translationManager.initialize()
+                } else {
+                    speechToTranscription.cancelAndReInitialize()
+                    translationManager.cancelAndReInitialize()
+                }
+
                 if (speechToTranscription.isReady) {
-                    processSubtitle(videoItem)
-                    notificationManager.cancel(NOTIFICATION_TRANSCRIBE_ID)
+                    processSubtitle(videoItem = videoItem)
                     stopSelf()
                 }
             }
+        }
 
         return START_NOT_STICKY
     }
@@ -164,6 +178,10 @@ class TranscribeService : LifecycleService() {
             launchPlayer(videoItem.uri)
         }.onFailure { exception ->
             Timber.d("exception: ${exception.stackTraceToString()}")
+
+            if(exception is CancellationException)
+                throw exception
+
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
                 description = getString(
@@ -268,7 +286,7 @@ class TranscribeService : LifecycleService() {
 
     override fun onDestroy() {
         speechToTranscription.release()
-        job?.cancel()
+        translationManager.release()
         job = null
         super.onDestroy()
     }

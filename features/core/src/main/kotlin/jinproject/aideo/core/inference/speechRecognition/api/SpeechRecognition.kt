@@ -14,6 +14,7 @@ abstract class SpeechRecognition {
         get() = socModel.isQnnModel()
 
     protected var isInitialized = false
+    var isUsed = false
 
     abstract fun initialize()
     abstract fun release()

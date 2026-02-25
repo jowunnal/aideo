@@ -57,6 +57,13 @@ End-to-End Pipeline 은 추론 소요 시간이 길기 때문에 `ForegroundServ
 
 `SpeechRecognition` 추론까지 완료되면, StringBuilder 의 char 들을 String 으로 변환하여 `.srt` 자막 파일 생성 및 내부 저장소에 저장합니다.
 
+또한, 추론 파이프라인의 취소 동작도 다음과 같이 구현했습니다.
+
+1. 추론 완료 전, 새로운 추론을 트리거 하는 경우: `Coroutine` 의 `Job` 을 캐싱하고 이전의 `Job` 을 취소한 뒤, 새로운 `Coroutine` 을 생성 및 시작합니다. 이 때, 단계적으로 실행되는 병렬 파이프라인의 각 요소들이(SpeechRecognition, Vad, SpeakerDiarization) 아직 사용되지 않은 경우에는 새롭게 `Initialize` 하지 않고, 기존의 인스턴스를 재 사용 함으로써 최적화 합니다.
+2. 추론 완료 전, 현재의 추론을 중단하는 경우: 캐싱된 `Coroutine` 의 `Job` 이 완전히 종료될 때 까지 대기(cancelAndJoin) 합니다. 완전히 종료된 후, 추론 관련 인스턴스들을 `release()` 합니다.
+
+두가지 시나리오의 핵심은 추론을 실행 할 `Coroutine` 을 생성할 때 마다, 캐싱해두고 완전히 종료된 후 다음 동작을 실행하는 것 입니다. 캐싱된 `Coroutine` 이 종료되기 전에, 동작을 수행할 경우 실행 중인 `Coroutine` 내의 추론 과정에서 잘못된 메모리를 참조하는 오류가 발생하기 때문에 이 조건을 엄격하게 제어 했습니다.
+
 ## 번역 추론 단계
 
 자막 번역 추론 단계를 단순화한 결과는 다음과 같습니다.

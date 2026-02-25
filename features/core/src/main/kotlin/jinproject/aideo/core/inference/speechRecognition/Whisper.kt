@@ -66,10 +66,12 @@ class Whisper @Inject constructor(
         if (isInitialized) {
             recognizer.release()
             isInitialized = false
+            isUsed = false
         }
     }
 
     override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
+        isUsed = true
         updateLanguageConfig(language)
         val stream = recognizer.createStream()
 
