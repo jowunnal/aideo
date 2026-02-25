@@ -61,6 +61,7 @@ jobs:
           sed -i "s/AGP-[0-9]\+\.[0-9]\+\.[0-9]\+/AGP-$AGP_VERSION/" README.md
 
     - name: Create Pull Request
+      id: create-pr
       uses: peter-evans/create-pull-request@v7
       with:
         commit-message: "docs: update README.md [skip ci]"
@@ -68,3 +69,9 @@ jobs:
         title: "docs: update README for v${{ needs.extract_version.outputs.version_name }}"
         body: "Automated README badge updates for Release ${{ needs.extract_version.outputs.version_name }}"
         add-paths: README.md
+
+    - name: Auto Merge Pull Request
+      if: ${{ steps.create-pr.outputs.pull-request-number }}
+      run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --subject "docs: update README.md [skip ci]"
+      env:
+        GH_TOKEN: ${{ github.token }}
