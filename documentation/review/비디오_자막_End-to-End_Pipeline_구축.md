@@ -8,9 +8,9 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 
 <img src="chart1_simple.png" />
 
-비디오의 음성트랙을 추출하기 위해서는 `MediaCodec` 활용하였습니다. `Media3.Transformer` 를 활용할 수도 있지만, 저의 경우 비디오로 부터 음성 트랙을 `원시 오디오(WAV)` 포맷으로 추출해야 했는데, `Media3.Transformer` 는 `WAV` 포맷으로의 변환을 지원하지 않아 `MediaCodec` 을 직접 이용하였습니다.
+비디오의 음성트랙을 추출하기 위해서는 `MediaExtractor` 와 `MediaCodec` 을 활용하였습니다. `Media3.Transformer` 를 활용할 수도 있지만, 저의 경우 비디오로 부터 음성 트랙을 `원시 오디오(WAV)` 포맷으로 추출해야 했는데, `Media3.Transformer` 는 `WAV` 포맷으로의 변환을 지원하지 않아 `MediaExtractor` 와 `MediaCodec` 을 직접 이용하였습니다.
 
-`MediaCodec` 을 `Decoder` 로 이용하여, 인코딩된 비디오의 오디오 트랙을 원시 오디오 데이터(WAV)로 decode 한 후, 30초 분량의 오디오를 축적하여 추론 모델의 입력 구조에 맞게 전처리를 수행합니다. 해당 과정에서의 Key Point 는 두가지 입니다.
+먼저 `MediaExtractor` 로 비디오의 음성 트랙을 추출합니다. 그리고 `MediaCodec` 을 `Decoder` 로 이용하여, 인코딩된 비디오의 오디오 트랙을 원시 오디오 데이터(WAV)로 decode 한 후, 30초 분량의 오디오를 축적하여 추론 모델의 입력 구조에 맞게 전처리를 수행합니다. 해당 과정에서의 Key Point 는 두가지 입니다.
 
 1. **메모리 재 할당 Overhead 를 줄이기 위해 배열을 활용** : (SampleRate * Channel 수 * byte 수 * 초) 를 토대로 30초(추론 모델의 최대 입력 길이) 분량의 원시 오디오 길이 크기의 배열을 생성하여, 전처리 한 결과를 추론 채널로 전송합니다. 이 과정에서 불 필요하게 메모리 공간을 재 할당하지 않아, Garbage Collection 이 빈번하게 실행되지 않도록 만들어 성능을 최적화 합니다.
 2. **병렬 파이프라인 구축으로 성능 최적화** : `음성->텍스트 추론`에 병목 현상이 있어, '추출'과 '추론' 작업을 `Coroutine` 으로 나눈 뒤 `Coroutines.Channel` 을 활용한 파이프라인 병렬 처리로 최적화 합니다.
@@ -36,10 +36,10 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 
 1. 전처리된 Audio Float Array 수신 대기
 2. `Silero-VAD` 로 오디오에서 최대 9.5초 분량의 음성을 감지
-3. 유효 음성 길이를 그대로 `Speech Recognition` 하면, 동 시간대의 자막 길이가 너무 길기 때문에 분할을 위한 `Speaker Diarization` 을 수행
+3. 유효 음성 길이를 그대로 `Speech Recognition` 하면, 동 시간대의 자막 길이가 너무 길기 때문에 분할을 위한 `Speaker Diarization` 을 수행(화자별-음성 반환)
 4. 분할된 `화자별-음성`을 사용자에 의해 선택된 `Speech Recognition` 모델(SenseVoice/Whisper)로 Text 추론
 5. 각 추론 결과를 StringBuilder 로 병합
-6. 1~5 과정 반복하여 추론 완료시 `.srt` 생성 및 내부 저장소에 저장
+6. (1~5) 과정 반복하여 추론 완료시 자막 파일(`.srt`) 생성 및 내부 저장소에 저장
 
 ## End-to-End Pipeline Details
 
