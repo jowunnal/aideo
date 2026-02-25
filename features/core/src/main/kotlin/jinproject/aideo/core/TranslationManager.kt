@@ -14,7 +14,6 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class TranslationManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val localFileDataSource: LocalFileDataSource,
@@ -53,6 +52,11 @@ class TranslationManager @Inject constructor(
             translation.release()
             isInitialized = false
         }
+    }
+
+    suspend fun cancelAndReInitialize() {
+        release()
+        initialize()
     }
 
     suspend fun translate(sourceText: String, srcLang: LanguageCode): String {

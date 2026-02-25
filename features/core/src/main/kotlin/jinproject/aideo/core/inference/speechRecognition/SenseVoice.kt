@@ -101,11 +101,14 @@ class SenseVoice @Inject constructor(
     override fun release() {
         if (isInitialized) {
             recognizer.release()
+            transcribedResult.clear()
             isInitialized = false
+            isUsed = false
         }
     }
 
     override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
+        isUsed = true
         updateLanguageConfig(language)
         val stream = recognizer.createStream()
 

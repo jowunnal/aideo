@@ -50,7 +50,6 @@ class SileroVad @Inject constructor(
 
     fun release() {
         if (isInitialized) {
-            vad.clear()
             vad.release()
             isInitialized = false
         }
@@ -77,6 +76,8 @@ class SileroVad @Inject constructor(
     }
 
     fun reset() = vad.reset()
+
+    fun clear() = vad.clear()
 
     companion object {
         const val VAD_MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/silero_vad.onnx"
