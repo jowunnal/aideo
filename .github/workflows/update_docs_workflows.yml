@@ -2,7 +2,7 @@ name: Update Documentations Workflows
 on: 
   push:
     branches: 
-           - master
+           - main
 jobs:
   extract_version:
     runs-on: ubuntu-latest
