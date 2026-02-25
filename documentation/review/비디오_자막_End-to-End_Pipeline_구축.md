@@ -6,7 +6,7 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 
 추출 파이프라인을 단순화한 결과는 다음과 같습니다.
 
-<img src="chart1_simple.png" width="auto" height="50%"/>
+<img src="chart1_simple.png" width="35%" height="50%"/>
 
 비디오의 음성트랙을 추출하기 위해서는 `MediaExtractor` 와 `MediaCodec` 을 활용하였습니다. `Media3.Transformer` 를 활용할 수도 있지만, 저의 경우 비디오로 부터 음성 트랙을 `원시 오디오(WAV)` 포맷으로 추출해야 했는데, `Media3.Transformer` 는 `WAV` 포맷으로의 변환을 지원하지 않아 `MediaExtractor` 와 `MediaCodec` 을 직접 이용하였습니다.
 
@@ -32,7 +32,7 @@ Aideo 앱을 개발하면서 비디오로 부터 음성을 추출 · 전처리 �
 
 `음성 -> 자막 생성` 까지의 Pipeline 을 단순화한 결과는 다음과 같습니다.
 
-<img src="chart2_simple.png" width="auto" height="50%" />
+<img src="chart2_simple.png" width="35%" height="50%" />
 
 1. 전처리된 Audio Float Array 수신 대기
 2. `Silero-VAD` 로 오디오에서 최대 9.5초 분량의 음성을 감지
@@ -68,7 +68,7 @@ End-to-End Pipeline 은 추론 소요 시간이 길기 때문에 `ForegroundServ
 
 자막 번역 추론 단계를 단순화한 결과는 다음과 같습니다.
 
-<img src="chart4_simple.png" width="auto" height="50%"/>
+<img src="chart4_simple.png" width="50%" height="50%"/>
 
 자막이 생성된 후, 사용자의 선택된 언어로 번역을 수행합니다. 자막 파일의 번역을 위해 앱에서는 `MLkit` 과 facebook 의 `M2M-100` 모델을 활용합니다. `MLkit` 은 가이드에 따라 코드를 작성했습니다.
 
