@@ -1,5 +1,5 @@
 <a href="https://play.google.com/store/apps/details?id=jinproject.aideo.app">
-	<img src="https://img.shields.io/badge/PlayStore-v1.0.2-4285F4?style=for-the-badge&logo=googleplay&logoColor=white&link=https://play.google.com/store/apps/details?id=jinproject.aideo.app" />
+	<img src="https://img.shields.io/badge/PlayStore-v1.0.3-4285F4?style=for-the-badge&logo=googleplay&logoColor=white&link=https://play.google.com/store/apps/details?id=jinproject.aideo.app" />
 </a>
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.20-blue.svg)](https://kotlinlang.org)
