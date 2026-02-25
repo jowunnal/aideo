@@ -42,7 +42,7 @@ jobs:
       run: |
           TARGET_SDK=$(grep -oP 'targetSdk\s*=\s*\K\d+' app/build.gradle.kts)
           KOTLIN_VERSION=$(grep -oP 'kotlin\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' gradle/libs.versions.toml)
-          AGP_VERSION=$(grep -oP 'androidStudioGradlePlugin\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' gradle/libs.versions.toml)
+          AGP_VERSION=$(grep -oP 'agp\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' gradle/libs.versions.toml)
 
           echo "Extracted targetSdk: $TARGET_SDK"
           echo "Extracted Kotlin version: $KOTLIN_VERSION"
