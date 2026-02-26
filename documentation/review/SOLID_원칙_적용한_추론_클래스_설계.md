@@ -19,19 +19,26 @@ e.g)
 
 1. 단일 책임 원칙(SRP) & 인터페이스 분리 원칙(ISP)
 
-- **Manager Class** : `AI Model Category(SpeechToText, Translation etc)` 만의 책임을 갖습니다. 해당 `AI Model Category` 를 실현하기 위해 필요한 AI 모델들을 의존합니다. Manager 클래스는 `AI Model Category` 를 실현하기 위해 필요한 변경사항 외에는, 내부 구조의 변경이 일어나지 않습니다.
-- **AI Model Class** : 특정 `AI Model(SenseVoice, Whisper, Silero-VAD etc)` 만의 책임을 갖습니다. 특정 `AI Model` 의 입출력 구조와 같은 구체적 정보가 변경하지 않는 한, 내부 구조의 변경이 일어나지 않습니다.
-- **추론 Runtime Library 관련 Class** : AI Model 의 특정 Format(Onnx, LiteRT) 을 읽고, 이해 할 수 있는 `추론 Runtime Library(Onnx-Runtime)` 만의 책임을 갖습니다. `추론 Runtime Library` 의 버전 변경으로 인한 내부 변경이 일어나지 않는 한, 이 클래스의 변경이 일어나지 않습니다.
+- **AI Category Layer** : `AI Model Category(SpeechToText, Translation etc)` 만의 책임을 갖습니다. 해당 `AI Model Category` 를 실현하기 위해 필요한 AI 모델들을 의존합니다. Manager 클래스는 `AI Model Category` 를 실현하기 위해 필요한 변경사항 외에는, 내부 구조의 변경이 일어나지 않습니다.
+- **AI Model Layer** : 특정 `AI Model(SenseVoice, Whisper, Silero-VAD etc)` 만의 책임을 갖습니다. 특정 `AI Model` 의 입출력 구조와 같은 구체적 정보가 변경하지 않는 한, 내부 구조의 변경이 일어나지 않습니다.
+- **추론 Runtime Library Layer** : AI Model 의 특정 Format(Onnx, LiteRT) 을 읽고, 이해 할 수 있는 `추론 Runtime Library(Onnx-Runtime)` 만의 책임을 갖습니다. `추론 Runtime Library` 의 버전 변경으로 인한 내부 변경이 일어나지 않는 한, 이 클래스의 변경이 일어나지 않습니다.
+
+각 Layer 의 클래스와 인터페이스들이 변경의 원인이 하나로 축소됨으로써(액터가 하나) 복잡도를 줄일 수 있었습니다.
 
 2. 개방-폐쇄 원칙(OCP)
 
 개방-폐쇄 원칙의 핵심은 가장 변할 가능성이 적은 컴포넌트를 중심으로 의존성 방향을 설계해야 한다는 점입니다. 
 
-이 원칙을 근거로 가장 변경될 가능성이 적은 `Onnx Native Runtime Library < AI 모델 클래스 < AI Category Manager 클래스 < Feature` 방향으로 의존성을 설계했습니다.
+이 원칙을 근거로 가장 변경될 가능성이 적은 `[Onnx Native Runtime Library < AI 모델 클래스 < AI Category Layer < Feature]` 방향으로 의존성을 설계했습니다.
 
-Native Runtime Library 는 외부 의존성이지만, 특별한 문제가 없는 한 버전 변경 가능성이 적으며, 변경이 있다 하더라도 캡슐화로 최대한 외부 요소를 그대로 드러내지 않도록 하였습니다.
+유지보수 관점에서 추론 Runtime Library 는 고정 버전을 사용하여 변경의 가능성이 가장 적으며, 상위 버전으로 업데이트를 염두하여 캡슐화를 통해 최대한 외부 요소를 그대로 드러내지 않도록 하였습니다. AI 모델 클래스의 경우 고정된 버전으로 배포된 후 새로운 모델이 발생하는 구조 이기 때문에 모델 자체의 변경 가능성이 없다고 봐도 무방합니다. 하지만, 기능을 확장할 때 새로운 AI 모델이 추가될 수 있으므로 추론 Runtime Library 보다는 변경의 가능성이 큽니다.
 
-AI Model 이 Runtime Library 를 의존하도록 구현함으로써, 특정 Model 을 어떠한 Format(Onnx, LiteRT) 으로 추출하여도 그에 맞는 Runtime Library 관련 Class 를 선택함으로써 변경에는 닫혀있고, 확장에는 열려있는 구조로 설계할 수 있었습니다.
+AI Category Layer 는 새로운 기능을 추가하거나, 신규 AI 모델을 추가할 때 마다 영향을 받기 때문에 AI Model 클래스 보다 변경의 가능성이 더 큽니다. 그리고 Feature Layer 는 AI 관련 기능과 무관하게 변경의 가능성이 있으므로 AI Category Layer 보다 변경의 가능성이 더 많습니다.
+
+이 구조의 장점은 기능을 추가 및 확장하거나 유지보수 하는 과정에서 변경에는 닫혀있고 확장에 열려있도록 만든다는 것 입니다. 구체적으로 다음과 같은 장점을 얻을 수 있었습니다.
+
+1. **전략 패턴(Strategy Pattern)** : 같은 AI Category 내에서 새로운 AI 모델을 추가하는 경우, AI Model Interface 를 구현하는 새로운 구현체를 생성하여 주입함으로써 변경이 아닌 확장이 수행됩니다.
+2. **퍼사드 패턴(Facade Pattern)** : 새로운 AI Category 를 정의하더라도, 이미 만들어져 있는 AI 모델 클래스를 필요한 만큼 주입 받음으로써 기능을 쉽게 추가할 수 있습니다. 또한, Feature Layer 에서 새로운 AI 기능을 만들 때도 AI Category Layer 에서 필요한 Manager 클래스들을 주입 받음으로써 기능을 쉽게 추가할 수 있습니다.
 
 3. 리스코프 치환 원칙(LSP)
 
@@ -68,7 +75,8 @@ LSP는 고수준의 계약을 저수준이 이행해야 한다는 원칙으로, 
   - MLKit(Impl)
   - M2M100(Impl)
 
-그리고 **AI Category Manager** 컴포넌트를 생성합니다. 이는 설명한 바와 같이, 필요한 AI 모델들을 주입 받아, 실현하고자 하는 목적을 구현하는 Manager 클래스 입니다. 예를 들어, SpeechRecognition, VAD, SpeakerDiarization 의 특정 클래스들을 주입받아 `음성 -> 텍스트 추론(SpeechToText)` 카테고리를 구현합니다.
+그리고 **AI Category** 컴포넌트를 생성합니다. 이는 설명한 바와 같이, 필요한 AI 모델들을 주입 받아, 실현하고자 하는 목적을 구현하는 Manager 클래스 입니다. 예를 들어, SpeechRecognition, VAD, SpeakerDiarization 의 특정 클래스들을 주입받아 SpeechToTranscription(`음성 -> 텍스트 추론(SpeechToText)`) AI Category를 구현합니다.
+
 
 - SpeechToTranscription
 - TranslationManager
