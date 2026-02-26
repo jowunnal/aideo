@@ -37,6 +37,10 @@ class BillingModule(
     private val activity: Activity,
     private val coroutineScope: CoroutineScope,
 ) {
+    private val successListener: BillingListener<Purchase> = BillingListener()
+    private val failListener: BillingListener<Int> = BillingListener()
+    private val readyListener: BillingListener<BillingModule> = BillingListener()
+
     var isReady: Boolean = false
 
     private val purChasedUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
@@ -91,10 +95,6 @@ class BillingModule(
             }
         })
     }
-
-    private val successListener: BillingListener<Purchase> = BillingListener()
-    private val failListener: BillingListener<Int> = BillingListener()
-    private val readyListener: BillingListener<BillingModule> = BillingListener()
 
     /**
      * 결제 플로우 리스너 등록
