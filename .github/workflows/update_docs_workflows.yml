@@ -29,9 +29,8 @@ jobs:
     needs: extract_version
     if: ${{ needs.extract_version.outputs.version_name != 'unknown' }}
     steps:
-    
     - uses: actions/checkout@v4
-       
+
     - name: Create Github Release
       uses: softprops/action-gh-release@v2.2.1
       with:
@@ -48,7 +47,6 @@ jobs:
           echo "Extracted targetSdk: $TARGET_SDK"
           echo "Extracted Kotlin version: $KOTLIN_VERSION"
           echo "Extracted AGP version: $AGP_VERSION"
-          
           echo "TARGET_SDK=$TARGET_SDK" >> $GITHUB_ENV
           echo "KOTLIN_VERSION=$KOTLIN_VERSION" >> $GITHUB_ENV
           echo "AGP_VERSION=$AGP_VERSION" >> $GITHUB_ENV
