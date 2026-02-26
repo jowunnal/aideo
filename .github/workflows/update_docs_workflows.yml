@@ -70,6 +70,7 @@ jobs:
 
     - name: Auto Merge Pull Request
       if: ${{ steps.create-pr.outputs.pull-request-number }}
-      run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --subject "docs: update README.md [skip ci]"
+      run: |
+        gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --subject "docs: update README.md [skip ci]"
       env:
         GH_TOKEN: ${{ github.token }}
