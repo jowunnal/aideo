@@ -1,9 +1,7 @@
-//
-// Created by PC on 2026-01-18.
-// M2M100 Translator - High-level translation API using ONNX Runtime
-//
 
-#ifndef AIDEO_M2M100_TRANSLATOR_H
+// M2M100 Translator - High-level translation API using ONNX Runtime
+
+#ifndef AIDEO_M2M100_TRANSLATOR_H //include guard
 #define AIDEO_M2M100_TRANSLATOR_H
 
 #include <string>
@@ -21,9 +19,6 @@ public:
     ~M2M100Translator();
 
     // 모델 및 토크나이저 로드
-    // spModelPath: m2m100_sentencepiece.bpe.model 경로
-    // vocabPath: m2m100_vocab.json 경로 (BPE vocab)
-    // tokenizerConfigPath: m2m100_tokenizer_config.json 경로 (언어 토큰)
     bool load(
             const std::string& encoderPath,
             const std::string& decoderPath,
@@ -41,23 +36,24 @@ public:
             int maxLength = 256
     );
 
-    // 배치 번역 실행 (JNI 호출 최소화)
-    std::vector<std::string> translateBatch(
-            const std::vector<std::string>& texts,
-            const std::string& srcLang,
-            const std::string& tgtLang,
-            int maxLength = 256
-    );
-
     // 리소스 해제
     void release();
 
     // 지원 언어 확인
     bool isLanguageSupported(const std::string& lang) const;
 
-private:
+    // 단일 텍스트 번역 (검증 완료된 언어 토큰 ID 사용)
+    std::string translateSingle(
+            const std::string& text,
+            int64_t srcLangId,
+            int64_t tgtLangId,
+            int maxLength
+    );
+
     // 언어 코드를 토큰 ID로 변환 (예: "ko" -> 128052)
     int64_t getLanguageTokenId(const std::string& lang) const;
+
+private:
 
     // 다음 토큰 선택 (greedy decoding)
     int64_t selectNextToken(const std::vector<float>& logits, int64_t vocabSize);

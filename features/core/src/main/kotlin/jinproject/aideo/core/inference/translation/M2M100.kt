@@ -28,8 +28,7 @@ class M2M100 @Inject constructor(
 ) : Translation() {
     private var m2M100Native: M2M100Native? = null
     private var textBuffer: ByteBuffer? = null
-    var isModelLoaded: Boolean = false
-        private set
+    private var batchBuffer: ByteBuffer? = null
 
     override fun initialize() {
         if (m2M100Native != null) {
@@ -48,7 +47,7 @@ class M2M100 @Inject constructor(
         val tokenizerConfigInternalPath =
             copyAssetToInternalStorage(path = TOKENIZER_CONFIG_PATH, context = context)
 
-        isModelLoaded = m2M100Native!!.loadModel(
+        val isModelLoaded = m2M100Native!!.loadModel(
             encoderPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$ENCODER_MODEL_PATH",
             decoderPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_MODEL_PATH",
             decoderWithPastPath = "${context.getPackAssetPath(AiModelConfig.TRANSLATION_BASE_PACK)}/$DECODER_WITH_PAST_MODEL_PATH",
@@ -56,6 +55,9 @@ class M2M100 @Inject constructor(
             vocabPath = vocabInternalPath,
             tokenizerConfigPath = tokenizerConfigInternalPath,
         )
+
+        if(!isModelLoaded)
+            m2M100Native = null
     }
 
     override suspend fun translateSubtitle(videoId: Long) {
@@ -128,23 +130,46 @@ class M2M100 @Inject constructor(
     }
 
     /**
-     * 배치 번역 (JNI 호출 최소화)
+     * 배치 번역 (DirectByteBuffer를 통한 JNI zero-copy)
+     *
+     * 버퍼 포맷 (Length-Prefixed Binary):
+     * [textCount: 4 bytes, big-endian int32]
+     * [len1: 4 bytes][text1: len1 bytes (UTF-8)]
+     * [len2: 4 bytes][text2: len2 bytes (UTF-8)]
+     * ...
+     *
      * @throws IllegalStateException : 번역 실패시
      */
     fun translateBatch(
         texts: List<String>,
         sourceLanguageCode: LanguageCode,
         targetLanguageCode: LanguageCode,
-    ): List<String> {
+    ): Array<String> {
         if (m2M100Native == null)
             initialize()
 
+        val encodedTexts = texts.map { it.toByteArray(UTF_8) }
+        val totalLength = Int.SIZE_BYTES + encodedTexts.sumOf { Int.SIZE_BYTES + it.size }
+
+        if (batchBuffer == null || batchBuffer!!.capacity() < totalLength)
+            batchBuffer = ByteBuffer.allocateDirect(totalLength)
+
+        val buffer = batchBuffer!!.apply {
+            clear()
+            putInt(texts.size)
+            encodedTexts.forEach { bytes ->
+                putInt(bytes.size)
+                put(bytes)
+            }
+            flip()
+        }
+
         return m2M100Native!!.translateBatch(
-            texts = texts.toTypedArray(),
+            textBuffer = buffer,
             srcLang = sourceLanguageCode.code,
             tgtLang = targetLanguageCode.code,
             maxLength = MAX_OUTPUT_LENGTH
-        )?.toList() ?: throw IllegalStateException("Batch translation failed")
+        ) ?: throw IllegalStateException("Batch translation failed")
     }
 
     /**
@@ -160,6 +185,9 @@ class M2M100 @Inject constructor(
     ): String {
         if (m2M100Native == null)
             initialize()
+
+        if (textBuffer == null || textBuffer!!.capacity() < text.size)
+            textBuffer = ByteBuffer.allocateDirect(text.size)
 
         val buffer = textBuffer!!.apply {
             clear() // pos = 0
@@ -180,7 +208,7 @@ class M2M100 @Inject constructor(
         m2M100Native?.release()
         m2M100Native = null
         textBuffer = null
-        isModelLoaded = false
+        batchBuffer = null
     }
 
     companion object {

@@ -75,7 +75,7 @@ Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_translateWithBu
     const char* srcLangStr = env->GetStringUTFChars(srcLang, nullptr);
     const char* tgtLangStr = env->GetStringUTFChars(tgtLang, nullptr);
 
-    std::string result = g_translator->translate(text.c_str(), srcLangStr, tgtLangStr, maxLength);
+    std::string result = g_translator->translate(text, srcLangStr, tgtLangStr, maxLength);
 
     env->ReleaseStringUTFChars(srcLang, srcLangStr);
     env->ReleaseStringUTFChars(tgtLang, tgtLangStr);
@@ -91,7 +91,7 @@ JNIEXPORT jobjectArray JNICALL
 Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_translateBatch(
         JNIEnv* env,
         jobject /* this */,
-        jobjectArray texts,
+        jobject textBuffer,
         jstring srcLang,
         jstring tgtLang,
         jint maxLength) {
@@ -100,45 +100,49 @@ Java_jinproject_aideo_core_inference_native_wrapper_M2M100Native_translateBatch(
         return nullptr;
     }
 
-    // Java String 배열을 C++ vector로 변환
-    jsize textCount = env->GetArrayLength(texts);
-    std::vector<std::string> inputTexts;
-    inputTexts.reserve(textCount);
-
-    for (jsize i = 0; i < textCount; ++i) {
-        jstring text = static_cast<jstring>(env->GetObjectArrayElement(texts, i));
-        const char* textStr = env->GetStringUTFChars(text, nullptr);
-        inputTexts.emplace_back(textStr);
-        env->ReleaseStringUTFChars(text, textStr);
-        env->DeleteLocalRef(text);
+    // DirectByteBuffer에서 포인터 획득 (zero-copy)
+    const auto* bufPtr = static_cast<const uint8_t*>(env->GetDirectBufferAddress(textBuffer));
+    if (bufPtr == nullptr) {
+        return nullptr;
     }
 
-    // 언어 코드 변환 (1회만)
+    // 언어 토큰 1회 조회
     const char* srcLangStr = env->GetStringUTFChars(srcLang, nullptr);
     const char* tgtLangStr = env->GetStringUTFChars(tgtLang, nullptr);
 
-    // 배치 번역 실행
-    std::vector<std::string> results = g_translator->translateBatch(
-            inputTexts, srcLangStr, tgtLangStr, maxLength
-    );
+    int64_t srcLangId = g_translator->getLanguageTokenId(srcLangStr);
+    int64_t tgtLangId = g_translator->getLanguageTokenId(tgtLangStr);
 
     env->ReleaseStringUTFChars(srcLang, srcLangStr);
     env->ReleaseStringUTFChars(tgtLang, tgtLangStr);
 
-    if (results.empty()) {
+    if (srcLangId == -1 || tgtLangId == -1) {
         return nullptr;
     }
 
-    // C++ vector를 Java String 배열로 변환
-    jclass stringClass = env->FindClass("java/lang/String");
-    jobjectArray resultArray = env->NewObjectArray(
-            static_cast<jsize>(results.size()), stringClass, nullptr
-    );
+    // Length-Prefixed 포맷 파싱: [textCount(4)][len1(4)][text1(len1)][len2(4)][text2(len2)]...
+    int32_t textCount = (bufPtr[0] << 24) | (bufPtr[1] << 16)
+                      | (bufPtr[2] << 8) | bufPtr[3];
+    size_t offset = 4;
 
-    for (size_t i = 0; i < results.size(); ++i) {
-        jstring resultStr = env->NewStringUTF(results[i].c_str());
-        env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultStr);
-        env->DeleteLocalRef(resultStr);
+    jclass stringClass = env->FindClass("java/lang/String");
+    jobjectArray resultArray = env->NewObjectArray(textCount, stringClass, nullptr);
+
+    // buffer에서 하나씩 파싱하며 바로 번역 (중간 vector 없이)
+    for (int i = 0; i < textCount; ++i) {
+        int32_t len = (bufPtr[offset] << 24) | (bufPtr[offset + 1] << 16)
+                    | (bufPtr[offset + 2] << 8) | bufPtr[offset + 3];
+        offset += 4;
+
+        std::string text(reinterpret_cast<const char*>(bufPtr + offset), len);
+        offset += len;
+
+        std::string translated = g_translator->translateSingle(text, srcLangId, tgtLangId, maxLength);
+        if (!translated.empty()) {
+            jstring resultStr = env->NewStringUTF(translated.c_str());
+            env->SetObjectArrayElement(resultArray, static_cast<jsize>(i), resultStr);
+            env->DeleteLocalRef(resultStr);
+        }
     }
 
     env->DeleteLocalRef(stringClass);
