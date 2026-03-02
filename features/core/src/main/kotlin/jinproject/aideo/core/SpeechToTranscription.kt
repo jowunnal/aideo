@@ -1,6 +1,5 @@
 package jinproject.aideo.core
 
-import android.content.Context
 import android.content.res.AssetManager
 import android.media.AudioFormat
 import android.os.Build
@@ -8,14 +7,10 @@ import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
 import com.k2fsa.sherpa.onnx.WaveReader
-import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.AvailableSoCModel.Companion.getAvailableSoCModel
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.diarization.SpeakerDiarization
 import jinproject.aideo.core.inference.punctuation.Punctuation
-import jinproject.aideo.core.inference.speechRecognition.SenseVoice
 import jinproject.aideo.core.inference.speechRecognition.TimeStampedSR
-import jinproject.aideo.core.inference.speechRecognition.Whisper
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.inference.translation.MlKitTranslation
 import jinproject.aideo.core.inference.vad.SileroVad
@@ -35,7 +30,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -46,11 +40,12 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
+import javax.inject.Provider
 import kotlin.math.ceil
 import kotlin.math.floor
 
 class SpeechToTranscription @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val speechRecognitionProviders: Map<SpeechRecognitionAvailableModel, @JvmSuppressWildcards Provider<SpeechRecognition>>,
     private val mediaFileManager: MediaFileManager,
     private val vad: SileroVad,
     private val speakerDiarization: SpeakerDiarization,
@@ -66,30 +61,37 @@ class SpeechToTranscription @Inject constructor(
     val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
-    var isReady: Boolean = false
+    var isInitialized: Boolean = false
         private set
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun initialize() {
-        isReady = true
+        if (isInitialized)
+            return
 
-        val model = localSettingDataSource.getSelectedSpeechRecognitionModel().first()
-        speechRecognition = when (SpeechRecognitionAvailableModel.findByName(model)) {
-            SpeechRecognitionAvailableModel.Whisper -> Whisper(context)
-            SpeechRecognitionAvailableModel.SenseVoice -> SenseVoice(context).apply {
-                setSoCModel(getAvailableSoCModel())
-            }
-        }.apply {
-            initialize()
-        }
+        isInitialized = true
+
+        initializeSpeechRecognition()
 
         vad.initialize()
         speakerDiarization.initialize()
 
-        if(extractedAudioChannel.isClosedForSend)
-            extractedAudioChannel  = Channel<FloatArray>(capacity = Channel.BUFFERED)
-        if(inferenceAudioChannel.isClosedForSend)
+        if (extractedAudioChannel.isClosedForSend)
+            extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
+        if (inferenceAudioChannel.isClosedForSend)
             inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
+    }
+
+    private suspend fun initializeSpeechRecognition() {
+        val model = localSettingDataSource.getSelectedSpeechRecognitionModel().first()
+        val modelType = SpeechRecognitionAvailableModel.findByName(model)
+
+        if (::speechRecognition.isInitialized && speechRecognition.availableSpeechRecognition == modelType)
+            return
+
+        speechRecognition = speechRecognitionProviders[modelType]!!.get().apply {
+            initialize()
+        }
     }
 
     fun release() {
@@ -98,23 +100,23 @@ class SpeechToTranscription @Inject constructor(
         punctuation.release()
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
-        isReady = false
         speakerDiarization.release()
+        isInitialized = false
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    fun cancelAndReInitialize() {
+    suspend fun cancelAndReInitialize() {
         extractedAudioChannel.cancel()
         inferenceAudioChannel.cancel()
-
-        if (speechRecognition.isUsed) {
-            speechRecognition.release()
-        }
 
         vad.reset()
         speakerDiarization.release()
         speakerDiarization.initialize()
-        speechRecognition.initialize()
+
+        if (speechRecognition.isUsed) {
+            speechRecognition.release()
+        }
+        initializeSpeechRecognition()
 
         extractedAudioChannel = Channel(capacity = Channel.BUFFERED)
         inferenceAudioChannel = Channel(capacity = Channel.BUFFERED)
@@ -128,7 +130,6 @@ class SpeechToTranscription @Inject constructor(
             launch(Dispatchers.IO) {
                 extractAudioFromVideo(videoItem.uri)
             }
-
 
             launch {
                 val windowSize = 512

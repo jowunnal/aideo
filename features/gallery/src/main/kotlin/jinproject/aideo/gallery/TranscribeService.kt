@@ -118,7 +118,7 @@ class TranscribeService : LifecycleService() {
                     translationManager.cancelAndReInitialize()
                 }
 
-                if (speechToTranscription.isReady) {
+                if (speechToTranscription.isInitialized) {
                     processSubtitle(videoItem = videoItem)
                     stopSelf()
                 }

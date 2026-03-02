@@ -9,6 +9,7 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.AiModelConfig.MODELS_ROOT_DIR
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
@@ -17,11 +18,6 @@ import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
-import javax.inject.Qualifier
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class WhisperModel
 
 class Whisper @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -30,6 +26,8 @@ class Whisper @Inject constructor(
     override val timeInfo: TimeStampedSR.TimeInfo = TimeStampedSR.TimeInfo.getDefault()
     private lateinit var recognizer: OfflineRecognizer
     private lateinit var config: OfflineRecognizerConfig
+    override val availableSpeechRecognition: SpeechRecognitionAvailableModel =
+        SpeechRecognitionAvailableModel.Whisper
 
     override fun initialize() {
         if (isInitialized) {
