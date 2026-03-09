@@ -34,9 +34,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -52,8 +54,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.rewarded.RewardedAd
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
 import com.google.android.play.core.aipacks.AiPackStateUpdateListener
 import com.google.android.play.core.aipacks.model.AiPackStatus
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -82,7 +84,11 @@ import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackStatus
+import jinproject.aideo.design.R
+import jinproject.aideo.design.component.DialogState
 import jinproject.aideo.design.component.SnackBarHostCustom
+import jinproject.aideo.design.component.TextDialog
+import jinproject.aideo.design.component.getShownDialogState
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
 import jinproject.aideo.player.navigateToPlayerGraph
@@ -103,13 +109,13 @@ class MainActivity : ComponentActivity() {
         if (result.not()) {
             Toast.makeText(
                 applicationContext,
-                getString(jinproject.aideo.design.R.string.permission_required),
+                getString(R.string.permission_required),
                 Toast.LENGTH_LONG
             ).show()
         }
     }
 
-    private var mRewardedAd: RewardedAd? = null
+    private var mRewardedAd: RewardedInterstitialAd? = null
 
     private val inAppUpdateLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -168,15 +174,15 @@ class MainActivity : ComponentActivity() {
                 if (result.resultCode == RESULT_OK) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_started),
-                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                            headerMessage = context.getString(R.string.download_started),
+                            contentMessage = context.getString(R.string.download_please_wait)
                         )
                     )
                 } else if (result.resultCode == RESULT_CANCELED) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled),
-                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled_desc)
+                            headerMessage = context.getString(R.string.download_cancelled),
+                            contentMessage = context.getString(R.string.download_cancelled_desc)
                         )
                     )
                 }
@@ -217,8 +223,8 @@ class MainActivity : ComponentActivity() {
                     AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
                         showSnackBar(
                             SnackBarMessage(
-                                headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
-                                contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                                headerMessage = context.getString(R.string.download_ai_model_in_progress),
+                                contentMessage = context.getString(R.string.download_please_wait)
                             )
                         )
                     }
@@ -232,6 +238,19 @@ class MainActivity : ComponentActivity() {
                 context.removeOnNewIntentListener(onNewIntentConsumer)
                 getAiPackManager().unregisterListener(aiPackListener)
             }
+        }
+
+        var rewardAdDialogState by remember {
+            mutableStateOf(
+                DialogState(
+                    header = context.getString(R.string.dialog_ad_reward_header),
+                    content = context.getString(R.string.dialog_ad_reward_content),
+                    positiveMessage = context.getString(R.string.dialog_ad_reward_positive),
+                    negativeMessage = context.getString(R.string.dialog_ad_reward_negative),
+                    onPositiveCallback = {},
+                    onNegativeCallback = {},
+                )
+            )
         }
 
         val isAdViewRemoved by adMobManager.isAdviewRemoved.collectAsStateWithLifecycle()
@@ -254,7 +273,7 @@ class MainActivity : ComponentActivity() {
                     showSnackBar(
                         SnackBarMessage(
                             headerMessage = context.getString(
-                                jinproject.aideo.design.R.string.billing_purchase_completed,
+                                R.string.billing_purchase_completed,
                                 c.products.first()
                             )
                         )
@@ -265,23 +284,23 @@ class MainActivity : ComponentActivity() {
                 override fun call(c: Int) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_failed),
+                            headerMessage = context.getString(R.string.billing_purchase_failed),
                             contentMessage = when (c) {
-                                2, 3 -> context.getString(jinproject.aideo.design.R.string.billing_error_invalid_product)
-                                5, 6 -> context.getString(jinproject.aideo.design.R.string.billing_error_incorrect_product)
+                                2, 3 -> context.getString(R.string.billing_error_invalid_product)
+                                5, 6 -> context.getString(R.string.billing_error_incorrect_product)
                                 BillingClient.BillingResponseCode.USER_CANCELED -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_cancelled
+                                    R.string.billing_error_cancelled
                                 )
 
                                 BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_unavailable
+                                    R.string.billing_error_unavailable
                                 )
 
                                 BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_already_owned
+                                    R.string.billing_error_already_owned
                                 )
 
-                                else -> context.getString(jinproject.aideo.design.R.string.billing_error_network)
+                                else -> context.getString(R.string.billing_error_network)
                             }
                         )
                     )
@@ -344,8 +363,17 @@ class MainActivity : ComponentActivity() {
             LocalAnalyticsLoggingEvent provides ::loggingAnalyticsEvent,
             LocalBillingModule provides billingModule,
             LocalShowSnackBar provides showSnackBar,
-            LocalShowRewardAd provides ::showRewardedAd,
+            LocalShowRewardAd provides { onResult ->
+                rewardAdDialogState = rewardAdDialogState.getShownDialogState(
+                    onPositiveCallback = { showRewardedAd(onResult) },
+                )
+            },
         ) {
+            TextDialog(
+                dialogState = rewardAdDialogState,
+                onDismissRequest = { rewardAdDialogState.changeVisibility(false) },
+            )
+
             NavigationSuiteScaffold(
                 navigationSuiteItems = {
                     navigationSuiteItems(
@@ -418,17 +446,12 @@ class MainActivity : ComponentActivity() {
             return
 
         isLoadingRewardAd = true
-        RewardedAd.load(
+        RewardedInterstitialAd.load(
             this,
             ADMOB_REWARD_ID,
             AdRequest.Builder().build(),
-            object : RewardedAdLoadCallback() {
-                override fun onAdFailedToLoad(adError: LoadAdError) {
-                    mRewardedAd = null
-                    isLoadingRewardAd = false
-                }
-
-                override fun onAdLoaded(rewardedAd: RewardedAd) {
+            object : RewardedInterstitialAdLoadCallback() {
+                override fun onAdLoaded(rewardedAd: RewardedInterstitialAd) {
                     mRewardedAd = rewardedAd
                     isLoadingRewardAd = false
 
@@ -447,7 +470,13 @@ class MainActivity : ComponentActivity() {
                         override fun onAdShowedFullScreenContent() {}
                     }
                 }
-            })
+
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    mRewardedAd = null
+                    isLoadingRewardAd = false
+                }
+            },
+        )
     }
 
     private fun showRewardedAd(onResult: () -> Unit) {

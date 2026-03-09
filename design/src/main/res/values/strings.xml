@@ -58,6 +58,10 @@
     <string name="notification_action_stop">Stop</string>
 
     <!-- Dialog -->
+    <string name="dialog_ad_reward_header">Would you like to watch an ad?</string>
+    <string name="dialog_ad_reward_content">Watch the ad to generate subtitles.</string>
+    <string name="dialog_ad_reward_positive">Yes, I\'ll watch it.</string>
+    <string name="dialog_ad_reward_negative">No, I don\'t want to.</string>
     <string name="dialog_download_required_header">Additional download required.</string>
     <string name="dialog_download_required_content">Additional storage space (approximately 1.2GB) is required for download.</string>
     <string name="dialog_download_whisper_content">Additional storage space (approximately 300MB) is required for download.</string>
