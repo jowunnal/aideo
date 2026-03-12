@@ -26,11 +26,11 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import com.google.android.play.core.aipacks.model.AiPackStatus
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
+import jinproject.aideo.core.utils.isAiPackReady
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.button.clickableAvoidingDuplication
 import jinproject.aideo.design.theme.AideoColor
@@ -66,38 +66,25 @@ internal fun LibraryVideoGridList(
                     videoItem = videoItem,
                     videoItemSelection = videoItemSelection,
                     onClick = {
-                        context.getAiPackManager()
-                            .getPackStates(listOf(AiModelConfig.SPEECH_BASE_PACK))
-                            .addOnCompleteListener { task ->
-                                when (task.result.packStates()[AiModelConfig.SPEECH_BASE_PACK]?.status()) {
-                                    AiPackStatus.COMPLETED -> {
-                                        context.startForegroundService(
-                                            Intent(
-                                                context,
-                                                Class.forName("jinproject.aideo.gallery.TranscribeService")
-                                            ).apply {
-                                                putExtra(
-                                                    "videoItem",
-                                                    videoItem.toVideoItem()
-                                                )
-                                            }
-                                        )
-                                    }
-
-                                    AiPackStatus.CANCELED, AiPackStatus.FAILED, AiPackStatus.PENDING, AiPackStatus.NOT_INSTALLED -> {
-                                        context.getAiPackManager()
-                                            .fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
-                                        localShowSnackBar.invoke(
-                                            SnackBarMessage(
-                                                headerMessage = context.getString(R.string.download_failed_or_pending),
-                                                contentMessage = context.getString(R.string.download_retry_request)
-                                            )
-                                        )
-                                    }
-
-                                    else -> {}
+                        if (context.isAiPackReady(AiModelConfig.SPEECH_BASE_PACK)) {
+                            context.startForegroundService(
+                                Intent(
+                                    context,
+                                    Class.forName("jinproject.aideo.gallery.TranscribeService")
+                                ).apply {
+                                    putExtra("videoItem", videoItem.toVideoItem())
                                 }
-                            }
+                            )
+                        } else {
+                            context.getAiPackManager()
+                                .fetch(listOf(AiModelConfig.SPEECH_BASE_PACK))
+                            localShowSnackBar.invoke(
+                                SnackBarMessage(
+                                    headerMessage = context.getString(R.string.download_failed_or_pending),
+                                    contentMessage = context.getString(R.string.download_retry_request)
+                                )
+                            )
+                        }
                     },
                     modifier = Modifier.animateItem()
                 )
