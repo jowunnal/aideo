@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity() {
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        setUpBaseAiPack()
+        if (!BuildConfig.DEBUG) setUpBaseAiPack()
     }
 
     @Composable
@@ -214,29 +214,30 @@ class MainActivity : ComponentActivity() {
 
             (context as ComponentActivity).addOnNewIntentListener(onNewIntentConsumer)
 
-            val aiPackListener = AiPackStateUpdateListener { state ->
-                when (state.status()) {
-                    AiPackStatus.REQUIRES_USER_CONFIRMATION, AiPackStatus.WAITING_FOR_WIFI -> {
-                        getAiPackManager().showConfirmationDialog(ls)
-                    }
+            val aiPackListener = if (!BuildConfig.DEBUG) {
+                AiPackStateUpdateListener { state ->
+                    when (state.status()) {
+                        AiPackStatus.REQUIRES_USER_CONFIRMATION, AiPackStatus.WAITING_FOR_WIFI -> {
+                            getAiPackManager().showConfirmationDialog(ls)
+                        }
 
-                    AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
-                        showSnackBar(
-                            SnackBarMessage(
-                                headerMessage = context.getString(R.string.download_ai_model_in_progress),
-                                contentMessage = context.getString(R.string.download_please_wait)
+                        AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
+                            showSnackBar(
+                                SnackBarMessage(
+                                    headerMessage = context.getString(R.string.download_ai_model_in_progress),
+                                    contentMessage = context.getString(R.string.download_please_wait)
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    else -> {}
-                }
-            }
-            getAiPackManager().registerListener(aiPackListener)
+                        else -> {}
+                    }
+                }.also { getAiPackManager().registerListener(it) }
+            } else null
 
             onDispose {
                 context.removeOnNewIntentListener(onNewIntentConsumer)
-                getAiPackManager().unregisterListener(aiPackListener)
+                aiPackListener?.let { getAiPackManager().unregisterListener(it) }
             }
         }
 
