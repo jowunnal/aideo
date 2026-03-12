@@ -196,5 +196,6 @@ build_logs/
 scripts/
 .serena/
 .DS_Store
+*.asdb
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio,kotlin

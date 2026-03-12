@@ -1,12 +1,10 @@
 package jinproject.aideo.core
 
-import android.content.res.AssetManager
 import android.media.AudioFormat
 import android.os.Build
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
-import com.k2fsa.sherpa.onnx.WaveReader
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.diarization.SpeakerDiarization
 import jinproject.aideo.core.inference.punctuation.Punctuation
@@ -19,6 +17,7 @@ import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
+import jinproject.aideo.core.media.audio.ChunkedAudioProcessor
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.data.TranslationManager
 import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
@@ -29,13 +28,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -55,9 +51,8 @@ class SpeechToTranscription @Inject constructor(
     private val mlKitTranslation: MlKitTranslation,
 ) {
     private lateinit var speechRecognition: SpeechRecognition
-    private var extractedAudioChannel = Channel<FloatArray>(capacity = Channel.BUFFERED)
-    private var inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = Channel.BUFFERED)
-
+    private var extractedAudioChannel = Channel<FloatArray>(capacity = 2)
+    private var inferenceAudioChannel = Channel<SingleSpeechSegment>(capacity = 5)
     val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
@@ -132,45 +127,7 @@ class SpeechToTranscription @Inject constructor(
             }
 
             launch {
-                val windowSize = 512
-                val buffer = FixedChunkBuffer(windowSize)
-                val resumeSignal = Channel<Unit>(capacity = 1)
-
-                val job = launch {
-                    for (i in extractedAudioChannel) {
-                        buffer.write(i)
-                        if (buffer.totalSamples >= windowSize)
-                            resumeSignal.send(Unit)
-                    }
-
-                    resumeSignal.close()
-                }
-
-                launch {
-                    while (job.isActive || buffer.totalSamples >= windowSize) {
-                        val chunk = buffer.readChunk()
-                        if (chunk != null) {
-                            vad.acceptWaveform(chunk)
-
-                            if (vad.isSpeechDetected()) {
-                                inferenceVadAndSd()
-                            }
-                        } else {
-                            try {
-                                resumeSignal.receive()
-                            } catch (e: Exception) {
-                                if (e is ClosedReceiveChannelException)
-                                    break
-                            }
-                        }
-                    }
-
-                    vad.acceptWaveform(buffer.flush())
-                    vad.flush()
-                    inferenceVadAndSd()
-
-                    inferenceAudioChannel.close()
-                }
+                processExtractedAudioWithVad()
             }
 
             val transcribedSrtText = async {
@@ -213,6 +170,29 @@ class SpeechToTranscription @Inject constructor(
 
             inferenceProgress.value = 1f
         }
+    }
+
+    private suspend fun processExtractedAudioWithVad() {
+        val chunkedProcessor = ChunkedAudioProcessor(windowSize = 512) { chunk ->
+            vad.acceptWaveform(chunk)
+
+            if (vad.isSpeechDetected()) {
+                inferenceVadAndSd()
+            }
+        }
+
+        for (samples in extractedAudioChannel) {
+            chunkedProcessor.feed(samples)
+        }
+
+        val remainder = chunkedProcessor.flush()
+        if (remainder.isNotEmpty()) {
+            vad.acceptWaveform(remainder)
+        }
+        vad.flush()
+        inferenceVadAndSd()
+
+        inferenceAudioChannel.close()
     }
 
     private suspend fun inferenceVadAndSd() {
@@ -329,58 +309,10 @@ class SpeechToTranscription @Inject constructor(
         )
     }
 
-    private suspend fun extractTestAudioFile(assetManager: AssetManager) {
-        val (samples, sampleRate) = WaveReader.readWave(
-            assetManager = assetManager,
-            filename = "ja.wav"
-        )
-
-        extractedAudioChannel.send(samples)
-        extractedAudioChannel.close()
-    }
-
     private class SingleSpeechSegment(
         val vadResult: SpeechSegment,
         val sdResult: Array<OfflineSpeakerDiarizationSegment>,
     )
-}
-
-private class FixedChunkBuffer(private val chunkSize: Int = 512) {
-    private val deque = ArrayDeque<Float>()
-    private val mutex = Mutex()
-    var totalSamples = 0
-        private set
-
-    suspend fun write(data: FloatArray) {
-        mutex.withLock {
-            repeat(data.size) { idx ->
-                deque.add(data[idx])
-            }
-            totalSamples += data.size
-        }
-    }
-
-    suspend fun readChunk(): FloatArray? {
-        return mutex.withLock {
-            if (totalSamples >= chunkSize) {
-                val chunk = FloatArray(chunkSize)
-                repeat(chunkSize) { idx ->
-                    chunk[idx] = deque.removeFirst()
-                }
-                totalSamples -= chunkSize
-                chunk
-            } else null
-        }
-    }
-
-    fun flush(): FloatArray {
-        val chunk = FloatArray(deque.size)
-        repeat(deque.size) {
-            chunk[it] = deque.removeFirst()
-        }
-        totalSamples = 0
-        return chunk
-    }
 }
 
 enum class AvailableSoCModel(val assetSubDir: String) {
