@@ -20,8 +20,10 @@ import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -45,10 +47,11 @@ class TranscribeService : LifecycleService() {
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
 
+    @OptIn(FlowPreview::class)
     override fun onCreate() {
         super.onCreate()
 
-        speechToTranscription.inferenceProgress.onEach { p ->
+        speechToTranscription.inferenceProgress.debounce(100).onEach { p ->
             if (p == 1f)
                 notifyTranscribe(
                     contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation_in_progress),

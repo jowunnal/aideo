@@ -40,7 +40,7 @@ class AideoApplication : Application() {
             channelId = TranscribeService.NOTIFICATION_CHANNEL_ID,
             channelName = getString(R.string.notification_channel_transcribe_name),
             descriptionText = getString(R.string.notification_channel_transcribe_desc),
-            importance = NotificationManager.IMPORTANCE_HIGH,
+            importance = NotificationManager.IMPORTANCE_LOW,
         )
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(foregroundObserver)
