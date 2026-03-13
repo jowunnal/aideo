@@ -9,12 +9,10 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import jinproject.aideo.core.ForegroundObserver
 import jinproject.aideo.core.SpeechToTranscription
 import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.media.VideoItem
@@ -41,6 +39,9 @@ class TranscribeService : LifecycleService() {
     @Inject
     lateinit var translationManager: TranslationManager
 
+    @Inject
+    lateinit var foregroundObserver: ForegroundObserver
+
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
 
@@ -64,35 +65,7 @@ class TranscribeService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
-        if (intent != null) {
-            notifyTranscribe(
-                contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_creation),
-                progress = null
-            ).also {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-                    startForeground(
-                        NOTIFICATION_TRANSCRIBE_ID,
-                        it,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                    )
-                else
-                    startForeground(NOTIFICATION_TRANSCRIBE_ID, it)
-            }
-        }
-
-        val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val galleryVideoItem = intent?.getParcelableExtra("videoItem", VideoItem::class.java)
-            galleryVideoItem?.let {
-                VideoItem(
-                    uri = galleryVideoItem.uri,
-                    id = galleryVideoItem.id,
-                    thumbnailPath = galleryVideoItem.thumbnailPath,
-                    date = galleryVideoItem.date,
-                    title = "",
-                )
-            }
-        } else
-            intent?.getParcelableExtra("videoItem")
+        startForegroundNotification()
 
         val offFlag = intent?.getBooleanExtra("status", false)
 
@@ -101,45 +74,92 @@ class TranscribeService : LifecycleService() {
                 job?.cancelAndJoin()
                 stopSelf()
             }
+            return START_NOT_STICKY
+        }
+
+        val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra("videoItem", VideoItem::class.java)
+        } else {
+            intent?.getParcelableExtra("videoItem")
         }
 
         if (videoItem != null) {
-            val isTranscribeRunning = job != null
-            val previousJob = job
-
-            job = lifecycleScope.launch(Dispatchers.Default) {
-                previousJob?.cancelAndJoin()
-                notificationManager.cancel(NOTIFICATION_RESULT_ID)
-                if(!isTranscribeRunning) {
-                    speechToTranscription.initialize()
-                    translationManager.initialize()
+            startTranscription(
+                videoUri = videoItem.uri,
+                videoId = videoItem.id,
+            )
+        } else if (intent == null) {
+            lifecycleScope.launch {
+                val cachedUri = speechToTranscription.getPendingInferenceVideoUri()
+                if (cachedUri.isNotEmpty()) {
+                    val videoId = cachedUri.toUri().lastPathSegment?.toLongOrNull()
+                    if (videoId != null) {
+                        startTranscription(videoUri = cachedUri, videoId = videoId)
+                    } else {
+                        stopSelf()
+                    }
                 } else {
-                    speechToTranscription.cancelAndReInitialize()
-                    translationManager.cancelAndReInitialize()
-                }
-
-                if (speechToTranscription.isInitialized) {
-                    processSubtitle(videoItem = videoItem)
                     stopSelf()
                 }
             }
         }
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
-    private suspend fun processSubtitle(videoItem: VideoItem) {
-        val isSubtitleExist = mediaRepository.checkSubtitleFileExist(videoItem.id)
+    private fun startForegroundNotification() {
+        notifyTranscribe(
+            contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_creation),
+            progress = null
+        ).also {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                startForeground(
+                    NOTIFICATION_TRANSCRIBE_ID,
+                    it,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            else
+                startForeground(NOTIFICATION_TRANSCRIBE_ID, it)
+        }
+    }
+
+    private fun startTranscription(videoUri: String, videoId: Long) {
+        val isTranscribeRunning = job != null
+        val previousJob = job
+
+        job = lifecycleScope.launch(Dispatchers.Default) {
+            previousJob?.cancelAndJoin()
+            notificationManager.cancel(NOTIFICATION_RESULT_ID)
+            if (!isTranscribeRunning) {
+                speechToTranscription.initialize()
+                translationManager.initialize()
+            } else {
+                speechToTranscription.cancelAndReInitialize()
+                translationManager.cancelAndReInitialize()
+            }
+
+            processSubtitle(videoUri = videoUri, videoId = videoId)
+
+            if (foregroundObserver.isForeground) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                stopSelf()
+            }
+        }
+    }
+
+    private suspend fun processSubtitle(videoUri: String, videoId: Long) {
+        val isSubtitleExist = mediaRepository.checkSubtitleFileExist(videoId)
 
         when (isSubtitleExist) {
             MediaRepository.EXIST -> {
                 // 이미 자막이 존재하는 경우: 딥링크로 플레이어 이동
-                launchPlayer(videoItem.uri)
+                launchPlayer(videoUri)
             }
 
             MediaRepository.NEED_INFERENCE -> {
                 // 자막 파일이 없으므로 음성 추출 및 자막 생성
-                extractAudioAndTranscribe(videoItem = videoItem)
+                extractAudioAndTranscribe(videoUri = videoUri, videoId = videoId)
             }
 
             else -> {
@@ -148,38 +168,38 @@ class TranscribeService : LifecycleService() {
                     contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
                     progress = null
                 )
-                translateAndNotifySuccess(videoItem)
+                translateAndNotifySuccess(videoUri = videoUri, videoId = videoId)
             }
         }
     }
 
-    private suspend fun translateAndNotifySuccess(videoItem: VideoItem) {
-        translationManager.translateSubtitle(videoItem.id)
+    private suspend fun translateAndNotifySuccess(videoUri: String, videoId: Long) {
+        translationManager.translateSubtitle(videoId)
 
-        launchPlayer(videoItem.uri)
+        launchPlayer(videoUri)
 
         notifyTranscriptionResult(
             title = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed),
             description = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed_desc),
-            videoUri = videoItem.uri,
+            videoUri = videoUri,
         )
     }
 
-    private suspend fun extractAudioAndTranscribe(videoItem: VideoItem) {
+    private suspend fun extractAudioAndTranscribe(videoUri: String, videoId: Long) {
         runCatching {
-            speechToTranscription.transcribe(videoItem)
-            translationManager.translateSubtitle(videoItem.id)
+            speechToTranscription.transcribe(videoUri = videoUri, videoId = videoId)
+            translationManager.translateSubtitle(videoId)
         }.onSuccess {
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_completed),
                 description = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_completed_desc),
-                videoUri = videoItem.uri
+                videoUri = videoUri
             )
-            launchPlayer(videoItem.uri)
+            launchPlayer(videoUri)
         }.onFailure { exception ->
             Timber.d("exception: ${exception.stackTraceToString()}")
 
-            if(exception is CancellationException)
+            if (exception is CancellationException)
                 throw exception
 
             notifyTranscriptionResult(
@@ -195,7 +215,7 @@ class TranscribeService : LifecycleService() {
 
     private fun launchPlayer(videoUri: String) {
         val target = Class.forName(MAIN_ACTIVITY)
-        if ((applicationContext as ForegroundObserver).isForeground)
+        if (foregroundObserver.isForeground)
             startActivity(
                 Intent(this, target).apply {
                     putExtra("videoUri", videoUri.parseUri())
@@ -296,13 +316,5 @@ class TranscribeService : LifecycleService() {
         const val NOTIFICATION_RESULT_ID = 123
         const val NOTIFICATION_CHANNEL_ID = "TranscribeVideo"
         const val MAIN_ACTIVITY = "jinproject.aideo.app.MainActivity"
-    }
-}
-
-interface ForegroundObserver : LifecycleEventObserver {
-    var isForeground: Boolean
-
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        isForeground = source.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 }

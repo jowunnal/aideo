@@ -83,6 +83,20 @@ class LocalSettingDataSource @Inject constructor(private val playerDataStore: Da
             it.toBuilder().setSelectedTranslationModel(model).build()
         }
     }
+
+    fun getPendingInferenceVideoUri(): Flow<String> = data.map { it.pendingInferenceVideoUri }
+
+    suspend fun setPendingInferenceVideoUri(uri: String) {
+        playerDataStore.updateData {
+            it.toBuilder().setPendingInferenceVideoUri(uri).build()
+        }
+    }
+
+    suspend fun clearPendingInferenceVideoUri() {
+        playerDataStore.updateData {
+            it.toBuilder().clearPendingInferenceVideoUri().build()
+        }
+    }
 }
 
 data class PlayerSetting(

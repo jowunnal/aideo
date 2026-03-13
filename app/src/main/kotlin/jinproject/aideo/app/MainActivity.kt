@@ -34,11 +34,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -54,8 +52,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
-import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.play.core.aipacks.AiPackStateUpdateListener
 import com.google.android.play.core.aipacks.model.AiPackStatus
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -63,7 +61,7 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
+import jinproject.aideo.app.BuildConfig.ADMOB_INTERSTITIAL_ID
 import jinproject.aideo.app.ad.AdMobManager
 import jinproject.aideo.app.ad.BannerAd
 import jinproject.aideo.app.navigation.NavigationDefaults
@@ -79,16 +77,13 @@ import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
-import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.core.utils.LocalShowInterstitialAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackStatus
 import jinproject.aideo.design.R
-import jinproject.aideo.design.component.DialogState
 import jinproject.aideo.design.component.SnackBarHostCustom
-import jinproject.aideo.design.component.TextDialog
-import jinproject.aideo.design.component.getShownDialogState
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
 import jinproject.aideo.player.navigateToPlayerGraph
@@ -115,7 +110,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private var mRewardedAd: RewardedInterstitialAd? = null
+    private var mInterstitialAd: InterstitialAd? = null
 
     private val inAppUpdateLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -143,7 +138,7 @@ class MainActivity : ComponentActivity() {
         }
 
         MobileAds.initialize(this@MainActivity) {
-            loadRewardedAd()
+            loadInterstitialAd()
         }
         firebaseAnalytics = Firebase.analytics
 
@@ -239,19 +234,6 @@ class MainActivity : ComponentActivity() {
                 context.removeOnNewIntentListener(onNewIntentConsumer)
                 aiPackListener?.let { getAiPackManager().unregisterListener(it) }
             }
-        }
-
-        var rewardAdDialogState by remember {
-            mutableStateOf(
-                DialogState(
-                    header = context.getString(R.string.dialog_ad_reward_header),
-                    content = context.getString(R.string.dialog_ad_reward_content),
-                    positiveMessage = context.getString(R.string.dialog_ad_reward_positive),
-                    negativeMessage = context.getString(R.string.dialog_ad_reward_negative),
-                    onPositiveCallback = {},
-                    onNegativeCallback = {},
-                )
-            )
         }
 
         val isAdViewRemoved by adMobManager.isAdviewRemoved.collectAsStateWithLifecycle()
@@ -364,17 +346,8 @@ class MainActivity : ComponentActivity() {
             LocalAnalyticsLoggingEvent provides ::loggingAnalyticsEvent,
             LocalBillingModule provides billingModule,
             LocalShowSnackBar provides showSnackBar,
-            LocalShowRewardAd provides { onResult ->
-                rewardAdDialogState = rewardAdDialogState.getShownDialogState(
-                    onPositiveCallback = { showRewardedAd(onResult) },
-                )
-            },
+            LocalShowInterstitialAd provides ::showInterstitialAd,
         ) {
-            TextDialog(
-                dialogState = rewardAdDialogState,
-                onDismissRequest = { rewardAdDialogState.changeVisibility(false) },
-            )
-
             NavigationSuiteScaffold(
                 navigationSuiteItems = {
                     navigationSuiteItems(
@@ -442,57 +415,52 @@ class MainActivity : ComponentActivity() {
 
     private var isLoadingRewardAd = false
 
-    private fun loadRewardedAd() {
-        if (isLoadingRewardAd || mRewardedAd != null)
+    private fun loadInterstitialAd() {
+        if (isLoadingRewardAd || mInterstitialAd != null)
             return
 
         isLoadingRewardAd = true
-        RewardedInterstitialAd.load(
+        InterstitialAd.load(
             this,
-            ADMOB_REWARD_ID,
+            ADMOB_INTERSTITIAL_ID,
             AdRequest.Builder().build(),
-            object : RewardedInterstitialAdLoadCallback() {
-                override fun onAdLoaded(rewardedAd: RewardedInterstitialAd) {
-                    mRewardedAd = rewardedAd
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                    mInterstitialAd = interstitialAd
                     isLoadingRewardAd = false
 
-                    mRewardedAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-                        override fun onAdDismissedFullScreenContent() {
-                            mRewardedAd = null
-                            loadRewardedAd()
-                        }
+                    mInterstitialAd?.fullScreenContentCallback =
+                        object : FullScreenContentCallback() {
+                            override fun onAdDismissedFullScreenContent() {
+                                mInterstitialAd = null
+                                loadInterstitialAd()
+                            }
 
-                        override fun onAdFailedToShowFullScreenContent(p0: AdError) {
-                            mRewardedAd = null
-                        }
+                            override fun onAdFailedToShowFullScreenContent(p0: AdError) {
+                                mInterstitialAd = null
+                            }
 
-                        override fun onAdClicked() {}
-                        override fun onAdImpression() {}
-                        override fun onAdShowedFullScreenContent() {}
-                    }
+                            override fun onAdClicked() {}
+                            override fun onAdImpression() {}
+                            override fun onAdShowedFullScreenContent() {}
+                        }
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
-                    mRewardedAd = null
+                    mInterstitialAd = null
                     isLoadingRewardAd = false
                 }
             },
         )
     }
 
-    private fun showRewardedAd(onResult: () -> Unit) {
-        if (adMobManager.isAdviewRemoved.value) {
-            onResult()
+    private fun showInterstitialAd() {
+        if (adMobManager.isAdviewRemoved.value)
             return
-        }
 
-        mRewardedAd?.show(this) {
-            onResult()
-        } ?: run {
-            loadRewardedAd()
-            mRewardedAd?.show(this@MainActivity) {
-                onResult()
-            } ?: onResult()
+        mInterstitialAd?.show(this) ?: run {
+            loadInterstitialAd()
+            mInterstitialAd?.show(this@MainActivity)
         }
     }
 
@@ -526,8 +494,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        mRewardedAd?.fullScreenContentCallback = null
-        mRewardedAd = null
+        mInterstitialAd?.fullScreenContentCallback = null
+        mInterstitialAd = null
         super.onDestroy()
     }
 }

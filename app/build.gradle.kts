@@ -36,7 +36,7 @@ android {
             isShrinkResources = false
 
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.test.appId")
-            buildConfigField("String", "ADMOB_REWARD_ID", getLocalKey("adMob.test.rewardId"))
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", getLocalKey("adMob.test.interstitialId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.test.unitId"))
             extra.set("alwaysUpdateBuildId", true)
         }
@@ -49,7 +49,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.real.appId")
-            buildConfigField("String", "ADMOB_REWARD_ID", getLocalKey("adMob.real.rewardId"))
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", getLocalKey("adMob.real.interstitialId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.real.unitId"))
         }
     }

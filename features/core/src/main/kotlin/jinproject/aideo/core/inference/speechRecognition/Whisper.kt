@@ -68,6 +68,16 @@ class Whisper @Inject constructor(
         }
     }
 
+    override fun resetState() {
+        super.resetState()
+        timeInfo.apply {
+            idx = 0
+            startTime = 0f
+            endTime = 0f
+            standardTime = 0f
+        }
+    }
+
     override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
         isUsed = true
         updateLanguageConfig(language)

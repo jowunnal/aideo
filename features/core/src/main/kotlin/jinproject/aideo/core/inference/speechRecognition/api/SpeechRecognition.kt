@@ -16,6 +16,15 @@ abstract class SpeechRecognition {
     abstract fun initialize()
     abstract fun release()
 
+    /**
+     * 네이티브 인스턴스(recognizer)는 유지한 채 Kotlin 상태만 초기화.
+     * 모델 재사용 시 release() + initialize() 대신 호출.
+     */
+    open fun resetState() {
+        transcribedResult.clear()
+        isUsed = false
+    }
+
     open suspend fun transcribe(audioData: FloatArray, language: String) {
         require(isInitialized) {
             "SpeechToText is not initialized."

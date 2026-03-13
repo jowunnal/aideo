@@ -9,4 +9,5 @@ message PlayerPreferences {
   string subtitle_language = 3;
   string selected_speech_recognition_model = 4;
   string selected_translation_model = 5;
+  string pending_inference_video_uri = 6;
 }
