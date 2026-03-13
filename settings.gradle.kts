@@ -26,7 +26,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Aideo"
 include(":app")
-include(":features")
 include(":design")
 include(":data")
 include(":features:gallery")

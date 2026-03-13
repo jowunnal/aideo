@@ -8,15 +8,15 @@ import android.graphics.Color
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.play.core.splitcompat.SplitCompat
 import dagger.hilt.android.HiltAndroidApp
-import jinproject.aideo.app.BuildConfig
+import jinproject.aideo.core.ForegroundObserver
 import jinproject.aideo.design.R
-import timber.log.Timber
-import jinproject.aideo.gallery.ForegroundObserver
 import jinproject.aideo.gallery.TranscribeService
+import timber.log.Timber
+import javax.inject.Inject
 
 @HiltAndroidApp
-class AideoApplication : Application(), ForegroundObserver {
-    override var isForeground: Boolean = false
+class AideoApplication : Application() {
+    @Inject lateinit var foregroundObserver: ForegroundObserver
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
@@ -43,7 +43,7 @@ class AideoApplication : Application(), ForegroundObserver {
             importance = NotificationManager.IMPORTANCE_HIGH,
         )
 
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        ProcessLifecycleOwner.get().lifecycle.addObserver(foregroundObserver)
     }
 
     private fun createNotificationChannel(

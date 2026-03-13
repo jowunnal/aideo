@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -52,7 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import jinproject.aideo.core.SnackBarMessage
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.core.utils.LocalShowInterstitialAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.PopUpInfo
@@ -87,8 +86,8 @@ fun PlayerScreen(
     )
 
     val transitionState = updateTransition(visibility, label = "animateState")
-    val localShowRewardAd = LocalShowRewardAd.current
     val localShowSnackBar = LocalShowSnackBar.current
+    val localShowInterstitialAd = LocalShowInterstitialAd.current
 
     RememberEffect(visibility) {
         val windowInsetsController = WindowCompat.getInsetsController(
@@ -114,9 +113,8 @@ fun PlayerScreen(
     }
 
     RememberEffect(Unit) {
-        localShowRewardAd {
-            viewModel.prepareExoplayer()
-        }
+        localShowInterstitialAd()
+        viewModel.prepareExoplayer()
     }
 
     BackHandler(true) {
