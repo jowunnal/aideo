@@ -14,12 +14,15 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.data.SubtitleFileConfig
+import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.library.model.LibraryVideoItem
 import jinproject.aideo.library.model.SortOption
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ class LibraryViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val androidMediaFileManager: AndroidMediaFileManager,
     private val localSettingDataSource: LocalSettingDataSource,
+    private val localFileDataSource: LocalFileDataSource,
 ) : ViewModel() {
 
     private val sortOption = MutableStateFlow(SortOption.NEWEST)
@@ -47,7 +51,7 @@ class LibraryViewModel @Inject constructor(
             LibraryVideoItem(
                 uri = item.uri,
                 id = item.id,
-                thumbnailPath = item.thumbnailPath,
+                thumbnailPath = item.thumbnailAbsolutePath,
                 date = item.date
             )
         }.let { items ->
@@ -75,13 +79,17 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun removeVideoUris(uris: Set<String>) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             localSettingDataSource.removeVideoUris(uris)
-            uris.onEach { uri ->
+            uris.forEach { uri ->
                 context.contentResolver.releasePersistableUriPermission(
                     uri.toUri(),
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
+
+                SubtitleFileConfig.toSubtitleFileId(uri)?.let {
+                    localFileDataSource.removeAllSubtitles(it)
+                }
             }
         }
     }

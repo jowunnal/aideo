@@ -16,8 +16,7 @@ data class LibraryVideoItem(
 
 fun LibraryVideoItem.toVideoItem(): VideoItem = VideoItem(
     uri = uri,
-    id = id,
-    thumbnailPath = thumbnailPath,
+    thumbnailAbsolutePath = thumbnailPath,
     date = date,
     title = "",
 )

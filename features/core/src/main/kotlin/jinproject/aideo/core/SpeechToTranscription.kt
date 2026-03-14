@@ -18,8 +18,8 @@ import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
 import jinproject.aideo.core.media.audio.ChunkedAudioProcessor
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.TranslationManager
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -310,7 +310,7 @@ class SpeechToTranscription @Inject constructor(
             languageCode
 
         localFileDataSource.createFileAndWriteOnOutputStream(
-            fileIdentifier = getSubtitleFileIdentifier(
+            fileIdentifier = SubtitleFileConfig.toSubtitleFileIdentifier(
                 id = videoItemId,
                 languageCode = srcLan
             ),

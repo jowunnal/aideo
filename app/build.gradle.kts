@@ -74,16 +74,17 @@ android {
         }
     }
 
+    dynamicFeatures += setOf(
+        ":htp_v69_sm8475", ":htp_v69_sm8450", ":htp_v73_sm8550",
+        ":htp_v75", ":htp_v79", ":htp_v81",
+    )
+
     if (gradle.startParameter.taskNames.any {
             it.contains("release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
         }) {
         assetPacks += listOf(
             ":ai_speech_base", ":ai_translation",
             ":ai_speech_whisper", ":ai_speech_sensevoice"
-        )
-        dynamicFeatures += setOf(
-            ":htp_v69_sm8475", ":htp_v69_sm8450", ":htp_v73_sm8550",
-            ":htp_v75", ":htp_v79", ":htp_v81",
         )
     }
 

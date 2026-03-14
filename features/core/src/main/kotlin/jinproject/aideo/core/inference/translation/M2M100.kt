@@ -9,7 +9,7 @@ import jinproject.aideo.core.inference.translation.api.Translation
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import kotlinx.coroutines.Dispatchers
@@ -56,19 +56,19 @@ class M2M100 @Inject constructor(
             tokenizerConfigPath = tokenizerConfigInternalPath,
         )
 
-        if(!isModelLoaded)
+        if (!isModelLoaded)
             m2M100Native = null
     }
 
     override suspend fun translateSubtitle(videoId: Long) {
         withContext(Dispatchers.Default) {
             val sourceLanguageISOCode =
-                localFileDataSource.getOriginSubtitleLanguageCode(videoId)
+                localFileDataSource.getOriginSubtitleLanguageCodeOrNull(videoId) ?: throw IllegalStateException("일치하는 자막 파일이 없습니다.")
 
             val targetLanguageISOCode = localSettingDataSource.getSubtitleLanguage().first()
 
             val srtContent = localFileDataSource.getFileContentList(
-                getSubtitleFileIdentifier(
+                SubtitleFileConfig.toSubtitleFileIdentifier(
                     id = videoId,
                     languageCode = sourceLanguageISOCode
                 )
@@ -98,7 +98,7 @@ class M2M100 @Inject constructor(
             }
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = getSubtitleFileIdentifier(
+                fileIdentifier = SubtitleFileConfig.toSubtitleFileIdentifier(
                     id = videoId,
                     languageCode = targetLanguageISOCode
                 ),

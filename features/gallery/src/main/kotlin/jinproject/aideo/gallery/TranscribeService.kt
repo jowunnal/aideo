@@ -177,15 +177,32 @@ class TranscribeService : LifecycleService() {
     }
 
     private suspend fun translateAndNotifySuccess(videoUri: String, videoId: Long) {
-        translationManager.translateSubtitle(videoId)
+        runCatching {
+            translationManager.translateSubtitle(videoId)
+        }.onSuccess {
+            launchPlayer(videoUri)
 
-        launchPlayer(videoUri)
+            notifyTranscriptionResult(
+                title = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed),
+                description = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed_desc),
+                videoUri = videoUri,
+            )
+        }.onFailure { exception ->
+            Timber.d("exception: ${exception.stackTraceToString()}")
 
-        notifyTranscriptionResult(
-            title = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed),
-            description = getString(jinproject.aideo.design.R.string.notification_subtitle_translation_completed_desc),
-            videoUri = videoUri,
-        )
+            if (exception is CancellationException)
+                throw exception
+
+            notifyTranscriptionResult(
+                title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
+                description = getString(
+                    jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc,
+                    exception.message ?: ""
+                ),
+                videoUri = null,
+            )
+        }
+
     }
 
     private suspend fun extractAudioAndTranscribe(videoUri: String, videoId: Long) {

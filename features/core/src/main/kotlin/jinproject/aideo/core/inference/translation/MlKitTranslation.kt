@@ -8,8 +8,8 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import jinproject.aideo.core.utils.LanguageCode
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.TranslationManager.extractSubtitleContent
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
 import jinproject.aideo.data.TranslationManager.restoreMlKitTranslationToSrtFormat
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
@@ -86,12 +86,12 @@ class MlKitTranslation @Inject constructor(
     override suspend fun translateSubtitle(videoId: Long) {
         withContext(Dispatchers.Main) {
             val sourceLanguageISOCode =
-                localFileDataSource.getOriginSubtitleLanguageCode(videoId)
+                localFileDataSource.getOriginSubtitleLanguageCodeOrNull(videoId) ?: throw IllegalStateException("일치하는 자막 파일이 없습니다.")
 
             val targetLanguageISOCode = localSettingDataSource.getSubtitleLanguage().first()
 
             val srtContent = localFileDataSource.getFileContentList(
-                getSubtitleFileIdentifier(
+                SubtitleFileConfig.toSubtitleFileIdentifier(
                     id = videoId,
                     languageCode = sourceLanguageISOCode
                 )
@@ -114,7 +114,7 @@ class MlKitTranslation @Inject constructor(
             )
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = getSubtitleFileIdentifier(
+                fileIdentifier = SubtitleFileConfig.toSubtitleFileIdentifier(
                     id = videoId,
                     languageCode = targetLanguageISOCode
                 ),

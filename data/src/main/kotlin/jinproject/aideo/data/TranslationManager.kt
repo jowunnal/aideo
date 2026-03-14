@@ -74,7 +74,4 @@ object TranslationManager {
             millis
         )
     }
-
-    fun getSubtitleFileIdentifier(id: Long, languageCode: String): String =
-        "${id}_$languageCode.srt"
 }
