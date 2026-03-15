@@ -17,6 +17,7 @@ import jinproject.aideo.core.SpeechToTranscription
 import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +76,11 @@ class TranscribeService : LifecycleService() {
         if (offFlag != null && offFlag) {
             lifecycleScope.launch {
                 job?.cancelAndJoin()
-                stopSelf()
+                if (foregroundObserver.isForeground) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    stopSelf()
+                }
             }
             return START_NOT_STICKY
         }
@@ -95,7 +100,7 @@ class TranscribeService : LifecycleService() {
             lifecycleScope.launch {
                 val cachedUri = speechToTranscription.getPendingInferenceVideoUri()
                 if (cachedUri.isNotEmpty()) {
-                    val videoId = cachedUri.toUri().lastPathSegment?.toLongOrNull()
+                    val videoId = SubtitleFileConfig.toSubtitleFileId(cachedUri)
                     if (videoId != null) {
                         startTranscription(videoUri = cachedUri, videoId = videoId)
                     } else {
