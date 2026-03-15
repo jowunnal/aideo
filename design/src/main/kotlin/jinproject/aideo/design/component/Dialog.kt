@@ -65,11 +65,11 @@ fun DialogState.getShownDialogState(
     onNegativeCallback: (() -> Unit)? = null,
 ): DialogState = copy(
     onPositiveCallback = { state ->
-        onPositiveCallback?.let { it() } ?: this.onPositiveCallback(state)
+        onPositiveCallback?.invoke() ?: this.onPositiveCallback(state)
         state.changeVisibility(false)
     },
     onNegativeCallback = { state ->
-        onNegativeCallback?.let { it() } ?: this.onNegativeCallback(state)
+        onNegativeCallback?.invoke() ?: this.onNegativeCallback(state)
         state.changeVisibility(false)
     },
 ).apply {

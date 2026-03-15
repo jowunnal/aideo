@@ -21,8 +21,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jinproject.aideo.core.media.audio.AudioConfig
+import jinproject.aideo.data.FileIdentifier
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.toThumbnailFileIdentifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
@@ -38,7 +39,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.time.ExperimentalTime
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -68,8 +68,6 @@ class AndroidMediaFileManager @Inject constructor(
         withContext(Dispatchers.IO) {
             val videoUri = videoUriString.toUri()
             var name: String? = null
-            val id = videoUriString.toUri().lastPathSegment?.toLong()
-                ?: throw IllegalArgumentException("Invalid URI")
             var date: Long? = null
 
             val projection = arrayOf(
@@ -96,7 +94,7 @@ class AndroidMediaFileManager @Inject constructor(
                     if (dateIndex != -1)
                         date = cursor.getLong(dateIndex)
 
-                    Timber.tag("test").d("Queried Video Info[name: $name, date: $date, id: $id]")
+                    Timber.tag("test").d("Queried Video Info[name: $name, date: $date]")
                 }
             }
 
@@ -106,14 +104,20 @@ class AndroidMediaFileManager @Inject constructor(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
 
+                val thumbnailPath = SubtitleFileConfig.toSubtitleFileId(videoUri.toString())
+                    ?.let {
+                        val thumbnailIdentifier = SubtitleFileConfig.toThumbnailFileIdentifier(it)
+
+                        createThumbnailAndGetAbsolutePath(
+                            uri = videoUri,
+                            thumbnailFileIdentifier = thumbnailIdentifier
+                        )
+                    }
+
                 VideoItem(
                     uri = videoUri.toString(),
-                    id = id,
                     title = name,
-                    thumbnailPath = createThumbnailAndGetPath(
-                        uri = videoUri.toString(),
-                        fileName = id.toString().toThumbnailFileIdentifier()
-                    ),
+                    thumbnailAbsolutePath = thumbnailPath,
                     date = LocalDateTime.ofInstant(
                         Instant.ofEpochMilli(date),
                         ZoneId.systemDefault()
@@ -125,19 +129,19 @@ class AndroidMediaFileManager @Inject constructor(
                 null
         }
 
-    private fun createThumbnailAndGetPath(
-        uri: String,
-        fileName: String,
+    private fun createThumbnailAndGetAbsolutePath(
+        uri: Uri,
+        thumbnailFileIdentifier: FileIdentifier,
     ): String? {
         return MediaMetadataRetriever().use { retriever ->
-            retriever.setDataSource(context, uri.toUri())
+            retriever.setDataSource(context, uri)
 
             val timeUs = 5 * 1_000_000L
             val bitmap =
                 retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
 
             localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = fileName,
+                fileIdentifier = thumbnailFileIdentifier,
                 writeContentOnFile = { outputStream ->
                     bitmap?.compress(
                         Bitmap.CompressFormat.JPEG,
@@ -348,8 +352,9 @@ data class MediaInfo(
 @Parcelize
 data class VideoItem(
     val uri: String,
-    val id: Long,
     val title: String,
-    val thumbnailPath: String?,
+    val thumbnailAbsolutePath: String?,
     val date: String = "",
-) : Parcelable
+    val id: Long = SubtitleFileConfig.toSubtitleFileId(uri) ?: throw IllegalStateException("비디오 파일 contentUri [$uri] 가 올바른 형식이 아닙니다.")
+) : Parcelable {
+}

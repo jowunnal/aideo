@@ -1,5 +1,6 @@
 package jinproject.aideo.convention.android
 
+import jinproject.aideo.convention.configure.VersionConfig.COMPILE_SDK
 import jinproject.aideo.convention.extension.libraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,7 +16,7 @@ class AndroidAiPackPlugin : Plugin<Project> {
 
         libraryExtension.apply {
             namespace = "jinproject.aideo.aipack"
-            compileSdk = 36
+            compileSdk = COMPILE_SDK
         }
     }
 }

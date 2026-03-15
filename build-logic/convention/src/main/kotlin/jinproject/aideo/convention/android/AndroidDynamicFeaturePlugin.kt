@@ -1,6 +1,8 @@
 package jinproject.aideo.convention.android
 
 import com.android.build.api.dsl.DynamicFeatureExtension
+import jinproject.aideo.convention.configure.VersionConfig.COMPILE_SDK
+import jinproject.aideo.convention.configure.VersionConfig.MIN_SDK
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -14,10 +16,10 @@ class AndroidDynamicFeaturePlugin : Plugin<Project> {
         }
 
         extensions.configure<DynamicFeatureExtension> {
-            compileSdk = 36
+            compileSdk = COMPILE_SDK
 
             defaultConfig {
-                minSdk = 30
+                minSdk = MIN_SDK
             }
         }
     }

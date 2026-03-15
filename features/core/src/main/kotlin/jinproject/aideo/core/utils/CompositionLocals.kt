@@ -11,7 +11,7 @@ val LocalShowSnackBar: ProvidableCompositionLocal<(SnackBarMessage) -> Unit> =
         }
     }
 
-val LocalShowRewardAd: ProvidableCompositionLocal<(() -> Unit) -> Unit> =
+val LocalShowInterstitialAd: ProvidableCompositionLocal<() -> Unit> =
     staticCompositionLocalOf {
         {
             error("showSnackBar is not initialized")

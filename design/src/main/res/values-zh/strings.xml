@@ -58,6 +58,10 @@
     <string name="notification_action_stop">停止</string>
 
     <!-- Dialog -->
+    <string name="dialog_ad_reward_header">您想观看广告吗？</string>
+    <string name="dialog_ad_reward_content">观看广告即可生成字幕。</string>
+    <string name="dialog_ad_reward_positive">是的，我来看。</string>
+    <string name="dialog_ad_reward_negative">不，我不想看。</string>
     <string name="dialog_download_required_header">需要额外下载。</string>
     <string name="dialog_download_required_content">下载需要额外的存储空间（约1.2GB）。</string>
     <string name="dialog_download_whisper_content">下载需要额外的存储空间（约300MB）。</string>

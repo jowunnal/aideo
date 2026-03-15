@@ -1,10 +1,9 @@
 package jinproject.aideo.data.repository.impl
 
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
+import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.data.repository.MediaRepository
-import jinproject.aideo.data.toSubtitleFileIdentifier
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -31,13 +30,13 @@ class MediaRepositoryImpl @Inject constructor(
     override suspend fun checkSubtitleFileExist(id: Long, srcLang: String): Int {
         val isSubtitleExist = localFileDataSource.isFileExist(
             fileId = id,
-            fileExtension = "".toSubtitleFileIdentifier()
+            fileExtension = SubtitleFileConfig.SUBTITLE_EXTENSION
         )
 
         if (isSubtitleExist) {
             val isSubtitleByLanguageExist =
                 localFileDataSource.isFileExist(
-                    fileIdentifier = getSubtitleFileIdentifier(
+                    fileIdentifier = SubtitleFileConfig.toSubtitleFileIdentifier(
                         id = id,
                         languageCode = srcLang
                     )

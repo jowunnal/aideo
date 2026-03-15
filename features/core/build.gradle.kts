@@ -36,6 +36,13 @@ android {
             jniLibs.srcDirs("src/main/jniLibs")
         }
     }
+
+    @Suppress("UnstableApiUsage")
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -49,4 +56,9 @@ dependencies {
     api(libs.google.ads.interactive.media)
     implementation(libs.bundles.mlKit)
     api(libs.play.ai.delivery)
+
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.bundles.testing)
+    testImplementation(libs.bundles.kotest)
+    testRuntimeOnly(libs.junit.jupiter.engine)
 }

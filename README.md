@@ -12,7 +12,7 @@
 
 # 개발 기간
 
-2025.12 ~ 2026.02
+2025.12 ~ 2026.03
 
 # 앱 소개
 
@@ -29,7 +29,7 @@
 | Language | Kotlin |
 | UI toolkit | Compose |
 | Architecture | Google-Recommended Architecture |
-| Design Pattern | MVVM, MVI |
+| Design Pattern | MVVM & MVI |
 | Android | Activity, ViewModel, ForegroundService, MediaCodec |
 | Asynchronous | Kotlinx.Coroutines, Kotlinx.Coroutines.Flow |
 | Dependency Injection | Hilt |

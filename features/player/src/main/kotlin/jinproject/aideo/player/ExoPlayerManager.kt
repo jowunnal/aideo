@@ -20,21 +20,22 @@ import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.scopes.ViewModelScoped
 import jinproject.aideo.core.utils.toVideoItemId
-import jinproject.aideo.data.TranslationManager.getSubtitleFileIdentifier
+import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
-import javax.inject.Singleton
 
-
-class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val context: Context) {
+@ViewModelScoped
+class ExoPlayerManager @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val localFileDataSource: LocalFileDataSource,
+) {
 
     private var exoPlayer: ExoPlayer? = null
 
@@ -67,7 +68,7 @@ class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val
             playerPositionObserver = coroutineScope {
                 launch {
                     while (true) {
-                        if((playerState.value as? PlayerState.Ready)?.isPlaying ?: false)
+                        if ((playerState.value as? PlayerState.Ready)?.isPlaying ?: false)
                             getExoPlayer()?.let { player ->
                                 updateCurrentPosition(player.currentPosition)
                             }
@@ -123,13 +124,10 @@ class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val
 
     fun prepare(videoUri: String, languageCode: String) {
         val subTitleConfiguration = MediaItem.SubtitleConfiguration.Builder(
-            File(
-                context.filesDir,
-                getSubtitleFileIdentifier(
-                    id = videoUri.toVideoItemId(),
-                    languageCode = languageCode,
-                )
-            ).toUri()
+            localFileDataSource.getFileUri(
+                fileId = videoUri.toVideoItemId(),
+                languageCode = languageCode
+            )
         )
             .setMimeType(MimeTypes.APPLICATION_SUBRIP)
             .setLanguage(languageCode)
@@ -151,13 +149,10 @@ class ExoPlayerManager @Inject constructor(@param:ApplicationContext private val
 
     fun replaceSubtitle(videoUri: String, languageCode: String) {
         val subTitleConfiguration = MediaItem.SubtitleConfiguration.Builder(
-            File(
-                context.filesDir,
-                getSubtitleFileIdentifier(
-                    id = videoUri.toVideoItemId(),
-                    languageCode = languageCode,
-                )
-            ).toUri()
+            localFileDataSource.getFileUri(
+                fileId = videoUri.toVideoItemId(),
+                languageCode = languageCode
+            )
         )
             .setMimeType(MimeTypes.APPLICATION_SUBRIP)
             .setLanguage(languageCode)

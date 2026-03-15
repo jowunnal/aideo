@@ -18,7 +18,7 @@ data class GalleryVideoItem(
         fun fromVideoItem(videoItem: VideoItem, status: VideoStatus): GalleryVideoItem = GalleryVideoItem(
             uri = videoItem.uri,
             id = videoItem.id,
-            thumbnailPath = videoItem.thumbnailPath,
+            thumbnailPath = videoItem.thumbnailAbsolutePath,
             date = videoItem.date,
             status = status,
         )
@@ -27,8 +27,7 @@ data class GalleryVideoItem(
 
 fun GalleryVideoItem.toVideoItem(): VideoItem = VideoItem(
     uri = uri,
-    id = id,
-    thumbnailPath = thumbnailPath,
+    thumbnailAbsolutePath = thumbnailPath,
     date = date,
     title = "",
 )

@@ -8,7 +8,11 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jinproject.aideo.core.AvailableSoCModel
+import jinproject.aideo.core.AvailableSoCModel.Companion.getAvailableSoCModel
 import jinproject.aideo.core.inference.AiModelConfig
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
+import jinproject.aideo.core.inference.speechRecognition.api.QnnAccelerator
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
@@ -18,24 +22,26 @@ import jinproject.aideo.data.BuildConfig
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
-import javax.inject.Qualifier
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class SenseVoiceModel
 
 class SenseVoice @Inject constructor(
     @param:ApplicationContext private val context: Context,
-) : SpeechRecognition(), TimeStampedSR {
+) : SpeechRecognition(), TimeStampedSR, QnnAccelerator {
     override val transcribedResult: StringBuilder = StringBuilder()
     override val timeInfo: TimeStampedSR.TimeInfo = TimeStampedSR.TimeInfo.getDefault()
     private lateinit var recognizer: OfflineRecognizer
     private lateinit var config: OfflineRecognizerConfig
+    override var socModel: AvailableSoCModel = AvailableSoCModel.Default
+    override val availableSpeechRecognition: SpeechRecognitionAvailableModel = SpeechRecognitionAvailableModel.SenseVoice
+
+    override val isQnn: Boolean
+        get() = socModel.isQnnModel()
 
     override fun initialize() {
         if (isInitialized) {
             return
         }
+
+        setSoCModel(getAvailableSoCModel())
 
         val nativeDir = File(context.applicationInfo.nativeLibraryDir)
         Timber.d("Native libs: ${nativeDir.listFiles()?.map { it.name }}")
@@ -104,6 +110,16 @@ class SenseVoice @Inject constructor(
             transcribedResult.clear()
             isInitialized = false
             isUsed = false
+        }
+    }
+
+    override fun resetState() {
+        super.resetState()
+        timeInfo.apply {
+            idx = 0
+            startTime = 0f
+            endTime = 0f
+            standardTime = 0f
         }
     }
 

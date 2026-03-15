@@ -52,8 +52,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.rewarded.RewardedAd
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.play.core.aipacks.AiPackStateUpdateListener
 import com.google.android.play.core.aipacks.model.AiPackStatus
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -61,7 +61,7 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.app.BuildConfig.ADMOB_REWARD_ID
+import jinproject.aideo.app.BuildConfig.ADMOB_INTERSTITIAL_ID
 import jinproject.aideo.app.ad.AdMobManager
 import jinproject.aideo.app.ad.BannerAd
 import jinproject.aideo.app.navigation.NavigationDefaults
@@ -77,11 +77,12 @@ import jinproject.aideo.core.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
-import jinproject.aideo.core.utils.LocalShowRewardAd
+import jinproject.aideo.core.utils.LocalShowInterstitialAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackStatus
+import jinproject.aideo.design.R
 import jinproject.aideo.design.component.SnackBarHostCustom
 import jinproject.aideo.design.component.paddingvalues.addStatusBarPadding
 import jinproject.aideo.design.theme.AideoTheme
@@ -103,13 +104,13 @@ class MainActivity : ComponentActivity() {
         if (result.not()) {
             Toast.makeText(
                 applicationContext,
-                getString(jinproject.aideo.design.R.string.permission_required),
+                getString(R.string.permission_required),
                 Toast.LENGTH_LONG
             ).show()
         }
     }
 
-    private var mRewardedAd: RewardedAd? = null
+    private var mInterstitialAd: InterstitialAd? = null
 
     private val inAppUpdateLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -137,12 +138,12 @@ class MainActivity : ComponentActivity() {
         }
 
         MobileAds.initialize(this@MainActivity) {
-            loadRewardedAd()
+            loadInterstitialAd()
         }
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        setUpBaseAiPack()
+        if (!BuildConfig.DEBUG) setUpBaseAiPack()
     }
 
     @Composable
@@ -168,15 +169,15 @@ class MainActivity : ComponentActivity() {
                 if (result.resultCode == RESULT_OK) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_started),
-                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                            headerMessage = context.getString(R.string.download_started),
+                            contentMessage = context.getString(R.string.download_please_wait)
                         )
                     )
                 } else if (result.resultCode == RESULT_CANCELED) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled),
-                            contentMessage = context.getString(jinproject.aideo.design.R.string.download_cancelled_desc)
+                            headerMessage = context.getString(R.string.download_cancelled),
+                            contentMessage = context.getString(R.string.download_cancelled_desc)
                         )
                     )
                 }
@@ -208,29 +209,30 @@ class MainActivity : ComponentActivity() {
 
             (context as ComponentActivity).addOnNewIntentListener(onNewIntentConsumer)
 
-            val aiPackListener = AiPackStateUpdateListener { state ->
-                when (state.status()) {
-                    AiPackStatus.REQUIRES_USER_CONFIRMATION, AiPackStatus.WAITING_FOR_WIFI -> {
-                        getAiPackManager().showConfirmationDialog(ls)
-                    }
+            val aiPackListener = if (!BuildConfig.DEBUG) {
+                AiPackStateUpdateListener { state ->
+                    when (state.status()) {
+                        AiPackStatus.REQUIRES_USER_CONFIRMATION, AiPackStatus.WAITING_FOR_WIFI -> {
+                            getAiPackManager().showConfirmationDialog(ls)
+                        }
 
-                    AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
-                        showSnackBar(
-                            SnackBarMessage(
-                                headerMessage = context.getString(jinproject.aideo.design.R.string.download_ai_model_in_progress),
-                                contentMessage = context.getString(jinproject.aideo.design.R.string.download_please_wait)
+                        AiPackStatus.DOWNLOADING, AiPackStatus.TRANSFERRING -> {
+                            showSnackBar(
+                                SnackBarMessage(
+                                    headerMessage = context.getString(R.string.download_ai_model_in_progress),
+                                    contentMessage = context.getString(R.string.download_please_wait)
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    else -> {}
-                }
-            }
-            getAiPackManager().registerListener(aiPackListener)
+                        else -> {}
+                    }
+                }.also { getAiPackManager().registerListener(it) }
+            } else null
 
             onDispose {
                 context.removeOnNewIntentListener(onNewIntentConsumer)
-                getAiPackManager().unregisterListener(aiPackListener)
+                aiPackListener?.let { getAiPackManager().unregisterListener(it) }
             }
         }
 
@@ -254,7 +256,7 @@ class MainActivity : ComponentActivity() {
                     showSnackBar(
                         SnackBarMessage(
                             headerMessage = context.getString(
-                                jinproject.aideo.design.R.string.billing_purchase_completed,
+                                R.string.billing_purchase_completed,
                                 c.products.first()
                             )
                         )
@@ -265,23 +267,23 @@ class MainActivity : ComponentActivity() {
                 override fun call(c: Int) {
                     showSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.billing_purchase_failed),
+                            headerMessage = context.getString(R.string.billing_purchase_failed),
                             contentMessage = when (c) {
-                                2, 3 -> context.getString(jinproject.aideo.design.R.string.billing_error_invalid_product)
-                                5, 6 -> context.getString(jinproject.aideo.design.R.string.billing_error_incorrect_product)
+                                2, 3 -> context.getString(R.string.billing_error_invalid_product)
+                                5, 6 -> context.getString(R.string.billing_error_incorrect_product)
                                 BillingClient.BillingResponseCode.USER_CANCELED -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_cancelled
+                                    R.string.billing_error_cancelled
                                 )
 
                                 BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_unavailable
+                                    R.string.billing_error_unavailable
                                 )
 
                                 BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> context.getString(
-                                    jinproject.aideo.design.R.string.billing_error_already_owned
+                                    R.string.billing_error_already_owned
                                 )
 
-                                else -> context.getString(jinproject.aideo.design.R.string.billing_error_network)
+                                else -> context.getString(R.string.billing_error_network)
                             }
                         )
                     )
@@ -344,7 +346,7 @@ class MainActivity : ComponentActivity() {
             LocalAnalyticsLoggingEvent provides ::loggingAnalyticsEvent,
             LocalBillingModule provides billingModule,
             LocalShowSnackBar provides showSnackBar,
-            LocalShowRewardAd provides ::showRewardedAd,
+            LocalShowInterstitialAd provides ::showInterstitialAd,
         ) {
             NavigationSuiteScaffold(
                 navigationSuiteItems = {
@@ -413,56 +415,52 @@ class MainActivity : ComponentActivity() {
 
     private var isLoadingRewardAd = false
 
-    private fun loadRewardedAd() {
-        if (isLoadingRewardAd || mRewardedAd != null)
+    private fun loadInterstitialAd() {
+        if (isLoadingRewardAd || mInterstitialAd != null)
             return
 
         isLoadingRewardAd = true
-        RewardedAd.load(
+        InterstitialAd.load(
             this,
-            ADMOB_REWARD_ID,
+            ADMOB_INTERSTITIAL_ID,
             AdRequest.Builder().build(),
-            object : RewardedAdLoadCallback() {
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                    mInterstitialAd = interstitialAd
+                    isLoadingRewardAd = false
+
+                    mInterstitialAd?.fullScreenContentCallback =
+                        object : FullScreenContentCallback() {
+                            override fun onAdDismissedFullScreenContent() {
+                                mInterstitialAd = null
+                                loadInterstitialAd()
+                            }
+
+                            override fun onAdFailedToShowFullScreenContent(p0: AdError) {
+                                mInterstitialAd = null
+                            }
+
+                            override fun onAdClicked() {}
+                            override fun onAdImpression() {}
+                            override fun onAdShowedFullScreenContent() {}
+                        }
+                }
+
                 override fun onAdFailedToLoad(adError: LoadAdError) {
-                    mRewardedAd = null
+                    mInterstitialAd = null
                     isLoadingRewardAd = false
                 }
-
-                override fun onAdLoaded(rewardedAd: RewardedAd) {
-                    mRewardedAd = rewardedAd
-                    isLoadingRewardAd = false
-
-                    mRewardedAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-                        override fun onAdDismissedFullScreenContent() {
-                            mRewardedAd = null
-                            loadRewardedAd()
-                        }
-
-                        override fun onAdFailedToShowFullScreenContent(p0: AdError) {
-                            mRewardedAd = null
-                        }
-
-                        override fun onAdClicked() {}
-                        override fun onAdImpression() {}
-                        override fun onAdShowedFullScreenContent() {}
-                    }
-                }
-            })
+            },
+        )
     }
 
-    private fun showRewardedAd(onResult: () -> Unit) {
-        if (adMobManager.isAdviewRemoved.value) {
-            onResult()
+    private fun showInterstitialAd() {
+        if (adMobManager.isAdviewRemoved.value)
             return
-        }
 
-        mRewardedAd?.show(this) {
-            onResult()
-        } ?: run {
-            loadRewardedAd()
-            mRewardedAd?.show(this@MainActivity) {
-                onResult()
-            } ?: onResult()
+        mInterstitialAd?.show(this) ?: run {
+            loadInterstitialAd()
+            mInterstitialAd?.show(this@MainActivity)
         }
     }
 
@@ -496,8 +494,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        mRewardedAd?.fullScreenContentCallback = null
-        mRewardedAd = null
+        mInterstitialAd?.fullScreenContentCallback = null
+        mInterstitialAd = null
         super.onDestroy()
     }
 }

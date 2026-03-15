@@ -1,13 +1,16 @@
 package jinproject.aideo.data.datasource.local
 
 import android.content.Context
+import android.net.Uri
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.data.toSubtitleFileIdentifier
+import jinproject.aideo.data.FileIdentifier
+import jinproject.aideo.data.SubtitleFileConfig
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 
-class LocalFileDataSource @Inject constructor(@ApplicationContext private val context: Context) {
+class LocalFileDataSource @Inject constructor(@param:ApplicationContext private val context: Context) {
     /**
      * 로컬 경로에 파일 생성 후, 절대 경로를 반환하는 함수
      *
@@ -17,18 +20,15 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
      * @return 파일의 content Uri or 생성에 실패한 경우 null
      */
     fun createFileAndWriteOnOutputStream(
-        fileIdentifier: String,
+        fileIdentifier: FileIdentifier,
         writeContentOnFile: (FileOutputStream) -> Boolean,
     ): String? {
-        val file = File(context.filesDir, fileIdentifier)
-
-        /*if (file.exists())
-            return file.absolutePath*/
+        val file = File(context.filesDir, fileIdentifier.identifier)
 
         FileOutputStream(file).use { outputStream ->
             val compressedResult = writeContentOnFile(outputStream)
 
-            if (compressedResult == true) {
+            if (compressedResult) {
                 return file.absolutePath
             }
         }
@@ -43,8 +43,8 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
      *
      * @return 한줄씩 읽은 List<String>
      */
-    fun getFileContentList(fileIdentifier: String): List<String>? {
-        val file = File(context.filesDir, fileIdentifier)
+    fun getFileContentList(fileIdentifier: FileIdentifier): List<String>? {
+        val file = File(context.filesDir, fileIdentifier.identifier)
 
         return if (file.exists()) file.readLines() else null
     }
@@ -52,25 +52,34 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
     /**
      * 존재하는 자막 파일의 언어 코드를 반환하는 함수
      *
-     * @param videoItemId 자막 파일의 비디오 아이템 id
+     * @param fileId 자막 파일의 비디오 아이템 id
      *
      * @return 언어 코드 ISO 값
      */
-    fun getOriginSubtitleLanguageCode(videoItemId: Long): String {
-        val file = context.filesDir
+    fun getOriginSubtitleLanguageCodeOrNull(fileId: Long): String? {
+        val matchedFiles = getSubtitleFiles(fileId)
 
-        val matchedFiles = file.listFiles()
-            ?.filter { it.name.startsWith("$videoItemId") && it.name.endsWith("".toSubtitleFileIdentifier()) }
-
-
-        if (matchedFiles.isNullOrEmpty())
-            throw IllegalArgumentException("File has not found")
+        if (matchedFiles.isEmpty())
+            return null
 
         return matchedFiles.first().nameWithoutExtension.split("_")[1]
     }
 
-    fun isFileExist(fileIdentifier: String): Boolean {
-        val file = File(context.filesDir, fileIdentifier)
+    private fun getSubtitleFiles(fileId: Long): List<File> {
+        val file = context.filesDir
+
+        val matchedFiles = file.listFiles()
+            ?.filter { it.name.startsWith("${fileId}_") && it.name.endsWith(SubtitleFileConfig.SUBTITLE_EXTENSION) }
+
+
+        if (matchedFiles.isNullOrEmpty())
+            return emptyList()
+
+        return matchedFiles
+    }
+
+    fun isFileExist(fileIdentifier: FileIdentifier): Boolean {
+        val file = File(context.filesDir, fileIdentifier.identifier)
 
         return file.exists()
     }
@@ -82,5 +91,26 @@ class LocalFileDataSource @Inject constructor(@ApplicationContext private val co
             ?.any { it.name.startsWith(fileId.toString()) && it.name.endsWith(fileExtension) } == true
 
         return matchedFiles
+    }
+
+    /**
+     * 존재하는 자막 파일을 제거
+     *
+     * @param fileId 비디오 파일 id
+     */
+    fun removeAllSubtitles(fileId: Long) {
+        getSubtitleFiles(fileId).forEach { file ->
+            file.delete()
+        }
+    }
+
+    fun getFileUri(fileId: Long, languageCode: String): Uri {
+        return File(
+            context.filesDir,
+            SubtitleFileConfig.toSubtitleFileIdentifier(
+                id = fileId,
+                languageCode = languageCode,
+            ).identifier
+        ).toUri()
     }
 }

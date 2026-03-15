@@ -36,7 +36,7 @@ android {
             isShrinkResources = false
 
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.test.appId")
-            buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.test.rewardId"))
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", getLocalKey("adMob.test.interstitialId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.test.unitId"))
             extra.set("alwaysUpdateBuildId", true)
         }
@@ -49,7 +49,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["ADMOB_APP_ID"] = getLocalKey("adMob.real.appId")
-            buildConfigField("String","ADMOB_REWARD_ID",getLocalKey("adMob.real.rewardId"))
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", getLocalKey("adMob.real.interstitialId"))
             buildConfigField("String", "ADMOB_UNIT_ID", getLocalKey("adMob.real.unitId"))
         }
     }
@@ -62,15 +62,31 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
-    assetPacks += listOf(":ai_speech_base", ":ai_translation", ":ai_speech_whisper", ":ai_speech_sensevoice")
+    sourceSets {
+        getByName("debug") {
+            assets.srcDirs(
+                "../ai_speech_base/src/main/assets",
+                "../ai_speech_whisper/src/main/assets",
+                layout.buildDirectory.dir("generated/sensevoice_debug_assets").get().asFile,
+                "../ai_translation/src/main/assets",
+                "../htp_v73_sm8550/src/main/assets",
+            )
+        }
+    }
+
     dynamicFeatures += setOf(
-        ":htp_v69_sm8475",
-        ":htp_v69_sm8450",
-        ":htp_v73_sm8550",
-        ":htp_v75",
-        ":htp_v79",
-        ":htp_v81",
+        ":htp_v69_sm8475", ":htp_v69_sm8450", ":htp_v73_sm8550",
+        ":htp_v75", ":htp_v79", ":htp_v81",
     )
+
+    if (gradle.startParameter.taskNames.any {
+            it.contains("release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
+        }) {
+        assetPacks += listOf(
+            ":ai_speech_base", ":ai_translation",
+            ":ai_speech_whisper", ":ai_speech_sensevoice"
+        )
+    }
 
     bundle {
         deviceTargetingConfig = file("device_targeting_config.xml")
@@ -81,7 +97,17 @@ android {
     }
 }
 
-fun getLocalKey(propertyKey:String):String{
+val copySenseVoiceDebugAssets = tasks.register<Copy>("copySenseVoiceDebugAssets") {
+    from("$rootDir/ai_speech_sensevoice/src/main/assets/models#group_base")
+    into(layout.buildDirectory.dir("generated/sensevoice_debug_assets/models"))
+}
+afterEvaluate {
+    tasks.named("mergeDebugAssets") {
+        dependsOn(copySenseVoiceDebugAssets)
+    }
+}
+
+fun getLocalKey(propertyKey: String): String {
     return gradleLocalProperties(rootDir, providers).getProperty(propertyKey)
 }
 

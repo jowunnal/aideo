@@ -1,35 +1,29 @@
 package jinproject.aideo.core.inference.speechRecognition
 
-import android.content.Context
+import dagger.Binds
+import dagger.MapKey
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoMap
+import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
-import javax.inject.Singleton
+
+@MapKey
+@Retention(AnnotationRetention.BINARY)
+annotation class SpeechRecognitionModelKey(val value: SpeechRecognitionAvailableModel)
 
 @Module
 @InstallIn(SingletonComponent::class)
-object SpeechRecognitionModule {
+abstract class SpeechRecognitionModule {
 
-    @Provides
-    @Singleton
-    @WhisperModel
-    fun providesWhisper(
-        @ApplicationContext context: Context,
-    ): SpeechRecognition {
-        return Whisper(
-            context = context,
-        )
-    }
+    @Binds
+    @IntoMap
+    @SpeechRecognitionModelKey(SpeechRecognitionAvailableModel.Whisper)
+    abstract fun bindWhisper(impl: Whisper): SpeechRecognition
 
-    @Provides
-    @Singleton
-    @SenseVoiceModel
-    fun providesSenseVoice(
-        @ApplicationContext context: Context,
-    ): SpeechRecognition {
-        return SenseVoice(context = context)
-    }
+    @Binds
+    @IntoMap
+    @SpeechRecognitionModelKey(SpeechRecognitionAvailableModel.SenseVoice)
+    abstract fun bindSenseVoice(impl: SenseVoice): SpeechRecognition
 }

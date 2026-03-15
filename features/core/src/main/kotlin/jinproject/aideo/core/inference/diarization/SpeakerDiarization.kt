@@ -18,7 +18,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SpeakerDiarization @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private lateinit var diarization: OfflineSpeakerDiarization
     var isInitialized: Boolean = false
