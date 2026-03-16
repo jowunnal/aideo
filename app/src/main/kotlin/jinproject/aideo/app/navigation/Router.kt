@@ -10,7 +10,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navOptions
-import jinproject.aideo.core.TopLevelRoute
+import jinproject.aideo.core.common.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.navigateToGalleryGraph
 import jinproject.aideo.library.LibraryRoute

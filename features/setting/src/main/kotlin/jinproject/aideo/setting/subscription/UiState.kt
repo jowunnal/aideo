@@ -3,7 +3,7 @@ package jinproject.aideo.setting.subscription
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.android.billingclient.api.ProductDetails
-import jinproject.aideo.core.BillingModule.Product
+import jinproject.aideo.core.common.BillingModule.Product
 import jinproject.aideo.design.R
 import java.time.Instant
 import java.time.LocalDate

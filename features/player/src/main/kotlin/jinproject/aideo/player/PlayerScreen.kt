@@ -49,10 +49,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.common.SnackBarMessage
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.LocalShowInterstitialAd
 import jinproject.aideo.core.utils.LocalShowSnackBar
+import jinproject.aideo.design.R
 import jinproject.aideo.design.component.HorizontalWeightSpacer
 import jinproject.aideo.design.component.PopUpInfo
 import jinproject.aideo.design.component.button.DefaultIconButton
@@ -146,8 +147,8 @@ fun PlayerScreen(
                     viewModel.getExoPlayer()?.stop()
                     localShowSnackBar(
                         SnackBarMessage(
-                            headerMessage = context.getString(jinproject.aideo.design.R.string.player_subtitle_conversion_start_header),
-                            contentMessage = context.getString(jinproject.aideo.design.R.string.player_subtitle_conversion_start_content)
+                            headerMessage = context.getString(R.string.player_subtitle_conversion_start_header),
+                            contentMessage = context.getString(R.string.player_subtitle_conversion_start_content)
                         )
                     )
                 }

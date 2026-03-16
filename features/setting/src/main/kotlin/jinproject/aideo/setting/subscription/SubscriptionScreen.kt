@@ -31,8 +31,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jinproject.aideo.core.BillingModule.Product
-import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.common.BillingModule.Product
+import jinproject.aideo.core.common.SnackBarMessage
 import jinproject.aideo.core.utils.LocalBillingModule
 import jinproject.aideo.core.utils.LocalShowSnackBar
 import jinproject.aideo.design.R

@@ -5,7 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
-import jinproject.aideo.core.TopLevelRoute
+import jinproject.aideo.core.common.TopLevelRoute
 import jinproject.aideo.design.R
 import jinproject.aideo.setting.setting.SettingScreen
 import jinproject.aideo.setting.settingAiModel.SettingAiModelScreen

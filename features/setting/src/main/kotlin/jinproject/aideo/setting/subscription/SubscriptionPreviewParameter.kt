@@ -1,7 +1,7 @@
 package jinproject.aideo.setting.subscription
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import jinproject.aideo.core.BillingModule
+import jinproject.aideo.core.common.BillingModule
 import jinproject.aideo.design.R
 import java.time.LocalDateTime
 import java.time.ZoneOffset
