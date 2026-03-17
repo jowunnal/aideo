@@ -19,8 +19,8 @@ android {
     defaultConfig {
         applicationId = "jinproject.aideo.app"
         targetSdk = 36
-        versionCode = 27
-        versionName = "1.0.4"
+        versionCode = 29
+        versionName = "1.0.5"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -79,14 +79,10 @@ android {
         ":htp_v75", ":htp_v79", ":htp_v81",
     )
 
-    if (gradle.startParameter.taskNames.any {
-            it.contains("release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
-        }) {
-        assetPacks += listOf(
-            ":ai_speech_base", ":ai_translation",
-            ":ai_speech_whisper", ":ai_speech_sensevoice"
-        )
-    }
+    assetPacks += listOf(
+        ":ai_speech_base", ":ai_translation",
+        ":ai_speech_whisper", ":ai_speech_sensevoice"
+    )
 
     bundle {
         deviceTargetingConfig = file("device_targeting_config.xml")

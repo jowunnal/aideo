@@ -140,10 +140,13 @@ class MainActivity : ComponentActivity() {
         MobileAds.initialize(this@MainActivity) {
             loadInterstitialAd()
         }
+
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        if (!BuildConfig.DEBUG) setUpBaseAiPack()
+
+        if (!BuildConfig.DEBUG)
+            setUpBaseAiPack()
     }
 
     @Composable
