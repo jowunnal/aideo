@@ -8,8 +8,8 @@ import com.k2fsa.sherpa.onnx.OfflineSenseVoiceModelConfig
 import com.k2fsa.sherpa.onnx.QnnConfig
 import com.k2fsa.sherpa.onnx.getFeatureConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jinproject.aideo.core.AvailableSoCModel
-import jinproject.aideo.core.AvailableSoCModel.Companion.getAvailableSoCModel
+import jinproject.aideo.core.category.stt.AvailableSoCModel
+import jinproject.aideo.core.category.stt.AvailableSoCModel.Companion.getAvailableSoCModel
 import jinproject.aideo.core.inference.AiModelConfig
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.speechRecognition.api.QnnAccelerator
@@ -19,27 +19,31 @@ import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.extractQnnStubsToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class SenseVoice @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val localSettingDataSource: LocalSettingDataSource,
 ) : SpeechRecognition(), TimeStampedSR, QnnAccelerator {
     override val transcribedResult: StringBuilder = StringBuilder()
     override val timeInfo: TimeStampedSR.TimeInfo = TimeStampedSR.TimeInfo.getDefault()
-    private lateinit var recognizer: OfflineRecognizer
-    private lateinit var config: OfflineRecognizerConfig
+    private var recognizer: OfflineRecognizer? = null
+    private var config: OfflineRecognizerConfig? = null
     override var socModel: AvailableSoCModel = AvailableSoCModel.Default
-    override val availableSpeechRecognition: SpeechRecognitionAvailableModel = SpeechRecognitionAvailableModel.SenseVoice
+    override val availableSpeechRecognition: SpeechRecognitionAvailableModel =
+        SpeechRecognitionAvailableModel.SenseVoice
 
     override val isQnn: Boolean
         get() = socModel.isQnnModel()
 
-    override fun initialize() {
-        if (isInitialized) {
-            return
-        }
+    override suspend fun initialize() {
+        super.initialize()
 
         setSoCModel(getAvailableSoCModel())
 
@@ -53,6 +57,7 @@ class SenseVoice @Inject constructor(
                 path = TOKEN_PATH,
                 context = context
             )
+            val language = localSettingDataSource.getInferenceTargetLanguage().first()
 
             modelConfig = if (isQnn) {
                 val qnnStubPath = extractQnnStubsToInternalStorage(context)
@@ -71,7 +76,7 @@ class SenseVoice @Inject constructor(
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
                         model = copiedModelPath,
-                        language = "auto",
+                        language = language,
                         useInverseTextNormalization = true,
                         qnnConfig = QnnConfig(
                             backendLib = "$qnnStubPath/libQnnHtp.so",
@@ -88,7 +93,7 @@ class SenseVoice @Inject constructor(
                 OfflineModelConfig(
                     senseVoice = OfflineSenseVoiceModelConfig(
                         model = "${context.getPackAssetPath(AiModelConfig.SPEECH_SENSE_VOICE_PACK)}/$MODEL_PATH",
-                        language = "auto",
+                        language = language,
                         useInverseTextNormalization = true,
                     ),
                     tokens = copiedTokensPath,
@@ -98,19 +103,19 @@ class SenseVoice @Inject constructor(
 
         recognizer = OfflineRecognizer(
             assetManager = null,
-            config = config,
+            config = config!!,
         )
 
         isInitialized = true
     }
 
     override fun release() {
-        if (isInitialized) {
-            recognizer.release()
-            transcribedResult.clear()
-            isInitialized = false
-            isUsed = false
-        }
+        super.release()
+
+        recognizer?.release()
+        recognizer = null
+        config = null
+        isInitialized = false
     }
 
     override fun resetState() {
@@ -123,16 +128,15 @@ class SenseVoice @Inject constructor(
         }
     }
 
-    override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
+    override suspend fun transcribeByModel(audioData: FloatArray) {
         isUsed = true
-        updateLanguageConfig(language)
-        val stream = recognizer.createStream()
+        val stream = recognizer!!.createStream()
 
         try {
             stream.acceptWaveform(audioData, AudioConfig.SAMPLE_RATE)
-            recognizer.decode(stream)
+            recognizer!!.decode(stream)
 
-            recognizer.getResult(stream).let { result ->
+            recognizer!!.getResult(stream).let { result ->
                 if (result.text.isNotEmpty())
                     transcribedResult.apply {
                         appendLine(timeInfo.idx++)
@@ -150,10 +154,14 @@ class SenseVoice @Inject constructor(
         }
     }
 
-    private fun updateLanguageConfig(language: String) {
-        config.modelConfig.senseVoice.language = language
+    override fun updateLanguageConfig(language: String) {
+        if (config == null && recognizer == null && !isInitialized)
+            return
 
-        recognizer.setConfig(config)
+        if (config?.modelConfig?.senseVoice?.language != language) {
+            config!!.modelConfig.senseVoice.language = language
+            recognizer!!.setConfig(config!!)
+        }
     }
 
     override fun getResult(): String {

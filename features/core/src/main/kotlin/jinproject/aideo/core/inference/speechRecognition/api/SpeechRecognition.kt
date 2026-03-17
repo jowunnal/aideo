@@ -1,6 +1,6 @@
 package jinproject.aideo.core.inference.speechRecognition.api
 
-import jinproject.aideo.core.AvailableSoCModel
+import jinproject.aideo.core.category.stt.AvailableSoCModel
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 
 /**
@@ -10,11 +10,20 @@ abstract class SpeechRecognition {
     protected abstract val transcribedResult: StringBuilder
     abstract val availableSpeechRecognition: SpeechRecognitionAvailableModel
 
-    protected var isInitialized = false
+    var isInitialized = false
     var isUsed = false
 
-    abstract fun initialize()
-    abstract fun release()
+    open suspend fun initialize() {
+        if (isInitialized)
+            return
+    }
+
+    open fun release() {
+        if (!isInitialized)
+            return
+
+        resetState()
+    }
 
     /**
      * 네이티브 인스턴스(recognizer)는 유지한 채 Kotlin 상태만 초기화.
@@ -25,15 +34,17 @@ abstract class SpeechRecognition {
         isUsed = false
     }
 
-    open suspend fun transcribe(audioData: FloatArray, language: String) {
+    open suspend fun transcribe(audioData: FloatArray) {
         require(isInitialized) {
             "SpeechToText is not initialized."
         }
 
-        return transcribeByModel(audioData = audioData, language = language)
+        return transcribeByModel(audioData = audioData)
     }
 
-    protected abstract suspend fun transcribeByModel(audioData: FloatArray, language: String)
+    protected abstract suspend fun transcribeByModel(audioData: FloatArray)
+
+    abstract fun updateLanguageConfig(language: String)
 
     open fun getResult(): String {
         return transcribedResult.toString().trim()

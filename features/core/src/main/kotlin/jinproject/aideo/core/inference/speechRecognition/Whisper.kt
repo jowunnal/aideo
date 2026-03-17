@@ -15,24 +15,26 @@ import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.data.BuildConfig
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
-import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class Whisper @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val localSettingDataSource: LocalSettingDataSource,
 ) : SpeechRecognition(), TimeStampedSR {
     override val transcribedResult: StringBuilder = StringBuilder()
     override val timeInfo: TimeStampedSR.TimeInfo = TimeStampedSR.TimeInfo.getDefault()
-    private lateinit var recognizer: OfflineRecognizer
-    private lateinit var config: OfflineRecognizerConfig
     override val availableSpeechRecognition: SpeechRecognitionAvailableModel =
         SpeechRecognitionAvailableModel.Whisper
+    private var recognizer: OfflineRecognizer? = null
+    private var config: OfflineRecognizerConfig? = null
 
-    override fun initialize() {
-        if (isInitialized) {
-            return
-        }
+    override suspend fun initialize() {
+        super.initialize()
 
         val copiedTokensPath = copyAssetToInternalStorage(
             path = WHISPER_TOKEN_PATH,
@@ -45,7 +47,7 @@ class Whisper @Inject constructor(
                 whisper = OfflineWhisperModelConfig(
                     encoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_WHISPER_PACK)}/$WHISPER_ENCODER_PATH",
                     decoder = "${context.getPackAssetPath(AiModelConfig.SPEECH_WHISPER_PACK)}/$WHISPER_DECODER_PATH",
-                    language = Locale.getDefault().language,
+                    language = localSettingDataSource.getInferenceTargetLanguage().first(),
                 ),
                 tokens = copiedTokensPath,
                 debug = BuildConfig.DEBUG,
@@ -54,18 +56,19 @@ class Whisper @Inject constructor(
 
         recognizer = OfflineRecognizer(
             assetManager = null,
-            config = config,
+            config = config!!,
         )
 
         isInitialized = true
     }
 
     override fun release() {
-        if (isInitialized) {
-            recognizer.release()
-            isInitialized = false
-            isUsed = false
-        }
+        super.release()
+
+        recognizer?.release()
+        recognizer = null
+        config = null
+        isInitialized = false
     }
 
     override fun resetState() {
@@ -78,16 +81,16 @@ class Whisper @Inject constructor(
         }
     }
 
-    override suspend fun transcribeByModel(audioData: FloatArray, language: String) {
+    override suspend fun transcribeByModel(audioData: FloatArray) {
         isUsed = true
-        updateLanguageConfig(language)
-        val stream = recognizer.createStream()
+
+        val stream = recognizer!!.createStream()
 
         try {
             stream.acceptWaveform(audioData, AudioConfig.SAMPLE_RATE)
-            recognizer.decode(stream)
+            recognizer!!.decode(stream)
 
-            recognizer.getResult(stream).let { result ->
+            recognizer!!.getResult(stream).let { result ->
                 if (result.text.isNotEmpty())
                     transcribedResult.apply {
                         appendLine(timeInfo.idx++)
@@ -105,10 +108,14 @@ class Whisper @Inject constructor(
         }
     }
 
-    private fun updateLanguageConfig(language: String) {
-        config.modelConfig.whisper.language = language
+    override fun updateLanguageConfig(language: String) {
+        if (config == null && recognizer == null && !isInitialized)
+            return
 
-        recognizer.setConfig(config)
+        if (config?.modelConfig?.whisper?.language != language) {
+            config!!.modelConfig.whisper.language = language
+            recognizer!!.setConfig(config!!)
+        }
     }
 
     override fun getResult(): String {
@@ -119,8 +126,8 @@ class Whisper @Inject constructor(
     }
 
     companion object {
-        const val WHISPER_ENCODER_PATH = "$MODELS_ROOT_DIR/whisper_small-encoder.int8.onnx"
-        const val WHISPER_DECODER_PATH = "$MODELS_ROOT_DIR/whisper_small-decoder.int8.onnx"
+        const val WHISPER_ENCODER_PATH = "$MODELS_ROOT_DIR/whisper_base-encoder.int8.onnx"
+        const val WHISPER_DECODER_PATH = "$MODELS_ROOT_DIR/whisper_base-decoder.int8.onnx"
         const val WHISPER_TOKEN_PATH = "$MODELS_ROOT_DIR/whisper_small-tokens.txt"
     }
 }
