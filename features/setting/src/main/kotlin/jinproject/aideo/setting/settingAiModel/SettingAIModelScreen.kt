@@ -31,6 +31,8 @@ import jinproject.aideo.core.utils.getAiPackManager
 import jinproject.aideo.core.utils.getAiPackStates
 import jinproject.aideo.core.utils.getPackAssetPath
 import jinproject.aideo.core.utils.getPackStatus
+import jinproject.aideo.core.utils.isAiPackReady
+import jinproject.aideo.data.BuildConfig
 import jinproject.aideo.design.R
 import jinproject.aideo.design.component.DropDownMenuCustom
 import jinproject.aideo.design.component.TextDialog
@@ -129,8 +131,7 @@ internal fun SettingAiModelScreen(
                 if (SpeechRecognitionAvailableModel.Whisper.name.equals(
                         other = item,
                         ignoreCase = true
-                    ) && context.getAiPackManager()
-                        .getPackLocation(AiModelConfig.SPEECH_WHISPER_PACK) == null
+                    ) && !context.isAiPackReady(AiModelConfig.SPEECH_WHISPER_PACK)
                 ) {
                     context
                         .getAiPackStates(AiModelConfig.SPEECH_WHISPER_PACK)
@@ -144,19 +145,26 @@ internal fun SettingAiModelScreen(
                                         negativeMessage = context.getString(R.string.dialog_download_negative),
                                     ).getShownDialogState(
                                         onPositiveCallback = {
-                                            context.getAiPackManager()
-                                                .fetch(listOf(AiModelConfig.SPEECH_WHISPER_PACK))
-                                                .addOnCompleteListener {
-                                                    if (it.isSuccessful && context.getPackAssetPath(
-                                                            AiModelConfig.SPEECH_WHISPER_PACK
-                                                        ) != null
-                                                    )
-                                                        updateSpeechRecognitionModel(
-                                                            SpeechRecognitionAvailableModel.findByName(
-                                                                item
+                                            if (!BuildConfig.DEBUG)
+                                                context.getAiPackManager()
+                                                    .fetch(listOf(AiModelConfig.SPEECH_WHISPER_PACK))
+                                                    .addOnCompleteListener {
+                                                        if (it.isSuccessful && context.isAiPackReady(
+                                                                AiModelConfig.SPEECH_WHISPER_PACK
                                                             )
                                                         )
-                                                }
+                                                            updateSpeechRecognitionModel(
+                                                                SpeechRecognitionAvailableModel.findByName(
+                                                                    item
+                                                                )
+                                                            )
+                                                    }
+                                            else
+                                                updateSpeechRecognitionModel(
+                                                    SpeechRecognitionAvailableModel.findByName(
+                                                        item
+                                                    )
+                                                )
                                         }
                                     )
                                 }
@@ -180,8 +188,7 @@ internal fun SettingAiModelScreen(
                 if (TranslationAvailableModel.M2M100.name.equals(
                         item,
                         ignoreCase = true
-                    ) && context.getAiPackManager()
-                        .getPackLocation(AiModelConfig.TRANSLATION_BASE_PACK) == null
+                    ) && !context.isAiPackReady(AiModelConfig.TRANSLATION_BASE_PACK)
                 ) {
                     context.getAiPackStates(AiModelConfig.TRANSLATION_BASE_PACK)
                         .addOnCompleteListener { task ->
@@ -194,19 +201,26 @@ internal fun SettingAiModelScreen(
                                         negativeMessage = context.getString(R.string.dialog_download_negative),
                                     ).getShownDialogState(
                                         onPositiveCallback = {
-                                            context.getAiPackManager()
-                                                .fetch(listOf(AiModelConfig.TRANSLATION_BASE_PACK))
-                                                .addOnCompleteListener {
-                                                    if (it.isSuccessful && context.getPackAssetPath(
-                                                            AiModelConfig.TRANSLATION_BASE_PACK
-                                                        ) != null
-                                                    )
-                                                        updateTranslationModel(
-                                                            TranslationAvailableModel.findByName(
-                                                                item
+                                            if (!BuildConfig.DEBUG)
+                                                context.getAiPackManager()
+                                                    .fetch(listOf(AiModelConfig.TRANSLATION_BASE_PACK))
+                                                    .addOnCompleteListener {
+                                                        if (it.isSuccessful && context.isAiPackReady(
+                                                                AiModelConfig.TRANSLATION_BASE_PACK
                                                             )
                                                         )
-                                                }
+                                                            updateTranslationModel(
+                                                                TranslationAvailableModel.findByName(
+                                                                    item
+                                                                )
+                                                            )
+                                                    }
+                                            else
+                                                updateTranslationModel(
+                                                    TranslationAvailableModel.findByName(
+                                                        item
+                                                    )
+                                                )
                                         }
                                     )
                                 }

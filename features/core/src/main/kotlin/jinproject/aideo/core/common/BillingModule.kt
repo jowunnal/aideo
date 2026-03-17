@@ -1,4 +1,4 @@
-package jinproject.aideo.core
+package jinproject.aideo.core.common
 
 import android.app.Activity
 import androidx.annotation.StringRes

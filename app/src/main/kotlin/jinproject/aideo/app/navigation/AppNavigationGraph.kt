@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
-import jinproject.aideo.core.TopLevelRoute
+import jinproject.aideo.core.common.TopLevelRoute
 import jinproject.aideo.gallery.GalleryRoute
 import jinproject.aideo.gallery.galleryNavGraph
 import jinproject.aideo.library.libraryNavGraph

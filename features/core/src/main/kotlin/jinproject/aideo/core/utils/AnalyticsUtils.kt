@@ -2,7 +2,7 @@ package jinproject.aideo.core.utils
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.google.firebase.analytics.ParametersBuilder
-import jinproject.aideo.core.BillingModule
+import jinproject.aideo.core.common.BillingModule
 
 val LocalAnalyticsLoggingEvent = staticCompositionLocalOf {
     { event: AnalyticsEvent ->

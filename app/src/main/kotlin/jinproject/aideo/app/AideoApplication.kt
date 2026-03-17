@@ -8,7 +8,7 @@ import android.graphics.Color
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.google.android.play.core.splitcompat.SplitCompat
 import dagger.hilt.android.HiltAndroidApp
-import jinproject.aideo.core.ForegroundObserver
+import jinproject.aideo.core.common.ForegroundObserver
 import jinproject.aideo.design.R
 import jinproject.aideo.gallery.TranscribeService
 import timber.log.Timber

@@ -2,7 +2,7 @@ package jinproject.aideo.core.utils
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
-import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.common.SnackBarMessage
 
 val LocalShowSnackBar: ProvidableCompositionLocal<(SnackBarMessage) -> Unit> =
     staticCompositionLocalOf {

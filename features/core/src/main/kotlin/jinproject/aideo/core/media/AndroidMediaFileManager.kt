@@ -27,6 +27,7 @@ import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
@@ -212,7 +213,9 @@ class AndroidMediaFileManager @Inject constructor(
         coroutineScope {
             launch {
                 while (true) {
+                    ensureActive()
                     val inputBufferId = decoder.dequeueInputBuffer(timeoutUs)
+
                     if (inputBufferId >= 0) {
                         val inputBuffer = decoder.getInputBuffer(inputBufferId)
                         val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
@@ -237,6 +240,7 @@ class AndroidMediaFileManager @Inject constructor(
                 var currentPointer = 0
 
                 while (true) {
+                    ensureActive()
                     val outputBufferId = decoder.dequeueOutputBuffer(decoderBufferInfo, timeoutUs)
 
                     if (outputBufferId == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
@@ -355,6 +359,7 @@ data class VideoItem(
     val title: String,
     val thumbnailAbsolutePath: String?,
     val date: String = "",
-    val id: Long = SubtitleFileConfig.toSubtitleFileId(uri) ?: throw IllegalStateException("비디오 파일 contentUri [$uri] 가 올바른 형식이 아닙니다.")
+    val id: Long = SubtitleFileConfig.toSubtitleFileId(uri)
+        ?: throw IllegalStateException("비디오 파일 contentUri [$uri] 가 올바른 형식이 아닙니다.")
 ) : Parcelable {
 }

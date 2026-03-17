@@ -70,10 +70,10 @@ import jinproject.aideo.app.navigation.isBarHasToBeShown
 import jinproject.aideo.app.navigation.navigationSuiteItems
 import jinproject.aideo.app.navigation.rememberRouter
 import jinproject.aideo.app.update.InAppUpdateManager
-import jinproject.aideo.core.BillingModule
-import jinproject.aideo.core.SnackBarMessage
+import jinproject.aideo.core.common.BillingModule
+import jinproject.aideo.core.common.SnackBarMessage
 import jinproject.aideo.core.inference.AiModelConfig
-import jinproject.aideo.core.toProduct
+import jinproject.aideo.core.common.toProduct
 import jinproject.aideo.core.utils.AnalyticsEvent
 import jinproject.aideo.core.utils.LocalAnalyticsLoggingEvent
 import jinproject.aideo.core.utils.LocalBillingModule
@@ -140,10 +140,13 @@ class MainActivity : ComponentActivity() {
         MobileAds.initialize(this@MainActivity) {
             loadInterstitialAd()
         }
+
         firebaseAnalytics = Firebase.analytics
 
         inAppUpdateManager.checkUpdateIsAvailable(launcher = inAppUpdateLauncher)
-        if (!BuildConfig.DEBUG) setUpBaseAiPack()
+
+        if (!BuildConfig.DEBUG)
+            setUpBaseAiPack()
     }
 
     @Composable

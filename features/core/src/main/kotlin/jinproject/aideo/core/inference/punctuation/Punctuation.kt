@@ -18,7 +18,7 @@ import javax.inject.Singleton
 class Punctuation @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
-    private lateinit var punctuation: OfflinePunctuation
+    private var punctuation: OfflinePunctuation? = null
     var isInitialized: Boolean = false
         private set
 
@@ -47,12 +47,13 @@ class Punctuation @Inject constructor(
 
     fun release() {
         if (isInitialized) {
-            punctuation.release()
+            punctuation?.release()
+            punctuation = null
             isInitialized = false
         }
     }
 
-    private fun addPunctuation(text: String): String = punctuation.addPunctuation(text)
+    private fun addPunctuation(text: String): String = punctuation!!.addPunctuation(text)
 
     fun addPunctuationOnSrt(srt: String): String {
         val contents = TranslationManager.extractSubtitleContent(srt)

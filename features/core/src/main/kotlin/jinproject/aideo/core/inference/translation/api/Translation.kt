@@ -1,10 +1,19 @@
 package jinproject.aideo.core.inference.translation.api
 
+import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
 
 abstract class Translation {
-    abstract fun initialize()
-    abstract fun release()
+    var isInitialized = false
+    open fun initialize() {
+        if(isInitialized)
+            return
+    }
+    open fun release() {
+        if(!isInitialized)
+            return
+    }
+    abstract val availableTranslation: TranslationAvailableModel
 
     abstract suspend fun translate(
         text: String,
@@ -12,6 +21,4 @@ abstract class Translation {
         tgtLang: LanguageCode,
         maxLength: Int = 200
     ): String
-
-    abstract suspend fun translateSubtitle(videoId: Long)
 }

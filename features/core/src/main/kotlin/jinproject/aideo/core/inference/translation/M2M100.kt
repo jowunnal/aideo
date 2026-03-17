@@ -9,12 +9,6 @@ import jinproject.aideo.core.inference.translation.api.Translation
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.copyAssetToInternalStorage
 import jinproject.aideo.core.utils.getPackAssetPath
-import jinproject.aideo.data.SubtitleFileConfig
-import jinproject.aideo.data.datasource.local.LocalFileDataSource
-import jinproject.aideo.data.datasource.local.LocalSettingDataSource
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,17 +17,15 @@ import kotlin.text.Charsets.UTF_8
 @Singleton
 class M2M100 @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val localFileDataSource: LocalFileDataSource,
-    private val localSettingDataSource: LocalSettingDataSource,
 ) : Translation() {
     private var m2M100Native: M2M100Native? = null
     private var textBuffer: ByteBuffer? = null
     private var batchBuffer: ByteBuffer? = null
 
+    override val availableTranslation: TranslationAvailableModel = TranslationAvailableModel.M2M100
+
     override fun initialize() {
-        if (m2M100Native != null) {
-            return
-        }
+        super.initialize()
 
         m2M100Native = M2M100Native()
         textBuffer = ByteBuffer.allocateDirect(MAX_TEXT_BUFFER_SIZE)
@@ -56,63 +48,12 @@ class M2M100 @Inject constructor(
             tokenizerConfigPath = tokenizerConfigInternalPath,
         )
 
-        if (!isModelLoaded)
+        if (!isModelLoaded) {
             m2M100Native = null
-    }
-
-    override suspend fun translateSubtitle(videoId: Long) {
-        withContext(Dispatchers.Default) {
-            val sourceLanguageISOCode =
-                localFileDataSource.getOriginSubtitleLanguageCodeOrNull(videoId) ?: throw IllegalStateException("일치하는 자막 파일이 없습니다.")
-
-            val targetLanguageISOCode = localSettingDataSource.getSubtitleLanguage().first()
-
-            val srtContent = localFileDataSource.getFileContentList(
-                SubtitleFileConfig.toSubtitleFileIdentifier(
-                    id = videoId,
-                    languageCode = sourceLanguageISOCode
-                )
-            ) ?: throw IllegalStateException("content is null")
-
-            val srcLang = LanguageCode.findByCode(sourceLanguageISOCode)!!
-            val tgtLang = LanguageCode.findByCode(targetLanguageISOCode)!!
-
-            val subtitleTexts = srtContent.filterIndexed { idx, _ -> (idx + 1) % 4 == 3 }
-
-            val translatedTexts = translateBatch(
-                texts = subtitleTexts,
-                sourceLanguageCode = srcLang,
-                targetLanguageCode = tgtLang
-            )
-
-            val translatedText = buildString {
-                var translatedIdx = 0
-                srtContent.forEachIndexed { idx, line ->
-                    if ((idx + 1) % 4 == 3) {
-                        append(translatedTexts[translatedIdx++])
-                    } else {
-                        append(line)
-                    }
-                    if (idx < srtContent.lastIndex) append('\n')
-                }
-            }
-
-            localFileDataSource.createFileAndWriteOnOutputStream(
-                fileIdentifier = SubtitleFileConfig.toSubtitleFileIdentifier(
-                    id = videoId,
-                    languageCode = targetLanguageISOCode
-                ),
-                writeContentOnFile = { outputStream ->
-                    runCatching {
-                        outputStream.write(translatedText.toByteArray())
-                    }.map {
-                        true
-                    }.getOrElse {
-                        false
-                    }
-                }
-            )
+            return
         }
+
+        this.isInitialized = true
     }
 
     override suspend fun translate(
@@ -140,14 +81,11 @@ class M2M100 @Inject constructor(
      *
      * @throws IllegalStateException : 번역 실패시
      */
-    fun translateBatch(
+    private fun translateBatch(
         texts: List<String>,
         sourceLanguageCode: LanguageCode,
         targetLanguageCode: LanguageCode,
     ): Array<String> {
-        if (m2M100Native == null)
-            initialize()
-
         val encodedTexts = texts.map { it.toByteArray(UTF_8) }
         val totalLength = Int.SIZE_BYTES + encodedTexts.sumOf { Int.SIZE_BYTES + it.size }
 
@@ -177,22 +115,18 @@ class M2M100 @Inject constructor(
      * @param text: UTF_8 인코딩
      * @throws IllegalStateException : 번역 실패시
      */
-    fun translateWithBuffer(
+    private fun translateWithBuffer(
         text: ByteArray,
         sourceLanguageCode: LanguageCode,
         targetLanguageCode: LanguageCode,
         maxLength: Int = MAX_OUTPUT_LENGTH,
     ): String {
-        if (m2M100Native == null)
-            initialize()
-
         if (textBuffer == null || textBuffer!!.capacity() < text.size)
             textBuffer = ByteBuffer.allocateDirect(text.size)
 
         val buffer = textBuffer!!.apply {
-            clear() // pos = 0
-            put(text) // pos = text.size
-            flip() // pos = 0, limit = text.size
+            clear()
+            put(text)
         }
 
         return m2M100Native!!.translateWithBuffer(
@@ -205,10 +139,15 @@ class M2M100 @Inject constructor(
     }
 
     override fun release() {
+        super.release()
+
         m2M100Native?.release()
         m2M100Native = null
+        textBuffer?.clear()
+        batchBuffer?.clear()
         textBuffer = null
         batchBuffer = null
+        isInitialized = false
     }
 
     companion object {

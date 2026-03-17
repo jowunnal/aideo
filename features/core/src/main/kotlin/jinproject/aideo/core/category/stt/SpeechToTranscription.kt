@@ -1,10 +1,12 @@
-package jinproject.aideo.core
+package jinproject.aideo.core.category.stt
 
 import android.media.AudioFormat
 import android.os.Build
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
 import com.k2fsa.sherpa.onnx.SpeechSegment
+import jinproject.aideo.core.common.ForegroundObserver
+import jinproject.aideo.core.inference.ProgressReportable
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.diarization.SpeakerDiarization
 import jinproject.aideo.core.inference.punctuation.Punctuation
@@ -29,9 +31,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
@@ -49,15 +53,17 @@ class SpeechToTranscription @Inject constructor(
     private val localSettingDataSource: LocalSettingDataSource,
     private val mlKitTranslation: MlKitTranslation,
     private val foregroundObserver: ForegroundObserver,
-) {
-    private lateinit var speechRecognition: SpeechRecognition
+) : ProgressReportable {
+    private var speechRecognition: SpeechRecognition? = null
     private var extractedAudioChannel =
         Channel<FloatArray>(capacity = EXTRACTED_AUDIO_CHANNEL_CAPACITY)
     private var inferenceAudioChannel =
         Channel<SingleSpeechSegment>(capacity = INFERENCE_CHANNEL_CAPACITY)
-    val inferenceProgress: StateFlow<Float> field: MutableStateFlow<Float> = MutableStateFlow(
+
+    private val _progress: MutableStateFlow<Float> = MutableStateFlow(
         0f
     )
+    override val progress: StateFlow<Float> = _progress.asStateFlow()
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun initialize() {
@@ -77,9 +83,15 @@ class SpeechToTranscription @Inject constructor(
         val model = localSettingDataSource.getSelectedSpeechRecognitionModel().first()
         val modelType = SpeechRecognitionAvailableModel.findByName(model)
 
-        if (::speechRecognition.isInitialized) {
-            if (speechRecognition.availableSpeechRecognition == modelType) return
-            speechRecognition.release()
+        if (speechRecognition?.isInitialized == true) {
+            if (speechRecognition?.availableSpeechRecognition == modelType) {
+                speechRecognition!!.updateLanguageConfig(
+                    localSettingDataSource.getInferenceTargetLanguage().first()
+                )
+
+                return
+            }
+            speechRecognition!!.release()
         }
 
         speechRecognition = speechRecognitionProviders[modelType]!!.get().apply {
@@ -91,9 +103,8 @@ class SpeechToTranscription @Inject constructor(
         localSettingDataSource.getPendingInferenceVideoUri().first()
 
     fun release() {
-        if (::speechRecognition.isInitialized)
-            speechRecognition.release()
-
+        speechRecognition?.release()
+        speechRecognition = null
         vad.release()
         punctuation.release()
         extractedAudioChannel.cancel()
@@ -110,8 +121,8 @@ class SpeechToTranscription @Inject constructor(
         vad.reset()
         speakerDiarization.initialize()
 
-        if (::speechRecognition.isInitialized)
-            speechRecognition.resetState()
+        if (speechRecognition?.isInitialized == true)
+            speechRecognition!!.resetState()
         initializeSpeechRecognition()
 
         extractedAudioChannel = Channel(capacity = EXTRACTED_AUDIO_CHANNEL_CAPACITY)
@@ -124,8 +135,6 @@ class SpeechToTranscription @Inject constructor(
             localSettingDataSource.setPendingInferenceVideoUri(videoUri)
 
             try {
-                val language = localSettingDataSource.getInferenceTargetLanguage().first()
-
                 launch(Dispatchers.IO) {
                     extractAudioFromVideo(videoUri)
                 }
@@ -140,31 +149,29 @@ class SpeechToTranscription @Inject constructor(
                     for (singleSpeechSegment in inferenceAudioChannel) {
                         processedAudioSize += singleSpeechSegment.vadResult.samples.size
 
-                        transcribeSingleSegment(
-                            singleSpeechSegment = singleSpeechSegment,
-                            language = language
-                        )
+                        transcribeSingleSegment(singleSpeechSegment)
 
                         (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
                             val total =
                                 AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
 
-                            inferenceProgress.value =
+                            _progress.value =
                                 processedAudioSize.toFloat() / (total).toFloat()
                         }
                     }
 
-                    inferenceProgress.value = 1f
+                    _progress.value = 1f
 
-                    speechRecognition.getResult()
+                    speechRecognition!!.getResult()
                 }.await()
 
                 if (!foregroundObserver.isForeground) {
-                    speechRecognition.release()
+                    speechRecognition!!.release()
                 } else {
-                    speechRecognition.resetState()
+                    speechRecognition!!.resetState()
                 }
 
+                val language = localSettingDataSource.getInferenceTargetLanguage().first()
                 val punctuatedSrtText =
                     if (punctuation.isAvailableLanguage(language)) {
                         punctuation.initialize()
@@ -241,8 +248,7 @@ class SpeechToTranscription @Inject constructor(
     }
 
     private suspend fun transcribeSingleSegment(
-        singleSpeechSegment: SingleSpeechSegment,
-        language: String
+        singleSpeechSegment: SingleSpeechSegment
     ) {
         val standardTime = singleSpeechSegment.vadResult.start / AudioConfig.SAMPLE_RATE.toFloat()
         (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
@@ -258,11 +264,17 @@ class SpeechToTranscription @Inject constructor(
             lastEndIdx = endIdx
 
             (speechRecognition as? TimeStampedSR)?.setTimes(sd.start, sd.end)
-            speechRecognition.transcribe(
+
+            if (startIdx >= endIdx)
+                return@forEach
+
+            yield()
+
+            speechRecognition!!.transcribe(
                 audioData = singleSpeechSegment.vadResult.samples.copyOfRange(
                     startIdx,
                     endIdx
-                ), language = language
+                )
             )
         }
     }
@@ -334,8 +346,8 @@ class SpeechToTranscription @Inject constructor(
     )
 
     companion object {
-        const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 5
-        const val INFERENCE_CHANNEL_CAPACITY = 10
+        const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 64
+        const val INFERENCE_CHANNEL_CAPACITY = 64
     }
 }
 

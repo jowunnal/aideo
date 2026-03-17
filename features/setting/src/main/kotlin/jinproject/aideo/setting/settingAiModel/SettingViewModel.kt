@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.TranslationManager
 import jinproject.aideo.core.inference.SpeechRecognitionAvailableModel
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.utils.LanguageCode
@@ -24,7 +23,6 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingViewModel @Inject constructor(
     private val localSettingDataSource: LocalSettingDataSource,
-    private val translationManager: TranslationManager,
 ) : ViewModel() {
 
     val settingUiState: StateFlow<SettingUiState> =
@@ -69,9 +67,6 @@ class SettingViewModel @Inject constructor(
     fun updateTranslationModel(model: TranslationAvailableModel) {
         viewModelScope.launch {
             localSettingDataSource.setSelectedTranslationModel(model.name)
-            if (translationManager.isInitialized) {
-                translationManager.release()
-            }
         }
     }
 }

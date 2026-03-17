@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jinproject.aideo.core.TranslationManager
+import jinproject.aideo.core.category.translation.SubtitleTranslator
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.core.utils.toOriginUri
 import jinproject.aideo.core.utils.toVideoItemId
@@ -31,7 +31,7 @@ class PlayerViewModel @Inject constructor(
     private val mediaRepository: MediaRepository,
     private val exoPlayerManager: ExoPlayerManager,
     private val savedStateHandle: SavedStateHandle,
-    private val translationManager: TranslationManager,
+    private val translator: SubtitleTranslator,
 ) : ViewModel() {
 
     init {
@@ -51,7 +51,7 @@ class PlayerViewModel @Inject constructor(
                 mediaRepository.checkSubtitleFileExist(currentVideoUri.toVideoItemId()) == MediaRepository.EXIST
 
             if (!subtitleExist) {
-                translationManager.translateSubtitle(id)
+                translator.translateSubtitle(id)
             }
 
             getExoPlayer().also {

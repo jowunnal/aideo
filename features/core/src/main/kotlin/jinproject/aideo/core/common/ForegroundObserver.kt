@@ -1,4 +1,4 @@
-package jinproject.aideo.core
+package jinproject.aideo.core.common
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver

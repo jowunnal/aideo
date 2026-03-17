@@ -12,12 +12,14 @@ import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import jinproject.aideo.core.ForegroundObserver
-import jinproject.aideo.core.SpeechToTranscription
-import jinproject.aideo.core.TranslationManager
+import jinproject.aideo.core.category.stt.SpeechToTranscription
+import jinproject.aideo.core.category.translation.SubtitleTranslator
+import jinproject.aideo.core.common.ForegroundObserver
+import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
 import jinproject.aideo.data.SubtitleFileConfig
+import jinproject.aideo.data.datasource.local.LocalSettingDataSource
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +27,8 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -40,10 +44,13 @@ class TranscribeService : LifecycleService() {
     lateinit var speechToTranscription: SpeechToTranscription
 
     @Inject
-    lateinit var translationManager: TranslationManager
+    lateinit var translator: SubtitleTranslator
 
     @Inject
     lateinit var foregroundObserver: ForegroundObserver
+
+    @Inject
+    lateinit var localSettingDataSource: LocalSettingDataSource
 
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
@@ -52,10 +59,10 @@ class TranscribeService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
 
-        speechToTranscription.inferenceProgress.debounce(100).onEach { p ->
+        speechToTranscription.progress.debounce(100).filter { it > 0f }.onEach { p ->
             if (p == 1f)
                 notifyTranscribe(
-                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation_in_progress),
+                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
                     progress = null
                 )
             else
@@ -64,26 +71,31 @@ class TranscribeService : LifecycleService() {
                     progress = p
                 )
         }.launchIn(lifecycleScope)
+
+        translator.progress.debounce(100).filter { it > 0f }.onEach { p ->
+            notifyTranscribe(
+                contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation_in_progress),
+                progress = p
+            )
+        }.launchIn(lifecycleScope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
-        startForegroundNotification()
-
         val offFlag = intent?.getBooleanExtra("status", false)
 
         if (offFlag != null && offFlag) {
             lifecycleScope.launch {
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 job?.cancelAndJoin()
-                if (foregroundObserver.isForeground) {
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                } else {
-                    stopSelf()
-                }
+                stopSelf()
             }
             return START_NOT_STICKY
         }
+
+        if (intent != null)
+            startForegroundNotification()
 
         val videoItem = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent?.getParcelableExtra("videoItem", VideoItem::class.java)
@@ -140,10 +152,8 @@ class TranscribeService : LifecycleService() {
             notificationManager.cancel(NOTIFICATION_RESULT_ID)
             if (!isTranscribeRunning) {
                 speechToTranscription.initialize()
-                translationManager.initialize()
             } else {
                 speechToTranscription.cancelAndReInitialize()
-                translationManager.cancelAndReInitialize()
             }
 
             processSubtitle(videoUri = videoUri, videoId = videoId)
@@ -183,7 +193,7 @@ class TranscribeService : LifecycleService() {
 
     private suspend fun translateAndNotifySuccess(videoUri: String, videoId: Long) {
         runCatching {
-            translationManager.translateSubtitle(videoId)
+            translateSubtitle(videoId)
         }.onSuccess {
             launchPlayer(videoUri)
 
@@ -213,7 +223,7 @@ class TranscribeService : LifecycleService() {
     private suspend fun extractAudioAndTranscribe(videoUri: String, videoId: Long) {
         runCatching {
             speechToTranscription.transcribe(videoUri = videoUri, videoId = videoId)
-            translationManager.translateSubtitle(videoId)
+            translateSubtitle(videoId)
         }.onSuccess {
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_completed),
@@ -236,6 +246,14 @@ class TranscribeService : LifecycleService() {
                 videoUri = null,
             )
         }
+    }
+
+    private suspend fun translateSubtitle(videoId: Long) {
+        val translationModel = localSettingDataSource.getSelectedTranslationModel().first()
+        if (TranslationAvailableModel.findByName(translationModel) == TranslationAvailableModel.M2M100)
+            speechToTranscription.release()
+
+        translator.translateSubtitle(videoId)
     }
 
     private fun launchPlayer(videoUri: String) {
@@ -331,7 +349,7 @@ class TranscribeService : LifecycleService() {
 
     override fun onDestroy() {
         speechToTranscription.release()
-        translationManager.release()
+        translator.release()
         job = null
         super.onDestroy()
     }

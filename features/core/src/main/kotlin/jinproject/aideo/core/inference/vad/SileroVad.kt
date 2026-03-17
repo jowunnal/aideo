@@ -18,7 +18,7 @@ import javax.inject.Singleton
 class SileroVad @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) {
-    private lateinit var vad: Vad
+    private var vad: Vad? = null
     var isInitialized: Boolean = false
         private set
 
@@ -34,7 +34,7 @@ class SileroVad @Inject constructor(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$VAD_MODEL_PATH",
                     threshold = 0.1f,
-                    minSilenceDuration = 0.1f,
+                    minSilenceDuration = 0.5f,
                     minSpeechDuration = 0.1f,
                     maxSpeechDuration = 9.5f,
                     windowSize = 512,
@@ -50,34 +50,35 @@ class SileroVad @Inject constructor(
 
     fun release() {
         if (isInitialized) {
-            vad.release()
+            vad?.release()
+            vad = null
             isInitialized = false
         }
     }
 
     fun acceptWaveform(data: FloatArray) {
-        vad.acceptWaveform(data)
+        vad!!.acceptWaveform(data)
     }
 
     fun flush() {
-        vad.flush()
+        vad!!.flush()
     }
 
-    fun getNextSegment(): SpeechSegment = vad.front()
+    fun getNextSegment(): SpeechSegment = vad!!.front()
 
     fun popSegment() {
-        vad.pop()
+        vad!!.pop()
     }
 
-    fun hasSegment(): Boolean = vad.empty().not()
+    fun hasSegment(): Boolean = vad!!.empty().not()
 
     fun isSpeechDetected(): Boolean {
-        return vad.isSpeechDetected()
+        return vad!!.isSpeechDetected()
     }
 
-    fun reset() = vad.reset()
+    fun reset() = vad!!.reset()
 
-    fun clear() = vad.clear()
+    fun clear() = vad!!.clear()
 
     companion object {
         const val VAD_MODEL_PATH = "${AiModelConfig.MODELS_ROOT_DIR}/silero_vad.onnx"

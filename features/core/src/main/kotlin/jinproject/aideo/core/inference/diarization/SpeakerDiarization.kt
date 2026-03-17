@@ -20,10 +20,9 @@ import javax.inject.Singleton
 class SpeakerDiarization @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
-    private lateinit var diarization: OfflineSpeakerDiarization
+    private var diarization: OfflineSpeakerDiarization? = null
     var isInitialized: Boolean = false
         private set
-
 
     fun initialize() {
         if (isInitialized) {
@@ -57,13 +56,14 @@ class SpeakerDiarization @Inject constructor(
 
     fun release() {
         if (isInitialized) {
-            diarization.release()
+            diarization?.release()
+            diarization = null
             isInitialized = false
         }
     }
 
     fun process(audioData: FloatArray): Array<OfflineSpeakerDiarizationSegment> {
-        return diarization.process(audioData)
+        return diarization!!.process(audioData)
     }
 
     companion object {
