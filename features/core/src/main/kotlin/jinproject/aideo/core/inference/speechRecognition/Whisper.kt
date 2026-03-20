@@ -21,7 +21,6 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class Whisper @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val localSettingDataSource: LocalSettingDataSource,
@@ -126,8 +125,8 @@ class Whisper @Inject constructor(
     }
 
     companion object {
-        const val WHISPER_ENCODER_PATH = "$MODELS_ROOT_DIR/whisper_base-encoder.int8.onnx"
-        const val WHISPER_DECODER_PATH = "$MODELS_ROOT_DIR/whisper_base-decoder.int8.onnx"
+        const val WHISPER_ENCODER_PATH = "$MODELS_ROOT_DIR/whisper_small-encoder.int8.onnx"
+        const val WHISPER_DECODER_PATH = "$MODELS_ROOT_DIR/whisper_small-decoder.int8.onnx"
         const val WHISPER_TOKEN_PATH = "$MODELS_ROOT_DIR/whisper_small-tokens.txt"
     }
 }

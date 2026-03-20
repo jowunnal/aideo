@@ -225,16 +225,36 @@ class SpeechToTranscription @Inject constructor(
         while (vad.hasSegment()) {
             val nextVadSegment = vad.getNextSegment()
             val sdResult =
-                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 10)
+                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 9)
                     speakerDiarization.process(nextVadSegment.samples)
-                else
-                    arrayOf(
-                        OfflineSpeakerDiarizationSegment(
-                            speaker = 0,
-                            start = 0f,
-                            end = 10f
+                else {
+                    val chunkSize = AudioConfig.SAMPLE_RATE * 9
+                    var sp = 0
+                    var ep = chunkSize
+                    val arrayList = mutableListOf<OfflineSpeakerDiarizationSegment>()
+                    val totalSize = nextVadSegment.samples.size
+                    while (sp < totalSize) {
+                        val chunkEnd = minOf(ep, totalSize)
+                        val timeOffset = sp.toFloat() / AudioConfig.SAMPLE_RATE
+
+                        arrayList.addAll(
+                            speakerDiarization.process(
+                                nextVadSegment.samples.copyOfRange(sp, chunkEnd)
+                            ).map { segment ->
+                                OfflineSpeakerDiarizationSegment(
+                                    speaker = segment.speaker,
+                                    start = segment.start + timeOffset,
+                                    end = segment.end + timeOffset,
+                                )
+                            }
                         )
-                    )
+
+                        sp = ep
+                        ep += chunkSize
+                    }
+
+                    arrayList.toTypedArray()
+                }
 
             inferenceAudioChannel.send(
                 SingleSpeechSegment(
@@ -253,20 +273,36 @@ class SpeechToTranscription @Inject constructor(
         val standardTime = singleSpeechSegment.vadResult.start / AudioConfig.SAMPLE_RATE.toFloat()
         (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
 
-        var lastEndIdx = 0
         val sampleSize = singleSpeechSegment.vadResult.samples.size
+        val sortedSdResult = singleSpeechSegment.sdResult.sortedBy { it.start }
 
-        singleSpeechSegment.sdResult.forEach { sd ->
-            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, sampleSize)
-            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, sampleSize)
-            lastEndIdx = endIdx
+        if (sortedSdResult.isEmpty()) {
+            speechRecognition!!.transcribe(singleSpeechSegment.vadResult.samples)
+            return
+        }
+
+        var pendingStartIdx = 0
+        var lastCoveredEndIdx = 0
+
+        sortedSdResult.forEachIndexed { index, sd ->
+            val diarizationStartIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
+                .coerceIn(0, sampleSize)
+            val diarizationEndIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
+                .coerceIn(0, sampleSize)
+            val startIdx = minOf(pendingStartIdx, diarizationStartIdx)
+            var endIdx = maxOf(lastCoveredEndIdx, diarizationEndIdx)
+
+            if (index == sortedSdResult.lastIndex) {
+                endIdx = sampleSize
+            }
+
+            lastCoveredEndIdx = maxOf(lastCoveredEndIdx, endIdx)
+            pendingStartIdx = lastCoveredEndIdx
 
             (speechRecognition as? TimeStampedSR)?.setTimes(sd.start, sd.end)
 
             if (startIdx >= endIdx)
-                return@forEach
+                return@forEachIndexed
 
             yield()
 

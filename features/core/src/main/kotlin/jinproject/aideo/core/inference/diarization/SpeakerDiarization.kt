@@ -44,7 +44,7 @@ class SpeakerDiarization @Inject constructor(
             ),
             clustering = FastClusteringConfig(numClusters = -1, threshold = 0.75f),
             minDurationOn = 0.1f,
-            minDurationOff = 0.05f,
+            minDurationOff = 0.3f,
         )
 
         diarization = OfflineSpeakerDiarization(

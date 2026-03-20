@@ -34,9 +34,9 @@ class SileroVad @Inject constructor(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = "${context.getPackAssetPath(AiModelConfig.SPEECH_BASE_PACK)}/$VAD_MODEL_PATH",
                     threshold = 0.1f,
-                    minSilenceDuration = 0.5f,
+                    minSilenceDuration = 0.1f,
                     minSpeechDuration = 0.1f,
-                    maxSpeechDuration = 9.5f,
+                    maxSpeechDuration = 7f,
                     windowSize = 512,
                 ),
                 sampleRate = AudioConfig.SAMPLE_RATE,

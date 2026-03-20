@@ -18,7 +18,6 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-@Singleton
 class MlKitTranslation @Inject constructor() :
     jinproject.aideo.core.inference.translation.api.Translation() {
     private var translator: Translator? = null
