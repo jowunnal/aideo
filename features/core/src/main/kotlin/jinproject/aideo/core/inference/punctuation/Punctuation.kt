@@ -14,7 +14,6 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class Punctuation @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {

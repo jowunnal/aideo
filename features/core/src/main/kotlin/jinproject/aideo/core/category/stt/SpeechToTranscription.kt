@@ -224,17 +224,38 @@ class SpeechToTranscription @Inject constructor(
     private suspend fun inferenceVadAndSd() {
         while (vad.hasSegment()) {
             val nextVadSegment = vad.getNextSegment()
+            val seconds = 9
             val sdResult =
-                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 10)
+                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * seconds)
                     speakerDiarization.process(nextVadSegment.samples)
-                else
-                    arrayOf(
-                        OfflineSpeakerDiarizationSegment(
-                            speaker = 0,
-                            start = 0f,
-                            end = 10f
+                else {
+                    val chunkSize = AudioConfig.SAMPLE_RATE * seconds
+                    var sp = 0
+                    var ep = chunkSize
+                    val arrayList = mutableListOf<OfflineSpeakerDiarizationSegment>()
+                    val totalSize = nextVadSegment.samples.size
+                    while (sp < totalSize) {
+                        val chunkEnd = minOf(ep, totalSize)
+                        val timeOffset = sp.toFloat() / AudioConfig.SAMPLE_RATE
+
+                        arrayList.addAll(
+                            speakerDiarization.process(
+                                nextVadSegment.samples.copyOfRange(sp, chunkEnd)
+                            ).map { segment ->
+                                OfflineSpeakerDiarizationSegment(
+                                    speaker = segment.speaker,
+                                    start = segment.start + timeOffset,
+                                    end = segment.end + timeOffset,
+                                )
+                            }
                         )
-                    )
+
+                        sp = ep
+                        ep += chunkSize
+                    }
+
+                    arrayList.toTypedArray()
+                }
 
             inferenceAudioChannel.send(
                 SingleSpeechSegment(
@@ -253,20 +274,36 @@ class SpeechToTranscription @Inject constructor(
         val standardTime = singleSpeechSegment.vadResult.start / AudioConfig.SAMPLE_RATE.toFloat()
         (speechRecognition as? TimeStampedSR)?.setStandardTime(standardTime)
 
-        var lastEndIdx = 0
         val sampleSize = singleSpeechSegment.vadResult.samples.size
+        val sortedSdResult = singleSpeechSegment.sdResult.sortedBy { it.start }
 
-        singleSpeechSegment.sdResult.forEach { sd ->
-            val startIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, sampleSize)
-            val endIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
-                .coerceIn(lastEndIdx, sampleSize)
-            lastEndIdx = endIdx
+        if (sortedSdResult.isEmpty()) {
+            speechRecognition!!.transcribe(singleSpeechSegment.vadResult.samples)
+            return
+        }
+
+        var pendingStartIdx = 0
+        var lastCoveredEndIdx = 0
+
+        sortedSdResult.forEachIndexed { index, sd ->
+            val diarizationStartIdx = (AudioConfig.SAMPLE_RATE * floor(sd.start * 10) / 10).toInt()
+                .coerceIn(0, sampleSize)
+            val diarizationEndIdx = (AudioConfig.SAMPLE_RATE * ceil(sd.end * 10) / 10).toInt()
+                .coerceIn(0, sampleSize)
+            val startIdx = minOf(pendingStartIdx, diarizationStartIdx)
+            var endIdx = maxOf(lastCoveredEndIdx, diarizationEndIdx)
+
+            if (index == sortedSdResult.lastIndex) {
+                endIdx = sampleSize
+            }
+
+            lastCoveredEndIdx = maxOf(lastCoveredEndIdx, endIdx)
+            pendingStartIdx = lastCoveredEndIdx
 
             (speechRecognition as? TimeStampedSR)?.setTimes(sd.start, sd.end)
 
             if (startIdx >= endIdx)
-                return@forEach
+                return@forEachIndexed
 
             yield()
 
@@ -313,9 +350,11 @@ class SpeechToTranscription @Inject constructor(
 
     suspend fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
         val srcLan = if (languageCode == LanguageCode.Auto.code) {
-            val extracted = TranslationManager.extractSubtitleContent(subtitleText)
-                .split("@")
-                .first { it.isNotBlank() }
+            val extracted = extractDetectableSubtitleContent(
+                content = TranslationManager.extractSubtitleContent(subtitleText),
+                availableModel = speechRecognition?.availableSpeechRecognition
+                    ?: throw IllegalStateException("Speech recognition is not initialized")
+            )
 
             mlKitTranslation.detectLanguage(extracted).code
         } else
@@ -344,6 +383,48 @@ class SpeechToTranscription @Inject constructor(
         val vadResult: SpeechSegment,
         val sdResult: Array<OfflineSpeakerDiarizationSegment>,
     )
+
+    private fun extractDetectableSubtitleContent(
+        content: String,
+        availableModel: SpeechRecognitionAvailableModel
+    ): String {
+        val detectableLanguageRegex = createDetectableLanguageRegex(availableModel)
+
+        return content.split("@")
+            .firstOrNull { token ->
+                token.isNotBlank() && detectableLanguageRegex.containsMatchIn(token)
+            } ?: throw UnsupportedTranscriptionLanguageException()
+    }
+
+    private fun createDetectableLanguageRegex(
+        availableModel: SpeechRecognitionAvailableModel
+    ): Regex {
+        val pattern = LanguageCode.getLanguageCodesByAvailableModel(availableModel)
+            .mapNotNull(::getCharacterPatternByLanguageCode)
+            .distinct()
+            .joinToString(separator = "|")
+
+        return Regex(pattern)
+    }
+
+    private fun getCharacterPatternByLanguageCode(languageCode: LanguageCode): String? =
+        when (languageCode) {
+            LanguageCode.Auto -> null
+            LanguageCode.Korean -> "\\p{IsHangul}"
+            LanguageCode.English,
+            LanguageCode.German,
+            LanguageCode.Indonesian,
+            LanguageCode.French,
+            LanguageCode.Spanish -> "\\p{IsLatin}"
+            LanguageCode.Japanese -> "[\\p{IsHiragana}\\p{IsKatakana}\\p{IsHan}]"
+            LanguageCode.Chinese,
+            LanguageCode.Cantonese -> "\\p{IsHan}"
+            LanguageCode.Russian -> "\\p{IsCyrillic}"
+            LanguageCode.Hindi -> "\\p{IsDevanagari}"
+        }
+
+    class UnsupportedTranscriptionLanguageException :
+        IllegalStateException("Unsupported transcription language")
 
     companion object {
         const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 64

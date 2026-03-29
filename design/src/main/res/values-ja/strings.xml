@@ -55,6 +55,8 @@
     <string name="notification_subtitle_creation_completed_desc">字幕の作成が正常に完了しました。</string>
     <string name="notification_subtitle_creation_failed">字幕作成に失敗</string>
     <string name="notification_subtitle_creation_failed_desc">字幕の作成に失敗しました。(%s)</string>
+    <string name="notification_subtitle_creation_failed_unsupported_language_desc">動画音声が未対応の推論言語のみのため、字幕を作成できません。設定 &gt; 推論言語を確認してください。</string>
+    <string name="notification_subtitle_creation_failed_undetectable_language_desc">翻訳に未対応の言語のため、字幕を作成できません。</string>
     <string name="notification_action_stop">停止</string>
 
     <!-- Dialog -->

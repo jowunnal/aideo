@@ -14,7 +14,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.text.Charsets.UTF_8
 
-@Singleton
 class M2M100 @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : Translation() {

@@ -26,7 +26,6 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class SenseVoice @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val localSettingDataSource: LocalSettingDataSource,

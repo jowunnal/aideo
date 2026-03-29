@@ -16,7 +16,6 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class SpeakerDiarization @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
@@ -44,7 +43,7 @@ class SpeakerDiarization @Inject constructor(
             ),
             clustering = FastClusteringConfig(numClusters = -1, threshold = 0.75f),
             minDurationOn = 0.1f,
-            minDurationOff = 0.05f,
+            minDurationOff = 0.3f,
         )
 
         diarization = OfflineSpeakerDiarization(

@@ -13,8 +13,10 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import jinproject.aideo.core.category.stt.SpeechToTranscription
+import jinproject.aideo.core.category.stt.SpeechToTranscription.UnsupportedTranscriptionLanguageException
 import jinproject.aideo.core.category.translation.SubtitleTranslator
 import jinproject.aideo.core.common.ForegroundObserver
+import jinproject.aideo.core.inference.translation.MlKitTranslation.UnsupportedMlKitLanguageException
 import jinproject.aideo.core.inference.translation.TranslationAvailableModel
 import jinproject.aideo.core.media.VideoItem
 import jinproject.aideo.core.utils.parseUri
@@ -210,10 +212,7 @@ class TranscribeService : LifecycleService() {
 
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
-                description = getString(
-                    jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc,
-                    exception.message ?: ""
-                ),
+                description = getTranscriptionFailureDescription(exception),
                 videoUri = null,
             )
         }
@@ -239,10 +238,7 @@ class TranscribeService : LifecycleService() {
 
             notifyTranscriptionResult(
                 title = getString(jinproject.aideo.design.R.string.notification_subtitle_creation_failed),
-                description = getString(
-                    jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc,
-                    exception.message ?: ""
-                ),
+                description = getTranscriptionFailureDescription(exception),
                 videoUri = null,
             )
         }
@@ -346,6 +342,22 @@ class TranscribeService : LifecycleService() {
 
         notificationManager.notify(NOTIFICATION_RESULT_ID, notification.build())
     }
+
+    private fun getTranscriptionFailureDescription(exception: Throwable): String =
+        when (exception) {
+            is UnsupportedTranscriptionLanguageException -> getString(
+                jinproject.aideo.design.R.string.notification_subtitle_creation_failed_unsupported_language_desc
+            )
+
+            is UnsupportedMlKitLanguageException -> getString(
+                jinproject.aideo.design.R.string.notification_subtitle_creation_failed_undetectable_language_desc
+            )
+
+            else -> getString(
+                jinproject.aideo.design.R.string.notification_subtitle_creation_failed_desc,
+                exception.message ?: ""
+            )
+        }
 
     override fun onDestroy() {
         speechToTranscription.release()

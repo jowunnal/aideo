@@ -76,34 +76,44 @@ class AndroidMediaFileManager @Inject constructor(
                 MediaStore.Video.Media.DATE_TAKEN,
             )
 
-            context.contentResolver.query(
-                videoUri,
-                projection,
-                null,
-                null,
-                null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val nameIndex =
-                        cursor.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME)
+            try {
+                context.contentResolver.query(
+                    videoUri,
+                    projection,
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex =
+                            cursor.getColumnIndex(MediaStore.Video.Media.DISPLAY_NAME)
 
-                    val dateIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATE_TAKEN)
+                        val dateIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATE_TAKEN)
 
-                    if (nameIndex != -1)
-                        name = cursor.getString(nameIndex)
+                        if (nameIndex != -1)
+                            name = cursor.getString(nameIndex)
 
-                    if (dateIndex != -1)
-                        date = cursor.getLong(dateIndex)
+                        if (dateIndex != -1)
+                            date = cursor.getLong(dateIndex)
 
-                    Timber.tag("test").d("Queried Video Info[name: $name, date: $date]")
+                        Timber.tag("test").d("Queried Video Info[name: $name, date: $date]")
+                    }
                 }
+            } catch (exception: SecurityException) {
+                Timber.w(exception, "No permission to access video uri: %s", videoUri)
+                return@withContext null
             }
 
             if (name != null && date != null) {
-                context.contentResolver.takePersistableUriPermission(
-                    videoUri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        videoUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (exception: SecurityException) {
+                    Timber.w(exception, "Failed to persist video uri permission: %s", videoUri)
+                    return@withContext null
+                }
 
                 val thumbnailPath = SubtitleFileConfig.toSubtitleFileId(videoUri.toString())
                     ?.let {
@@ -117,10 +127,10 @@ class AndroidMediaFileManager @Inject constructor(
 
                 VideoItem(
                     uri = videoUri.toString(),
-                    title = name,
+                    title = name!!,
                     thumbnailAbsolutePath = thumbnailPath,
                     date = LocalDateTime.ofInstant(
-                        Instant.ofEpochMilli(date),
+                        Instant.ofEpochMilli(date!!),
                         ZoneId.systemDefault()
                     ).format(
                         DateTimeFormatter.ofPattern("yyyy.MM.dd")

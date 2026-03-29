@@ -55,6 +55,8 @@
     <string name="notification_subtitle_creation_completed_desc">자막 생성이 성공적으로 완료되었어요.</string>
     <string name="notification_subtitle_creation_failed">자막 생성 실패</string>
     <string name="notification_subtitle_creation_failed_desc">자막 생성에 실패했어요. (%s)</string>
+    <string name="notification_subtitle_creation_failed_unsupported_language_desc">비디오 음성이 지원되지 않는 추론 언어로만 구성돼 자막을 만들 수 없어요. 설정 &gt; 추론 언어를 확인해 주세요.</string>
+    <string name="notification_subtitle_creation_failed_undetectable_language_desc">번역이 지원되지 않는 언어라 자막을 만들 수 없어요.</string>
     <string name="notification_action_stop">끄기</string>
 
     <!-- Dialog -->
