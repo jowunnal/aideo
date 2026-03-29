@@ -55,6 +55,8 @@
     <string name="notification_subtitle_creation_completed_desc">字幕已成功生成。</string>
     <string name="notification_subtitle_creation_failed">字幕生成失败</string>
     <string name="notification_subtitle_creation_failed_desc">字幕生成失败。(%s)</string>
+    <string name="notification_subtitle_creation_failed_unsupported_language_desc">视频语音仅包含不受支持的推理语言，因此无法生成字幕。请检查“设置 &gt; 推理语言”。</string>
+    <string name="notification_subtitle_creation_failed_undetectable_language_desc">该语言不受翻译支持，因此无法生成字幕。</string>
     <string name="notification_action_stop">停止</string>
 
     <!-- Dialog -->

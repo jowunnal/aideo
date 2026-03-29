@@ -224,11 +224,12 @@ class SpeechToTranscription @Inject constructor(
     private suspend fun inferenceVadAndSd() {
         while (vad.hasSegment()) {
             val nextVadSegment = vad.getNextSegment()
+            val seconds = 9
             val sdResult =
-                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * 9)
+                if (nextVadSegment.samples.size <= AudioConfig.SAMPLE_RATE * seconds)
                     speakerDiarization.process(nextVadSegment.samples)
                 else {
-                    val chunkSize = AudioConfig.SAMPLE_RATE * 9
+                    val chunkSize = AudioConfig.SAMPLE_RATE * seconds
                     var sp = 0
                     var ep = chunkSize
                     val arrayList = mutableListOf<OfflineSpeakerDiarizationSegment>()
@@ -349,9 +350,11 @@ class SpeechToTranscription @Inject constructor(
 
     suspend fun storeSubtitleFile(subtitleText: String, videoItemId: Long, languageCode: String) {
         val srcLan = if (languageCode == LanguageCode.Auto.code) {
-            val extracted = TranslationManager.extractSubtitleContent(subtitleText)
-                .split("@")
-                .first { it.isNotBlank() }
+            val extracted = extractDetectableSubtitleContent(
+                content = TranslationManager.extractSubtitleContent(subtitleText),
+                availableModel = speechRecognition?.availableSpeechRecognition
+                    ?: throw IllegalStateException("Speech recognition is not initialized")
+            )
 
             mlKitTranslation.detectLanguage(extracted).code
         } else
@@ -380,6 +383,48 @@ class SpeechToTranscription @Inject constructor(
         val vadResult: SpeechSegment,
         val sdResult: Array<OfflineSpeakerDiarizationSegment>,
     )
+
+    private fun extractDetectableSubtitleContent(
+        content: String,
+        availableModel: SpeechRecognitionAvailableModel
+    ): String {
+        val detectableLanguageRegex = createDetectableLanguageRegex(availableModel)
+
+        return content.split("@")
+            .firstOrNull { token ->
+                token.isNotBlank() && detectableLanguageRegex.containsMatchIn(token)
+            } ?: throw UnsupportedTranscriptionLanguageException()
+    }
+
+    private fun createDetectableLanguageRegex(
+        availableModel: SpeechRecognitionAvailableModel
+    ): Regex {
+        val pattern = LanguageCode.getLanguageCodesByAvailableModel(availableModel)
+            .mapNotNull(::getCharacterPatternByLanguageCode)
+            .distinct()
+            .joinToString(separator = "|")
+
+        return Regex(pattern)
+    }
+
+    private fun getCharacterPatternByLanguageCode(languageCode: LanguageCode): String? =
+        when (languageCode) {
+            LanguageCode.Auto -> null
+            LanguageCode.Korean -> "\\p{IsHangul}"
+            LanguageCode.English,
+            LanguageCode.German,
+            LanguageCode.Indonesian,
+            LanguageCode.French,
+            LanguageCode.Spanish -> "\\p{IsLatin}"
+            LanguageCode.Japanese -> "[\\p{IsHiragana}\\p{IsKatakana}\\p{IsHan}]"
+            LanguageCode.Chinese,
+            LanguageCode.Cantonese -> "\\p{IsHan}"
+            LanguageCode.Russian -> "\\p{IsCyrillic}"
+            LanguageCode.Hindi -> "\\p{IsDevanagari}"
+        }
+
+    class UnsupportedTranscriptionLanguageException :
+        IllegalStateException("Unsupported transcription language")
 
     companion object {
         const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 64

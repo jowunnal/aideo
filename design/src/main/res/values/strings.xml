@@ -55,6 +55,8 @@
     <string name="notification_subtitle_creation_completed_desc">Subtitles have been successfully created.</string>
     <string name="notification_subtitle_creation_failed">Subtitle creation failed</string>
     <string name="notification_subtitle_creation_failed_desc">Failed to create subtitles. (%s)</string>
+    <string name="notification_subtitle_creation_failed_unsupported_language_desc">Subtitle creation is unavailable when the video speech uses only unsupported inference languages.</string>
+    <string name="notification_subtitle_creation_failed_undetectable_language_desc">Subtitle creation is unavailable for speech in a language unsupported by translation.</string>
     <string name="notification_action_stop">Stop</string>
 
     <!-- Dialog -->

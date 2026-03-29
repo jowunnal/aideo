@@ -8,7 +8,6 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import jinproject.aideo.core.utils.LanguageCode
-import jinproject.aideo.data.TranslationManager.extractSubtitleContent
 import jinproject.aideo.data.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -96,23 +95,23 @@ class MlKitTranslation @Inject constructor() :
                 .addOnSuccessListener { languageCode ->
                     if (languageCode == "und") {
                         cont.resumeWithException(
-                            IllegalStateException(
-                                "[$text]'s language couldn't be identified\noutput: ${
-                                    extractSubtitleContent(
-                                        text
-                                    )
-                                }"
-                            )
+                            UnsupportedMlKitLanguageException()
                         )
-                    } else {
-                        cont.resume(
-                            LanguageCode.findByCode(languageCode)
-                                ?: throw IllegalStateException("$languageCode is not supported")
-                        )
+                        return@addOnSuccessListener
                     }
+
+                    LanguageCode.findByCode(languageCode)?.let {
+                        cont.resume(it)
+                        return@addOnSuccessListener
+                    }
+
+                    cont.resumeWithException(IllegalStateException("$languageCode is not supported"))
                 }
                 .addOnFailureListener { e ->
                     cont.resumeWithException(e)
                 }
         }
+
+    class UnsupportedMlKitLanguageException :
+        IllegalStateException("번역을 수행할 수 없는 언어에요.")
 }

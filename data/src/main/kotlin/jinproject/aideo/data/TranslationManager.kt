@@ -11,8 +11,12 @@ object TranslationManager {
      * 00:00:00,000 --> 00:00:02,000
      * Hello!
      *
+     * 2
+     * 00:00:02,000 --> 00:00:04,000
+     * World
+     *
      * @return
-     * Hello!
+     * Hello!@World
      */
     fun extractSubtitleContent(srtContent: String): String {
         val srtBlockPattern = Regex(
