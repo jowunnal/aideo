@@ -17,7 +17,7 @@ public:
     // SentencePiece 모델 + vocab.json 로드
     // spModelPath: sentencepiece.bpe.model
     // vocabPath: vocab.json (piece -> model ID 매핑)
-    bool loadM2M100(const std::string& spModelPath, const std::string& vocabPath);
+    bool loadM2M100(const char* spModelPath, const char* vocabPath);
 
     // 텍스트 → 토큰 IDs
     std::vector<int64_t> encode(const std::string& text, bool addEos = true);

@@ -7,7 +7,7 @@ Tokenizer::Tokenizer() : sp_(std::make_unique<sentencepiece::SentencePieceProces
 
 Tokenizer::~Tokenizer() = default;
 
-bool Tokenizer::loadM2M100(const std::string& spModelPath, const std::string& vocabPath) {
+bool Tokenizer::loadM2M100(const char* spModelPath, const char* vocabPath) {
     try {
         // 1. SentencePiece 모델 로드 (텍스트 → pieces 변환용)
         auto status = sp_->Load(spModelPath);
@@ -19,7 +19,7 @@ bool Tokenizer::loadM2M100(const std::string& spModelPath, const std::string& vo
         // 2. vocab.json 로드 (piece string → model ID 매핑)
         std::ifstream vocabFile(vocabPath);
         if (!vocabFile.is_open()) {
-            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to open vocab.json: %s", vocabPath.c_str());
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to open vocab.json: %s", vocabPath);
             return false;
         }
 

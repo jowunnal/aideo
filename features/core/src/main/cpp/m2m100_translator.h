@@ -20,12 +20,12 @@ public:
 
     // 모델 및 토크나이저 로드
     bool load(
-            const std::string& encoderPath,
-            const std::string& decoderPath,
-            const std::string& decoderWithPastPath,
-            const std::string& spModelPath,
-            const std::string& vocabPath,
-            const std::string& tokenizerConfigPath
+            const char* encoderPath,
+            const char* decoderPath,
+            const char* decoderWithPastPath,
+            const char* spModelPath,
+            const char* vocabPath,
+            const char* tokenizerConfigPath
     );
 
     // 번역 실행
@@ -64,7 +64,7 @@ private:
     // 토크나이저
     Tokenizer tokenizer_;
 
-    // 언어 코드 -> 토큰 ID 매핑
+    // [언어 코드 문자 : 토큰 ID 값] 매핑
     std::unordered_map<std::string, int64_t> langToTokenId_;
 
     // 특수 토큰 IDs

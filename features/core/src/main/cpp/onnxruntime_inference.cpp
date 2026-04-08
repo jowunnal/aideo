@@ -30,18 +30,18 @@ OnnxInference::~OnnxInference() {
 }
 
 bool OnnxInference::loadEncoderDecoderModel(
-        const std::string& encoderPath,
-        const std::string& decoderPath,
-        const std::string& decoderWithPastPath) {
+        const char* encoderPath,
+        const char* decoderPath,
+        const char* decoderWithPastPath) {
     try {
         encoderSession_ = std::make_unique<Ort::Session>(
-                env_, encoderPath.c_str(), sessionOptions_
+                env_, encoderPath, sessionOptions_
         );
         decoderSession_ = std::make_unique<Ort::Session>(
-                env_, decoderPath.c_str(), sessionOptions_
+                env_, decoderPath, sessionOptions_
         );
         decoderWithPastSession_ = std::make_unique<Ort::Session>(
-                env_, decoderWithPastPath.c_str(), sessionOptions_
+                env_, decoderWithPastPath, sessionOptions_
         );
         return true;
     } catch (const Ort::Exception& e) {

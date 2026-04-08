@@ -19,9 +19,9 @@ public:
 
     // Encoder-Decoder 모델 로드 (M2M100 등)
     bool loadEncoderDecoderModel(
-            const std::string& encoderPath,
-            const std::string& decoderPath,
-            const std::string& decoderWithPastPath
+            const char* encoderPath,
+            const char* decoderPath,
+            const char* decoderWithPastPath
     );
 
     // Encoder 추론 - encoder_hidden_states 반환

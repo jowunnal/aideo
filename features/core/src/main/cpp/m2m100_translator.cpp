@@ -43,12 +43,12 @@ M2M100Translator::~M2M100Translator() {
 }
 
 bool M2M100Translator::load(
-        const std::string& encoderPath,
-        const std::string& decoderPath,
-        const std::string& decoderWithPastPath,
-        const std::string& spModelPath,
-        const std::string& vocabPath,
-        const std::string& tokenizerConfigPath) {
+        const char* encoderPath,
+        const char* decoderPath,
+        const char* decoderWithPastPath,
+        const char* spModelPath,
+        const char* vocabPath,
+        const char* tokenizerConfigPath) {
 
     try {
         // 1. ONNX 모델 로드
@@ -74,9 +74,11 @@ bool M2M100Translator::load(
         if (config.contains("added_tokens_decoder")) {
             auto& decoder = config["added_tokens_decoder"];
             for (auto& [idStr, tokenInfo] : decoder.items()) {
-                std::string content = tokenInfo["content"].get<std::string>();
+                const auto& content = tokenInfo["content"].get_ref<const std::string&>();
                 // "__ko__" -> "ko"
-                if (content.size() > 4 && content.substr(0, 2) == "__" && content.substr(content.size() - 2) == "__") {
+                if (content.size() > 4 &&
+                    content.compare(0, 2, "__") == 0 &&
+                    content.compare(content.size() - 2, 2, "__") == 0) {
                     std::string langCode = content.substr(2, content.size() - 4);
                     langToTokenId_[langCode] = std::stoll(idStr);
                 }
