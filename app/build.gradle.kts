@@ -19,8 +19,8 @@ android {
     defaultConfig {
         applicationId = "jinproject.aideo.app"
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.0.6"
+        versionCode = 35
+        versionName = "1.0.7"
         ndk {
             abiFilters += "arm64-v8a"
         }

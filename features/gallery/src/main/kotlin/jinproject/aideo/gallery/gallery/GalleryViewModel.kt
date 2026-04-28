@@ -1,11 +1,9 @@
 package jinproject.aideo.gallery.gallery
 
-import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import jinproject.aideo.core.media.AndroidMediaFileManager
 import jinproject.aideo.core.utils.RestartableStateFlow
 import jinproject.aideo.core.utils.restartableStateIn
@@ -25,7 +23,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     private val androidMediaFileManager: AndroidMediaFileManager,
     private val localSettingDataSource: LocalSettingDataSource,
     private val mediaRepository: MediaRepository,

@@ -1,6 +1,3 @@
-import com.android.build.api.dsl.LibraryProductFlavor
-import org.gradle.kotlin.dsl.implementation
-
 plugins {
     id("jinProject.android.library")
     id("jinProject.android.hilt")

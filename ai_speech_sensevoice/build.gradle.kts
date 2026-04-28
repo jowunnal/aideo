@@ -6,6 +6,6 @@ aiPack {
     packName = "ai_speech_sensevoice"
 
     dynamicDelivery {
-        deliveryType = "fast-follow"
+        deliveryType = "install-time"
     }
 }

@@ -13,12 +13,6 @@ class M2M100Native {
         tokenizerConfigPath: String
     ): Boolean
 
-    external fun translateBatch(
-        textBuffer: ByteBuffer,
-        srcLang: String,
-        tgtLang: String,
-        maxLength: Int
-    ): Array<String>?
     external fun translateWithBuffer(
         textBuffer: ByteBuffer,
         textLength: Int,
@@ -26,7 +20,7 @@ class M2M100Native {
         tgtLang: String,
         maxLength: Int
     ): String?
-    external fun isLanguageSupported(lang: String): Boolean
+
     external fun release()
 
     companion object {
