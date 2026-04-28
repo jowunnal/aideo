@@ -1,22 +1,58 @@
 #include "tokenizer.h"
 #include "json.hpp"
+#include "path_utils.h"
 #include <fstream>
+#include <utility>
+
 using json = nlohmann::json;
 
 Tokenizer::Tokenizer() : sp_(std::make_unique<sentencepiece::SentencePieceProcessor>()) {}
 
 Tokenizer::~Tokenizer() = default;
 
-bool Tokenizer::loadM2M100(const char* spModelPath, const char* vocabPath) {
-    try {
-        // 1. SentencePiece 모델 로드 (텍스트 → pieces 변환용)
-        auto status = sp_->Load(spModelPath);
-        if (!status.ok()) {
-            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load SentencePiece model: %s", status.ToString().c_str());
-            return false;
-        }
+bool Tokenizer::load(const char* spModelPath, const char* vocabPath) {
+    if (!loadSentencePiece(spModelPath)) {
+        return false;
+    }
+    return loadVocab(vocabPath);
+}
 
-        // 2. vocab.json 로드 (piece string → model ID 매핑)
+bool Tokenizer::loadSentencePiece(const char* spModelPath) {
+    if (aideo::isInvalidPath(spModelPath)) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Invalid SentencePiece model path");
+        return false;
+    }
+
+    std::string nextPath(spModelPath);
+    if (sp_ && loadedSpModelPath_ == nextPath) {
+        return true;
+    }
+
+    auto nextProcessor = std::make_unique<sentencepiece::SentencePieceProcessor>();
+    auto status = nextProcessor->Load(spModelPath);
+    if (!status.ok()) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load SentencePiece model: %s",
+                   status.ToString().c_str());
+        return false;
+    }
+
+    sp_ = std::move(nextProcessor);
+    loadedSpModelPath_ = std::move(nextPath);
+    return true;
+}
+
+bool Tokenizer::loadVocab(const char* vocabPath) {
+    if (aideo::isInvalidPath(vocabPath)) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Invalid vocab path");
+        return false;
+    }
+
+    std::string nextPath(vocabPath);
+    if (!vocab_.empty() && loadedVocabPath_ == nextPath) {
+        return true;
+    }
+
+    try {
         std::ifstream vocabFile(vocabPath);
         if (!vocabFile.is_open()) {
             AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to open vocab.json: %s", vocabPath);
@@ -25,18 +61,32 @@ bool Tokenizer::loadM2M100(const char* spModelPath, const char* vocabPath) {
 
         json vocabJson = json::parse(vocabFile);
 
-        for (auto& [piece, id] : vocabJson.items()) {
+        std::unordered_map<std::string, int64_t> nextVocab;
+        std::unordered_map<int64_t, std::string> nextReverseVocab;
+        int64_t nextBosTokenId = 0;
+        int64_t nextPadTokenId = 1;
+        int64_t nextEosTokenId = 2;
+        int64_t nextUnkTokenId = 3;
+
+        for (auto& [piece, id]: vocabJson.items()) {
             int64_t tokenId = id.get<int64_t>();
-            vocab_[piece] = tokenId;
-            reverseVocab_[tokenId] = piece;
+            nextVocab[piece] = tokenId;
+            nextReverseVocab[tokenId] = piece;
 
             // 특수 토큰 ID 설정
-            if (piece == "<s>") bosTokenId_ = tokenId;
-            else if (piece == "<pad>") padTokenId_ = tokenId;
-            else if (piece == "</s>") eosTokenId_ = tokenId;
-            else if (piece == "<unk>") unkTokenId_ = tokenId;
+            if (piece == "<s>") nextBosTokenId = tokenId;
+            else if (piece == "<pad>") nextPadTokenId = tokenId;
+            else if (piece == "</s>") nextEosTokenId = tokenId;
+            else if (piece == "<unk>") nextUnkTokenId = tokenId;
         }
 
+        vocab_ = std::move(nextVocab);
+        reverseVocab_ = std::move(nextReverseVocab);
+        bosTokenId_ = nextBosTokenId;
+        padTokenId_ = nextPadTokenId;
+        eosTokenId_ = nextEosTokenId;
+        unkTokenId_ = nextUnkTokenId;
+        loadedVocabPath_ = std::move(nextPath);
         return true;
 
     } catch (const std::exception& e) {
@@ -45,7 +95,24 @@ bool Tokenizer::loadM2M100(const char* spModelPath, const char* vocabPath) {
     }
 }
 
-std::vector<int64_t> Tokenizer::encode(const std::string& text, bool addEos) {
+void Tokenizer::release() {
+    sp_.reset();
+    vocab_.clear();
+    reverseVocab_.clear();
+    bosTokenId_ = 0;
+    padTokenId_ = 1;
+    eosTokenId_ = 2;
+    unkTokenId_ = 3;
+    loadedSpModelPath_.clear();
+    loadedVocabPath_.clear();
+}
+
+std::vector<int64_t> Tokenizer::encode(const std::string& text) {
+    if (!sp_) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "SentencePiece model not loaded");
+        return {};
+    }
+
     // 1. SentencePiece로 텍스트를 pieces로 변환
     std::vector<std::string> pieces;
     auto status = sp_->Encode(text, &pieces);
@@ -57,9 +124,9 @@ std::vector<int64_t> Tokenizer::encode(const std::string& text, bool addEos) {
 
     // 2. vocab.json을 사용하여 pieces → model IDs 변환
     std::vector<int64_t> result;
-    result.reserve(pieces.size() + (addEos ? 1 : 0));
+    result.reserve(pieces.size());
 
-    for (const std::string& piece : pieces) {
+    for (const std::string& piece: pieces) {
         auto it = vocab_.find(piece);
         if (it != vocab_.end()) {
             result.push_back(it->second);
@@ -69,19 +136,20 @@ std::vector<int64_t> Tokenizer::encode(const std::string& text, bool addEos) {
         }
     }
 
-    if (addEos) {
-        result.push_back(eosTokenId_);
-    }
-
     return result;
 }
 
 std::string Tokenizer::decode(const std::vector<int64_t>& tokenIds) {
+    if (!sp_) {
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "SentencePiece model not loaded");
+        return "";
+    }
+
     // 1. 토큰 ID → piece 문자열 변환 (reverseVocab 사용)
     std::vector<std::string> pieces;
     pieces.reserve(tokenIds.size());
 
-    for (int64_t id : tokenIds) {
+    for (int64_t id: tokenIds) {
         // 특수 토큰 스킵
         if (id == padTokenId_ || id == eosTokenId_ || id == bosTokenId_) {
             continue;
@@ -91,12 +159,13 @@ std::string Tokenizer::decode(const std::vector<int64_t>& tokenIds) {
         auto it = reverseVocab_.find(id);
         if (it != reverseVocab_.end()) {
             const std::string& piece = it->second;
-            if (piece.size() > 4 && piece.substr(0, 2) == "__" && piece.substr(piece.size() - 2) == "__") {
+            if (piece.size() > 4 && piece.substr(0, 2) == "__" &&
+                piece.substr(piece.size() - 2) == "__") {
                 continue;
             }
             pieces.push_back(piece);
         } else {
-            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Token %lld not found in reverseVocab!", (long long)id);
+            AIDEO_LOGE(LOG_TAG_TOKENIZER, "Token %lld not found in reverseVocab!", (long long) id);
         }
     }
 
