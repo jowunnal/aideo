@@ -69,7 +69,7 @@ class M2M100 @Inject constructor(
         )
     }
 
-    /**
+    /*
      * 배치 번역 (DirectByteBuffer를 통한 JNI zero-copy)
      *
      * 버퍼 포맷 (Length-Prefixed Binary):
@@ -79,7 +79,7 @@ class M2M100 @Inject constructor(
      * ...
      *
      * @throws IllegalStateException : 번역 실패시
-     */
+
     private fun translateBatch(
         texts: List<String>,
         sourceLanguageCode: LanguageCode,
@@ -108,6 +108,7 @@ class M2M100 @Inject constructor(
             maxLength = MAX_OUTPUT_LENGTH
         ) ?: throw IllegalStateException("Batch translation failed")
     }
+    */
 
     /**
      * ByteBuffer를 재사용하여 번역 (JNI 복사 오버헤드 감소)
