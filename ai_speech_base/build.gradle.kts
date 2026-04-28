@@ -6,6 +6,6 @@ aiPack {
     packName = "ai_speech_base"
 
     dynamicDelivery {
-        deliveryType = "fast-follow"
+        deliveryType = "install-time"
     }
 }
