@@ -338,11 +338,12 @@ class AndroidMediaFileManager @Inject constructor(
                     )
                 }
             }
+        }.invokeOnCompletion { t ->
+            decoder.release()
+            extractor.release()
+            extractedAudioChannel.close()
         }
 
-        decoder.release()
-        extractor.release()
-        extractedAudioChannel.close()
         Log.d("test", "오디오 추출 종료")
     }
 }
