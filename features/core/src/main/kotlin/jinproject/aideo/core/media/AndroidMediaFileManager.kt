@@ -12,7 +12,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Parcelable
 import android.provider.MediaStore
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import dagger.Binds
@@ -20,11 +19,15 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import jinproject.aideo.core.media.AudioSamplingBit.PCM16Bit
+import jinproject.aideo.core.media.AudioSamplingBit.PCM32Bit
+import jinproject.aideo.core.media.AudioSamplingBit.PCM8Bit
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.data.FileIdentifier
 import jinproject.aideo.data.SubtitleFileConfig
 import jinproject.aideo.data.datasource.local.LocalFileDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
@@ -33,7 +36,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 import java.io.IOException
-import java.nio.ByteOrder
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -164,7 +166,7 @@ class AndroidMediaFileManager @Inject constructor(
         }
     }
 
-    var mediaInfo: MediaInfo? = null
+    var audioInfo: AudioInfo? = null
         private set
 
     /**
@@ -211,112 +213,209 @@ class AndroidMediaFileManager @Inject constructor(
         else
             format.setInteger(MediaFormat.KEY_AAC_MAX_OUTPUT_CHANNEL_COUNT, 1)
 
+        // AudioExtractor로 너무 적은 크기로 빈번하게 추출하여 디코딩하면, 디코딩 과정에 내부의 lock 으로 인해 전체 접근 횟수가 성능 병목 지점이 됨
+        // 따라서, inputBuffer 의 크기를 16kb 로 확장하여, MediaCodec.decoder 의 전체 디코딩(inputBuffer -> decode -> outputBuffer) 횟수를 줄임
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16384)
+
         extractor.selectTrack(audioTrackIndex) // 추출기의 track 을 오디오로 설정
 
         val decoder = MediaCodec.createDecoderByType(mime!!)
+
+        val inputBufferChannel = Channel<Int>(Channel.UNLIMITED)
+        val outputEventChannel = Channel<DecoderOutputEvent>(Channel.UNLIMITED)
+
+        decoder.setCallback(object : MediaCodec.Callback() {
+            override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
+                inputBufferChannel.trySend(index)
+            }
+
+            override fun onOutputBufferAvailable(
+                codec: MediaCodec,
+                index: Int,
+                info: MediaCodec.BufferInfo,
+            ) {
+                val copied = MediaCodec.BufferInfo().apply {
+                    set(info.offset, info.size, info.presentationTimeUs, info.flags)
+                }
+                outputEventChannel.trySend(DecoderOutputEvent.BufferAvailable(index, copied))
+            }
+
+            override fun onOutputFormatChanged(codec: MediaCodec, fmt: MediaFormat) {
+                outputEventChannel.trySend(DecoderOutputEvent.FormatChanged(fmt))
+            }
+
+            override fun onError(codec: MediaCodec, e: MediaCodec.CodecException) {
+                outputEventChannel.close(e)
+                inputBufferChannel.close(e)
+            }
+        })
+
         decoder.configure(format, null, null, 0)
         decoder.start()
 
-        val timeoutUs = 5000L
-        val decoderBufferInfo = MediaCodec.BufferInfo()
-
         coroutineScope {
             launch {
-                while (true) {
+                for (inputBufferId in inputBufferChannel) {
                     ensureActive()
-                    val inputBufferId = decoder.dequeueInputBuffer(timeoutUs)
 
-                    if (inputBufferId >= 0) {
-                        val inputBuffer = decoder.getInputBuffer(inputBufferId)
-                        val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
-                        if (sampleSize < 0) {
-                            decoder.queueInputBuffer(
-                                inputBufferId, 0, 0, 0,
-                                MediaCodec.BUFFER_FLAG_END_OF_STREAM
-                            )
+                    val inputBuffer = decoder.getInputBuffer(inputBufferId)!!
+                    val capacity = inputBuffer.capacity()
+                    var totalSize = 0
+                    val sampleTime = extractor.sampleTime
+
+                    while (true) {
+                        val nextSampleSize = extractor.sampleSize
+                        if (nextSampleSize < 0) {
                             break
-                        } else {
-                            decoder.queueInputBuffer(
-                                inputBufferId, 0, sampleSize, extractor.sampleTime, 0
-                            )
-                            extractor.advance()
                         }
+
+                        if (totalSize > 0 && totalSize + nextSampleSize > capacity) {
+                            break
+                        }
+
+                        val extractedSampleSize = extractor.readSampleData(inputBuffer, totalSize)
+
+                        if (extractedSampleSize > 0) {
+                            totalSize += extractedSampleSize
+                        }
+
+                        extractor.advance()
+                    }
+
+                    if (totalSize > 0)
+                        decoder.queueInputBuffer(
+                            inputBufferId,
+                            0,
+                            totalSize,
+                            sampleTime,
+                            0
+                        )
+                    else {
+                        decoder.queueInputBuffer(
+                            inputBufferId,
+                            0,
+                            0,
+                            0,
+                            MediaCodec.BUFFER_FLAG_END_OF_STREAM
+                        )
+                        break
                     }
                 }
             }
 
             launch {
-                var audioData: ByteArray? = null
+                var audioData: AudioSamplingBit? = null
                 var currentPointer = 0
 
-                while (true) {
+                for (event in outputEventChannel) {
                     ensureActive()
-                    val outputBufferId = decoder.dequeueOutputBuffer(decoderBufferInfo, timeoutUs)
 
-                    if (outputBufferId == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                        mediaInfo = with(decoder.outputFormat) {
-                            MediaInfo(
-                                sampleRate = getInteger(MediaFormat.KEY_SAMPLE_RATE),
-                                channelCount = getInteger(MediaFormat.KEY_CHANNEL_COUNT),
-                                encodingBytes = run {
-                                    val pcmEncodingFormat = getInteger(
-                                        MediaFormat.KEY_PCM_ENCODING,
-                                        AudioFormat.ENCODING_PCM_16BIT
-                                    )
-
-                                    when (pcmEncodingFormat) {
-                                        AudioFormat.ENCODING_PCM_8BIT -> 1
-                                        AudioFormat.ENCODING_PCM_16BIT -> 2
-                                        AudioFormat.ENCODING_PCM_FLOAT -> 4
-                                        else -> throw IllegalStateException("Encoding Type [${pcmEncodingFormat}] is not supported")
-                                    }
-                                },
-                                duration = format.getLong(MediaFormat.KEY_DURATION) / 1_000_000
-                            ).apply {
-                                audioData =
-                                    ByteArray(sampleRate * 1 * encodingBytes * AudioConfig.AUDIO_CHUNK_SECONDS) // 30 초 분량의 오디오 단위 처리
+                    when (event) {
+                        is DecoderOutputEvent.FormatChanged -> {
+                            audioInfo = with(event.format) {
+                                val sampleRate = getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                                AudioInfo(
+                                    sampleRate = sampleRate,
+                                    channelCount = getInteger(MediaFormat.KEY_CHANNEL_COUNT),
+                                    samplingBit = with(
+                                        getInteger(
+                                            MediaFormat.KEY_PCM_ENCODING,
+                                            AudioFormat.ENCODING_PCM_16BIT
+                                        )
+                                    ) audioFormat@{
+                                        val sampleSize =
+                                            sampleRate * 1 * AudioConfig.AUDIO_CHUNK_SECONDS
+                                        AudioSamplingBit.create(this@audioFormat, sampleSize)
+                                    },
+                                    duration = format.getLong(MediaFormat.KEY_DURATION) / 1_000_000
+                                ).apply {
+                                    audioData = samplingBit
+                                }
                             }
                         }
-                    } else if (outputBufferId >= 0) {
-                        val outputBuffer = decoder.getOutputBuffer(outputBufferId)
 
-                        if (decoderBufferInfo.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
-                            break
-                        } else if (decoderBufferInfo.size != 0) {
+                        is DecoderOutputEvent.BufferAvailable -> {
+                            val info = event.info
+                            val outputBufferId = event.index
+
+                            if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                                decoder.releaseOutputBuffer(outputBufferId, false)
+                                break
+                            }
+
+                            if (info.size == 0) {
+                                decoder.releaseOutputBuffer(outputBufferId, false)
+                                continue
+                            }
+
+                            val outputBuffer = decoder.getOutputBuffer(outputBufferId)
+
+                            val bufferStart = System.nanoTime()
+
                             outputBuffer?.let { buffer ->
-                                buffer.apply {
-                                    order(ByteOrder.nativeOrder())
-                                }
+                                audioData?.let { audioSamplingBit ->
+                                    while (buffer.hasRemaining()) {
+                                        val sampleRemaining =
+                                            buffer.remaining() / audioInfo!!.samplingBit.byte
 
-                                audioData?.let {
-                                    val remainingBufferSize = buffer.remaining()
-                                    if (currentPointer + remainingBufferSize <= audioData.size) {
-                                        repeat(remainingBufferSize) {
-                                            audioData[currentPointer++] = buffer.get()
-                                        }
-                                    } else {
-                                        repeat(audioData.size - currentPointer) {
-                                            audioData[currentPointer++] = buffer.get()
-                                        }
-
-                                        extractedAudioChannel.send(
-                                            audioPreProcessor.preProcess(
-                                                ExtractedAudioInfo(
-                                                    audioData = audioData,
-                                                    mediaInfo = mediaInfo!! //TODO 멀티 스레드로 AndroidMediaFileManager 인스턴스 접근하여, MediaInfo 값을 변경하면 문제발생
-                                                )
-                                            )
-                                        )
-
-                                        currentPointer = 0
-                                        repeat(audioData.size) { idx ->
-                                            audioData[idx] = 0x00.toByte()
-                                        }
-
-                                        if (buffer.hasRemaining()) {
-                                            repeat(buffer.remaining()) {
-                                                audioData[currentPointer++] = buffer.get()
+                                        val canTake = when (audioSamplingBit) {
+                                            is AudioSamplingBit.PCM8Bit -> {
+                                                minOf(
+                                                    sampleRemaining,
+                                                    audioSamplingBit.data.size - currentPointer
+                                                ).also { canTake ->
+                                                    buffer.get(
+                                                        audioSamplingBit.data,
+                                                        currentPointer,
+                                                        canTake
+                                                    )
+                                                }
                                             }
+
+                                            is AudioSamplingBit.PCM16Bit -> {
+                                                minOf(
+                                                    sampleRemaining,
+                                                    audioSamplingBit.data.size - currentPointer
+                                                ).also { canTake ->
+                                                    buffer.asShortBuffer()
+                                                        .get(
+                                                            audioSamplingBit.data,
+                                                            currentPointer,
+                                                            canTake
+                                                        )
+                                                    buffer.position(buffer.position() + canTake * audioSamplingBit.byte)
+                                                }
+                                            }
+
+                                            is AudioSamplingBit.PCM32Bit -> {
+                                                minOf(
+                                                    sampleRemaining,
+                                                    audioSamplingBit.data.size - currentPointer
+                                                ).also { canTake ->
+                                                    buffer.asFloatBuffer()
+                                                        .get(
+                                                            audioSamplingBit.data,
+                                                            currentPointer,
+                                                            canTake
+                                                        )
+                                                    buffer.position(buffer.position() + canTake * audioSamplingBit.byte)
+                                                }
+                                            }
+                                        }
+
+                                        currentPointer += canTake
+
+                                        val isAudioDataFulled = when (audioSamplingBit) {
+                                            is AudioSamplingBit.PCM16Bit -> currentPointer == audioSamplingBit.data.size
+                                            is AudioSamplingBit.PCM32Bit -> currentPointer == audioSamplingBit.data.size
+                                            is AudioSamplingBit.PCM8Bit -> currentPointer == audioSamplingBit.data.size
+                                        }
+
+                                        if (isAudioDataFulled) {
+                                            val preprocessedAudio = audioPreProcessor.preProcess(audioInfo!!)
+                                            extractedAudioChannel.send(preprocessedAudio)
+
+                                            currentPointer = 0
                                         }
                                     }
                                 }
@@ -327,40 +426,68 @@ class AndroidMediaFileManager @Inject constructor(
                     }
                 }
 
-                if (currentPointer != 0 && audioData != null) {
-                    extractedAudioChannel.send(
-                        audioPreProcessor.preProcess(
-                            ExtractedAudioInfo(
-                                audioData = audioData.sliceArray(0 until currentPointer),
-                                mediaInfo = mediaInfo!!
+                if (currentPointer != 0) {
+                    audioData?.let { audioSamplingBit ->
+                        val slicedByCurrentPointer = when (audioSamplingBit) {
+                            is PCM8Bit -> PCM8Bit(audioSamplingBit.data.copyOf(currentPointer))
+                            is PCM16Bit -> PCM16Bit(audioSamplingBit.data.copyOf(currentPointer))
+                            is PCM32Bit -> PCM32Bit(audioSamplingBit.data.copyOf(currentPointer))
+                        }
+                        val preprocessedAudio = audioPreProcessor.preProcess(
+                            audioInfo!!.copy(
+                                samplingBit = slicedByCurrentPointer
                             )
                         )
-                    )
+
+                        extractedAudioChannel.send(preprocessedAudio)
+                    }
                 }
             }
         }.invokeOnCompletion { t ->
+            inputBufferChannel.close()
+            outputEventChannel.close()
             decoder.release()
             extractor.release()
             extractedAudioChannel.close()
         }
 
-        Log.d("test", "오디오 추출 종료")
+        Timber.tag("test").d("오디오 추출 종료")
     }
 }
 
 fun interface AudioPreProcessor<T> {
-    suspend fun preProcess(audioInfo: ExtractedAudioInfo): T
+    suspend fun preProcess(audioInfo: AudioInfo): T
 }
 
-class ExtractedAudioInfo(
-    var audioData: ByteArray,
-    var mediaInfo: MediaInfo,
-)
+private sealed interface DecoderOutputEvent {
+    data class FormatChanged(val format: MediaFormat) : DecoderOutputEvent
+    data class BufferAvailable(val index: Int, val info: MediaCodec.BufferInfo) :
+        DecoderOutputEvent
+}
 
-data class MediaInfo(
+sealed interface AudioSamplingBit {
+    val byte: Int
+
+    class PCM8Bit(val data: ByteArray, override val byte: Int = 1) : AudioSamplingBit
+    class PCM16Bit(val data: ShortArray, override val byte: Int = 2) : AudioSamplingBit
+    class PCM32Bit(val data: FloatArray, override val byte: Int = 4) : AudioSamplingBit
+
+    companion object {
+        fun create(audioFormat: Int, sampleSize: Int): AudioSamplingBit {
+            return when (audioFormat) {
+                AudioFormat.ENCODING_PCM_8BIT -> PCM8Bit(ByteArray(sampleSize))
+                AudioFormat.ENCODING_PCM_16BIT -> PCM16Bit(ShortArray(sampleSize / 2))
+                AudioFormat.ENCODING_PCM_FLOAT -> PCM32Bit(FloatArray(sampleSize / 4))
+                else -> throw IllegalStateException("Encoding Bytes [$audioFormat] is not supported")
+            }
+        }
+    }
+}
+
+data class AudioInfo(
     val sampleRate: Int,
     val channelCount: Int,
-    val encodingBytes: Int,
+    val samplingBit: AudioSamplingBit,
     val duration: Long,
 )
 

@@ -3,12 +3,12 @@ package jinproject.aideo.core.media.audio
 import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.floats.plusOrMinus
 import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 
 class AudioProcessorTest {
 
@@ -27,23 +27,58 @@ class AudioProcessorTest {
 
     @Test
     fun `downsampling keeps low frequency tone near original frequency`() {
-        val input = generateSineWave(sampleRate = 48_000, frequencyHz = 1_000, durationSeconds = 0.25)
+        val input =
+            generateSineWave(sampleRate = 48_000, frequencyHz = 1_000, durationSeconds = 0.25)
 
         val result = AudioProcessor.linearResample(input, 48_000)
         val detected = detectDominantFrequency(result, AudioConfig.SAMPLE_RATE)
 
-        assertTrue(detected in 950..1_050, "expected dominant frequency near 1000Hz but was $detected Hz")
+        assertTrue(
+            detected in 950..1_050,
+            "expected dominant frequency near 1000Hz but was $detected Hz"
+        )
     }
 
     @Test
     fun `downsampling suppresses tone above destination nyquist to avoid aliasing`() {
-        val input = generateSineWave(sampleRate = 48_000, frequencyHz = 12_000, durationSeconds = 0.25)
+        val input =
+            generateSineWave(sampleRate = 48_000, frequencyHz = 12_000, durationSeconds = 0.25)
 
         val result = AudioProcessor.linearResample(input, 48_000)
         val trimmed = result.copyOfRange(128, result.size - 128)
 
         rms(trimmed) shouldBeLessThan 1_500.0
     }
+
+    @Test
+    fun `normalizeAudioSample 다운샘플링 시 저주파 톤 보존`() {
+        val input =
+            generateSineWave(sampleRate = 48_000, frequencyHz = 1_000, durationSeconds = 0.25)
+
+        val result = AudioProcessor.normalizeAudioSample(input, 48_000)
+        val asShort = result.toShortArray()
+        val detected = detectDominantFrequency(asShort, AudioConfig.SAMPLE_RATE)
+
+        assertTrue(
+            detected in 950..1_050,
+            "expected dominant frequency near 1000Hz but was $detected Hz"
+        )
+    }
+
+    @Test
+    fun `normalizeAudioSample 다운샘플링 시 Nyquist 위 주파수 차단`() {
+        val input =
+            generateSineWave(sampleRate = 48_000, frequencyHz = 12_000, durationSeconds = 0.25)
+
+        val result = AudioProcessor.normalizeAudioSample(input, 48_000)
+        val asShort = result.toShortArray()
+        val trimmed = asShort.copyOfRange(128, asShort.size - 128)
+
+        rms(trimmed) shouldBeLessThan 1_500.0
+    }
+
+    private fun FloatArray.toShortArray(): ShortArray =
+        ShortArray(size) { (this[it] * 32768f).toInt().toShort() }
 
     private fun generateSineWave(
         sampleRate: Int,
