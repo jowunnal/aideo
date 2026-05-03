@@ -36,6 +36,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @AndroidEntryPoint
 class TranscribeService : LifecycleService() {
@@ -57,17 +59,21 @@ class TranscribeService : LifecycleService() {
     private var job: Job? = null
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
 
-    @OptIn(FlowPreview::class)
+    @OptIn(ExperimentalAtomicApi::class)
+    private var isVisible: AtomicBoolean = AtomicBoolean(true)
+
+    @OptIn(FlowPreview::class, ExperimentalAtomicApi::class)
     override fun onCreate() {
         super.onCreate()
 
         speechToTranscription.progress.debounce(100).filter { it > 0f }.onEach { p ->
-            if (p == 1f)
-                notifyTranscribe(
-                    contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
-                    progress = null
-                )
-            else
+            if (p == 1f) {
+                if (isVisible.load())
+                    notifyTranscribe(
+                        contentTitle = getString(jinproject.aideo.design.R.string.notification_starting_subtitle_translation),
+                        progress = null
+                    )
+            } else
                 notifyTranscribe(
                     contentTitle = getString(jinproject.aideo.design.R.string.notification_creating_subtitles),
                     progress = p
@@ -145,6 +151,7 @@ class TranscribeService : LifecycleService() {
         }
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     private fun startTranscription(videoUri: String, videoId: Long) {
         val isTranscribeRunning = job != null
         val previousJob = job
@@ -161,6 +168,7 @@ class TranscribeService : LifecycleService() {
             processSubtitle(videoUri = videoUri, videoId = videoId)
 
             if (foregroundObserver.isForeground) {
+                isVisible.store(false)
                 stopForeground(STOP_FOREGROUND_REMOVE)
             } else {
                 stopSelf()
@@ -363,6 +371,7 @@ class TranscribeService : LifecycleService() {
         speechToTranscription.release()
         translator.release()
         job = null
+        notificationManager.cancel(NOTIFICATION_TRANSCRIBE_ID)
         super.onDestroy()
     }
 

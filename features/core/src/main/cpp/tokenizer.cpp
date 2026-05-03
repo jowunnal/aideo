@@ -90,7 +90,7 @@ bool Tokenizer::loadVocab(const char* vocabPath) {
         return true;
 
     } catch (const std::exception& e) {
-        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load M2M100 tokenizer: %s", e.what());
+        AIDEO_LOGE(LOG_TAG_TOKENIZER, "Failed to load tokenizer: %s", e.what());
         return false;
     }
 }

@@ -1,6 +1,5 @@
 package jinproject.aideo.core.category.stt
 
-import android.media.AudioFormat
 import android.os.Build
 import androidx.core.net.toUri
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationSegment
@@ -15,9 +14,11 @@ import jinproject.aideo.core.inference.speechRecognition.api.SpeechRecognition
 import jinproject.aideo.core.inference.translation.MlKitTranslation
 import jinproject.aideo.core.inference.vad.SileroVad
 import jinproject.aideo.core.media.AndroidMediaFileManager
+import jinproject.aideo.core.media.AudioSamplingBit
 import jinproject.aideo.core.media.MediaFileManager
 import jinproject.aideo.core.media.audio.AudioConfig
 import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample
+import jinproject.aideo.core.media.audio.AudioProcessor.normalizeAudioSample8Bit
 import jinproject.aideo.core.media.audio.ChunkedAudioProcessor
 import jinproject.aideo.core.utils.LanguageCode
 import jinproject.aideo.data.SubtitleFileConfig
@@ -36,8 +37,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.math.ceil
@@ -73,10 +72,10 @@ class SpeechToTranscription @Inject constructor(
         speakerDiarization.initialize()
 
         if (extractedAudioChannel.isClosedForSend)
-            extractedAudioChannel = Channel<FloatArray>(capacity = EXTRACTED_AUDIO_CHANNEL_CAPACITY)
+            extractedAudioChannel = Channel(capacity = EXTRACTED_AUDIO_CHANNEL_CAPACITY)
         if (inferenceAudioChannel.isClosedForSend)
             inferenceAudioChannel =
-                Channel<SingleSpeechSegment>(capacity = INFERENCE_CHANNEL_CAPACITY)
+                Channel(capacity = INFERENCE_CHANNEL_CAPACITY)
     }
 
     private suspend fun initializeSpeechRecognition() {
@@ -151,9 +150,9 @@ class SpeechToTranscription @Inject constructor(
 
                         transcribeSingleSegment(singleSpeechSegment)
 
-                        (mediaFileManager as AndroidMediaFileManager).mediaInfo?.let {
+                        (mediaFileManager as AndroidMediaFileManager).audioInfo?.let {
                             val total =
-                                AudioConfig.SAMPLE_RATE * it.channelCount * it.encodingBytes * it.duration / Short.SIZE_BYTES
+                                AudioConfig.SAMPLE_RATE * it.channelCount * it.samplingBit.byte * it.duration / Short.SIZE_BYTES
 
                             _progress.value =
                                 processedAudioSize.toFloat() / (total).toFloat()
@@ -321,28 +320,23 @@ class SpeechToTranscription @Inject constructor(
             videoContentUri = videoUri.toUri(),
             extractedAudioChannel = extractedAudioChannel,
             audioPreProcessor = { audioInfo ->
-                when (audioInfo.mediaInfo.encodingBytes) {
-                    AudioFormat.ENCODING_PCM_16BIT -> {
-                        normalizeAudioSample(
-                            audioChunk = audioInfo.audioData,
-                            sampleRate = audioInfo.mediaInfo.sampleRate,
-                        )
-                    }
+                val sampleRate = audioInfo.sampleRate
 
-                    AudioFormat.ENCODING_PCM_FLOAT -> {
-                        val floatBuffer =
-                            ByteBuffer.wrap(audioInfo.audioData)
-                                .order(ByteOrder.nativeOrder())
-                                .asFloatBuffer()
+                when (val samplingBit = audioInfo.samplingBit) {
+                    is AudioSamplingBit.PCM8Bit -> normalizeAudioSample8Bit(
+                        samplingBit.data,
+                        sampleRate
+                    )
 
-                        FloatArray(floatBuffer.remaining()).apply {
-                            floatBuffer.get(this)
-                        }
-                    }
+                    is AudioSamplingBit.PCM16Bit -> normalizeAudioSample(
+                        samplingBit.data,
+                        sampleRate
+                    )
 
-                    else -> {
-                        throw IllegalArgumentException("Unsupported encoding type")
-                    }
+                    is AudioSamplingBit.PCM32Bit -> normalizeAudioSample(
+                        samplingBit.data,
+                        sampleRate
+                    )
                 }
             }
         )
@@ -416,9 +410,11 @@ class SpeechToTranscription @Inject constructor(
             LanguageCode.Indonesian,
             LanguageCode.French,
             LanguageCode.Spanish -> "\\p{IsLatin}"
+
             LanguageCode.Japanese -> "[\\p{IsHiragana}\\p{IsKatakana}\\p{IsHan}]"
             LanguageCode.Chinese,
             LanguageCode.Cantonese -> "\\p{IsHan}"
+
             LanguageCode.Russian -> "\\p{IsCyrillic}"
             LanguageCode.Hindi -> "\\p{IsDevanagari}"
         }
@@ -427,8 +423,8 @@ class SpeechToTranscription @Inject constructor(
         IllegalStateException("Unsupported transcription language")
 
     companion object {
-        const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 64
-        const val INFERENCE_CHANNEL_CAPACITY = 64
+        const val EXTRACTED_AUDIO_CHANNEL_CAPACITY = 10
+        const val INFERENCE_CHANNEL_CAPACITY = 10
     }
 }
 
