@@ -20,7 +20,7 @@ jobs:
     - name: Extract version
       id: extract_version
       run: |
-        VERSION=$(git log -1 --pretty=%B | grep -oP -m1 'Release:\s*\K[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        VERSION=$(git log -1 --pretty=%B | grep -oiP -m1 'release:\s*\K[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
         echo "Extracted version: $VERSION"
         echo "version_name=$(echo $VERSION | tr -d '\r\n')" >> $GITHUB_OUTPUT
 
@@ -30,6 +30,19 @@ jobs:
     if: ${{ needs.extract_version.outputs.version_name != 'unknown' }}
     steps:
     - uses: actions/checkout@v4
+
+    - name: Increment version info
+      run: |
+          FILE_PATH="app/build.gradle.kts"
+          VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K\d+' $FILE_PATH)
+          NEW_VERSION_CODE=$((VERSION_CODE + 1))
+          VERSION_NAME="${{ needs.extract_version.outputs.version_name }}"
+          sed -i "s/versionCode = $VERSION_CODE/versionCode = $NEW_VERSION_CODE/" $FILE_PATH
+          sed -i "s/versionName = \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/versionName = \"$VERSION_NAME\"/" $FILE_PATH
+
+          echo "Updated versionCode to $NEW_VERSION_CODE"
+          echo "Updated versionName to $VERSION_NAME"
+          echo "VERSION_CODE=$NEW_VERSION_CODE" >> $GITHUB_ENV
 
     - name: Create Github Release
       uses: softprops/action-gh-release@v2.2.1
@@ -66,7 +79,9 @@ jobs:
         branch: auto-update/readme-${{ needs.extract_version.outputs.version_name }}
         title: "docs: update README for v${{ needs.extract_version.outputs.version_name }}"
         body: "Automated README badge updates for Release ${{ needs.extract_version.outputs.version_name }}"
-        add-paths: README.md
+        add-paths: |
+          README.md
+          app/build.gradle.kts
 
     - name: Auto Merge Pull Request
       if: ${{ steps.create-pr.outputs.pull-request-number }}
